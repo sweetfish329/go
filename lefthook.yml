@@ -1,0 +1,36 @@
+# lefthook.yml
+#
+# Refer to the lefthook documentation for more info:
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      root: "kifu/backend"
+      glob: "*.go"
+      # 自動的にフォーマットしてコミットに追加する場合の設定（推奨）
+      stage_fixed: true
+      run: gofmt -w {staged_files}
+      
+      # フォーマットが合っていない場合にコミットを拒否する（チェックのみ）場合は、
+      # 上記の `stage_fixed` と `run: gofmt -w ...` をコメントアウトし、以下を使用してください。
+      # run: sh -c 'files=$(gofmt -l {staged_files}) && [ -z "$files" ]'
+
+    lint:
+      root: "kifu/backend"
+      glob: "*.go"
+      # 変更されたファイルのみに対して golangci-lint を実行します。
+      # ※ ローカル環境に golangci-lint がインストールされている必要があります。
+      run: golangci-lint run {staged_files}
+      
+      # golangci-lint が導入されていない環境で、Go標準の go vet を使用する場合は以下を使用してください。
+      # （go vet をファイル単位で実行するとパッケージ境界エラーが起きやすいため、変更があった際に全体をチェックする設定にしています）
+      # run: go vet ./...
+
+pre-push:
+  commands:
+    build:
+      root: "kifu/backend"
+      # プッシュ前は、リポジトリ全体が正常にビルドできることを保証するため、全体ビルドを実行します。
+      run: go build ./...
