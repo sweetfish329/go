@@ -20,9 +20,9 @@ pre-commit:
     lint:
       root: "kifu/backend"
       glob: "*.go"
-      # 変更されたファイルのみに対して golangci-lint を実行します。
-      # ※ ローカル環境に golangci-lint がインストールされている必要があります。
-      run: golangci-lint run {staged_files}
+      # プロジェクト全体に対して golangci-lint を実行します。
+      # （ファイル単体を渡すと、異なるパッケージ間で typechecking error が発生するため）
+      run: golangci-lint run ./...
       
       # golangci-lint が導入されていない環境で、Go標準の go vet を使用する場合は以下を使用してください。
       # （go vet をファイル単位で実行するとパッケージ境界エラーが起きやすいため、変更があった際に全体をチェックする設定にしています）
