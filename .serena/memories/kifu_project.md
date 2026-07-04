@@ -102,4 +102,12 @@
   - `Containerfile` でのフロントエンドビルドに `oven/bun:alpine` と `bun install` / `bun run build` を適用。
   - `lefthook.yml` に定義されている pre-commit / pre-push 時のフックコマンドを `bunx` および `bun run` に変更。
 
+### 8. @sabaki/sgf の全面的導入によるSGF解析の堅牢化
+- **導入の背景**:
+  自作の SGF 解析（パーサー）およびシリアライザでは、SGF 規格の複雑なエスケープ処理（コメント内の括弧 `]` 等の退避）や、複数分岐（変化図）のツリー表現における処理に限界があった。そのため、オープンソースの囲碁エディタ Sabaki のコアライブラリである `@sabaki/sgf` を全面的に導入した。
+- **実装上の工夫**:
+  フロントエンド全体の型安全性を担保するために、`@types/sabaki__sgf` も合わせて開発環境に追加した。
+  既存コード（SgfPlayerクラスやSvelteコンポーネント）との互換性を崩さないよう、[sgfPlayer.ts](file:///D:/project/go/github.com/sweetfish329/go/kifu/frontend/src/lib/sgfPlayer.ts) の `parseSgf` と `stringifySgf` の内部のみを `@sabaki/sgf` でラップ・再設計することで、他のクラスや画面コードに破壊的変更を与えることなく SGF 解析の堅牢化を実現した。
+
+
 
