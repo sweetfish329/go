@@ -22,12 +22,12 @@ pre-commit:
     frontend-lint:
       root: "kifu/frontend"
       glob: "*.{js,ts,svelte}"
-      run: npx oxlint {staged_files}
+      run: bunx oxlint {staged_files}
 
     frontend-check:
       root: "kifu/frontend"
       glob: "*.{js,ts,svelte}"
-      run: npm run check
+      run: bun run check
 
 pre-push:
   commands:
@@ -39,4 +39,4 @@ pre-push:
     # --- Frontend Push Hooks ---
     frontend-build:
       root: "kifu/frontend"
-      run: npm run build
+      run: bun run build

@@ -38,3 +38,8 @@ Svelte 5 introduces **Runes** for reactivity. Legacy syntax like reactive statem
 
 ### 6. Built-in Reactivity Classes
 - Imported from `svelte/reactivity`, Svelte provides reactive classes like `Set`, `Map`, `Date`, and `URL`. Use them when you need reactive collections or objects.
+
+### 7. Runes in External JavaScript/TypeScript Files
+- **Mandatory File Extension:** If you use Svelte 5 runes (`$state()`, `$derived()`, etc.) inside a separate, external JS/TS module (not inside a `.svelte` component), you **must** use the `.svelte.js` or `.svelte.ts` file extension.
+- **ReferenceError Prevention:** If you use normal `.js` or `.ts` extensions, the Svelte compiler will bypass these files. The runes will not be compiled, resulting in a runtime `ReferenceError: $state is not defined` and crashing the application (causing a blank page).
+- **Import Suffix Requirement:** When importing symbols from a `.svelte.ts` / `.svelte.js` file, you must specify the `.svelte` suffix (e.g., `import { auth } from './lib/auth.svelte'`) to allow Vite / TypeScript to resolve the compiled outputs correctly. Do not omit the extension or use `.ts`.
