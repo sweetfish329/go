@@ -41,8 +41,9 @@ func main() {
 	reviewHandler.RegisterRoutes(mux)
 	authHandler.RegisterRoutes(mux)
 
-	// Serve static files from frontend build
+	// Serve static files and assets, but intercept GET "/" exactly to inject OGP tags
 	fs := http.FileServer(http.Dir("./dist"))
+	mux.HandleFunc("GET /{$}", kifuHandler.RootHandler)
 	mux.Handle("/", fs)
 
 	// Wrap Mux with CORS middleware

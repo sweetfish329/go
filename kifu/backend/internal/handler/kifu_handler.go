@@ -4,7 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"image/png"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
@@ -40,6 +44,7 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Public routes
 	mux.HandleFunc("GET /api/share/{token}", h.GetShared)
+	mux.HandleFunc("GET /api/share/{token}/og-image", h.GetSharedOgImage)
 }
 
 func (h *KifuHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -302,4 +307,106 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, map[string]string{"error": message})
+}
+
+// GetSharedOgImage generates and returns a PNG image representing the final board state of a shared kifu
+func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	if token == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing token")
+		return
+	}
+
+	kifu, err := h.repo.FindByShareToken(token)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Shared kifu not found")
+		return
+	}
+
+	if kifu.ShareExpiresAt != nil && kifu.ShareExpiresAt.Before(time.Now()) {
+		respondWithError(w, http.StatusGone, "Shared link has expired")
+		return
+	}
+
+	// Parse SGF
+	rootNode, err := sgf.Parse(kifu.SgfData)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to parse SGF: "+err.Error())
+		return
+	}
+
+	// Simulating SGF moves to reproduce board grid state
+	meta := rootNode.ExtractMetadata()
+	board := sgf.NewBoard(meta.Size)
+	board.ReplicateGame(rootNode)
+
+	// Rendering board grid state to image
+	img := sgf.GenerateBoardImage(board.Grid, board.Size)
+
+	w.Header().Set("Content-Type", "image/png")
+	// Cache control for OGP images
+	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+	if err := png.Encode(w, img); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to encode PNG: "+err.Error())
+	}
+}
+
+// RootHandler handles serving the index.html and dynamically injecting OGP tags if ?share=<token> is present
+func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
+	shareToken := r.URL.Query().Get("share")
+	if shareToken == "" {
+		http.ServeFile(w, r, "./dist/index.html")
+		return
+	}
+
+	kifu, err := h.repo.FindByShareToken(shareToken)
+	if err != nil || (kifu.ShareExpiresAt != nil && kifu.ShareExpiresAt.Before(time.Now())) {
+		// Fallback to normal html
+		http.ServeFile(w, r, "./dist/index.html")
+		return
+	}
+
+	htmlBytes, err := os.ReadFile("./dist/index.html")
+	if err != nil {
+		http.ServeFile(w, r, "./dist/index.html")
+		return
+	}
+
+	html := string(htmlBytes)
+
+	// Dynamic OGP properties
+	title := kifu.Title
+	description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
+	if kifu.Result != "" {
+		description += fmt.Sprintf(" (結果: %s)", kifu.Result)
+	}
+
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		scheme = proto
+	}
+	host := r.Host
+	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, shareToken)
+
+	ogpMeta := fmt.Sprintf(`
+	<meta property="og:title" content="%s | 囲碁 棋譜ストア & 添削" />
+	<meta property="og:description" content="%s" />
+	<meta property="og:image" content="%s" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="%s | 囲碁 棋譜ストア & 添削" />
+	<meta name="twitter:description" content="%s" />
+	<meta name="twitter:image" content="%s" />`,
+		title, description, ogImageUrl,
+		title, description, ogImageUrl,
+	)
+
+	// Replace </head> with OGP tags inserted right before it
+	html = strings.Replace(html, "</head>", ogpMeta+"\n</head>", 1)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(html))
 }
