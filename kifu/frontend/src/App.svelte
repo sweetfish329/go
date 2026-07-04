@@ -4,9 +4,10 @@
   import KifuDetail from './components/KifuDetail.svelte';
   import Auth from './components/Auth.svelte';
   import UsernameDialog from './components/UsernameDialog.svelte';
+  import KifuCreator from './components/KifuCreator.svelte';
   import { auth } from './lib/auth.svelte';
 
-  let currentView = $state<"list" | "detail" | "auth">("list");
+  let currentView = $state<"list" | "detail" | "auth" | "create">("list");
   let selectedKifuId = $state("");
   let selectedShareToken = $state("");
   let showUsernameDialog = $state(false);
@@ -91,7 +92,9 @@
     {#if currentView === "auth"}
       <Auth onLoginSuccess={handleLoginSuccess} />
     {:else if currentView === "list"}
-      <KifuList on:selectKifu={handleSelectKifu} />
+      <KifuList on:selectKifu={handleSelectKifu} on:createKifu={() => currentView = "create"} />
+    {:else if currentView === "create"}
+      <KifuCreator onSaveSuccess={handleLoginSuccess} onCancel={handleBackToList} />
     {:else if currentView === "detail" && (selectedKifuId || selectedShareToken)}
       <KifuDetail kifuId={selectedKifuId} shareToken={selectedShareToken} onBack={handleBackToList} />
     {/if}

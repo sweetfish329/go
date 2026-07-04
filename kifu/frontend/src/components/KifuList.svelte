@@ -16,6 +16,7 @@
 
   const dispatch = createEventDispatcher<{
     selectKifu: string;
+    createKifu: void;
   }>();
 
   // Reactive states using Svelte 5 Runes
@@ -171,12 +172,17 @@
 </script>
 
 <div class="row">
-  <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem;">
+  <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
     <h4 style="margin: 0; font-weight: 500;" class="brown-text text-darken-3">棋譜ライブラリ</h4>
-    <button class="btn waves-effect waves-light brown darken-2" onclick={() => showUploadForm = !showUploadForm}>
-      <i class="material-icons left">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-      {showUploadForm ? '閉じる' : '新規登録'}
-    </button>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn waves-effect waves-light brown lighten-1" onclick={() => dispatch('createKifu')}>
+        <i class="material-icons left">edit</i>自分で棋譜を作成
+      </button>
+      <button class="btn waves-effect waves-light brown darken-2" onclick={() => showUploadForm = !showUploadForm}>
+        <i class="material-icons left">{showUploadForm ? 'close' : 'cloud_upload'}</i>
+        {showUploadForm ? '閉じる' : 'SGFアップロード'}
+      </button>
+    </div>
   </div>
 
   <!-- Filter Panel -->
