@@ -20,8 +20,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Containerfile
+      context: .
+      dockerfile: backend/Containerfile
     container_name: kifu-backend
     ports:
       - "8080:8080"
@@ -35,19 +35,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Containerfile
-    container_name: kifu-frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
 
 volumes:
   kifu-db-data:

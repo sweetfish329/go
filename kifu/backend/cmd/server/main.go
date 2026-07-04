@@ -38,10 +38,9 @@ func main() {
 	kifuHandler.RegisterRoutes(mux)
 	reviewHandler.RegisterRoutes(mux)
 
-	// Simple root route
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Kifu Store API is running"))
-	})
+	// Serve static files from frontend build
+	fs := http.FileServer(http.Dir("./dist"))
+	mux.Handle("/", fs)
 
 	// Wrap Mux with CORS middleware
 	handlerWithCORS := enableCORS(mux)

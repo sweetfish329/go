@@ -1,29 +1,30 @@
-# Build stage
-FROM golang:1.26-alpine AS builder
+# Stage 1: Frontend Builder
+FROM oven/bun:alpine AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN bun install
+COPY frontend/ ./
+RUN bun run build
 
+# Stage 2: Go Backend Builder
+FROM golang:1.26-alpine AS backend-builder
 WORKDIR /app
-
-# Install git for fetch dependencies if needed
 RUN apk add --no-cache git
-
-# Copy the application source code first so that go mod tidy can scan imports
-COPY . .
-
-# Run go mod tidy inside container to resolve dependency issues
+# Copy Go source code
+COPY backend/ ./
 RUN go mod tidy && go mod download
-
-# Build the executable
+# Build Go server
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/server
 
-# Run stage
+# Stage 3: Runner
 FROM alpine:latest
-
-# Security: Install ca-certificates and run as non-root user
 RUN apk --no-cache add ca-certificates && adduser -D appuser
 USER appuser
-
 WORKDIR /app
-COPY --from=builder /app/server .
+
+# Copy built server and static frontend assets
+COPY --from=backend-builder /app/server .
+COPY --from=frontend-builder /frontend/dist ./dist
 
 ENV PORT=8080
 EXPOSE 8080
