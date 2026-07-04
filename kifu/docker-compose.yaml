@@ -24,7 +24,7 @@ services:
       dockerfile: backend/Containerfile
     container_name: kifu-backend
     ports:
-      - "8080:8080"
+      - "8085:8080"
     environment:
       PORT: 8080
       DB_HOST: db
