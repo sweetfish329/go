@@ -6,31 +6,37 @@
 pre-commit:
   parallel: true
   commands:
-    format:
+    # --- Backend Hooks ---
+    backend-format:
       root: "kifu/backend"
       glob: "*.go"
-      # 自動的にフォーマットしてコミットに追加する場合の設定（推奨）
       stage_fixed: true
       run: gofmt -w {staged_files}
-      
-      # フォーマットが合っていない場合にコミットを拒否する（チェックのみ）場合は、
-      # 上記の `stage_fixed` と `run: gofmt -w ...` をコメントアウトし、以下を使用してください。
-      # run: sh -c 'files=$(gofmt -l {staged_files}) && [ -z "$files" ]'
 
-    lint:
+    backend-lint:
       root: "kifu/backend"
       glob: "*.go"
-      # プロジェクト全体に対して golangci-lint を実行します。
-      # （ファイル単体を渡すと、異なるパッケージ間で typechecking error が発生するため）
       run: golangci-lint run ./...
-      
-      # golangci-lint が導入されていない環境で、Go標準の go vet を使用する場合は以下を使用してください。
-      # （go vet をファイル単位で実行するとパッケージ境界エラーが起きやすいため、変更があった際に全体をチェックする設定にしています）
-      # run: go vet ./...
+
+    # --- Frontend Hooks ---
+    frontend-lint:
+      root: "kifu/frontend"
+      glob: "*.{js,ts,svelte}"
+      run: npx oxlint {staged_files}
+
+    frontend-check:
+      root: "kifu/frontend"
+      glob: "*.{js,ts,svelte}"
+      run: npm run check
 
 pre-push:
   commands:
-    build:
+    # --- Backend Push Hooks ---
+    backend-build:
       root: "kifu/backend"
-      # プッシュ前は、リポジトリ全体が正常にビルドできることを保証するため、全体ビルドを実行します。
       run: go build ./...
+
+    # --- Frontend Push Hooks ---
+    frontend-build:
+      root: "kifu/frontend"
+      run: npm run build
