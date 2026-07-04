@@ -69,3 +69,15 @@
 - **解決策**:
   `:global()` 疑似クラス（例: `:global(.card-content) { ... }`）を使用して、コンポーネントスコープをバイパスして意図通りにスタイルを適用する。
 
+### 4. Svelte フロントエンドの TypeScript 移行
+- **移行内容**:
+  - `src/main.js` から `src/main.ts` への移行、および `index.html` からの読み込み先更新。
+  - `goEngine.js`, `sgfPlayer.js` の型定義付き `.ts` ファイルへの移行。
+  - Svelte コンポーネント (`App.svelte`, `Board.svelte`, `KifuList.svelte`, `KifuDetail.svelte`) への `lang="ts"` の適用および型安全化。
+- **重要知見**:
+  - **TypeScript 7.0.1-rc の非互換性**:
+    `typescript@7.0.1-rc` は Microsoft による実験的な Go 移植版のプレビューパッケージ (`typescript-go`) であり、従来の JavaScript API (コンパイラ API) をエクスポートしていません。そのため、`svelte-check` や `vite-plugin-svelte` がモジュール読み込み時に `ERR_PACKAGE_PATH_NOT_EXPORTED` エラーでクラッシュします。
+    Svelte+Viteのビルド環境では、JS版 TypeScript の最新安定版である `6.0.3` などを採用する必要があります。
+  - **Svelte コンポーネント内での null チェック**:
+    `strict: true` 設定下では、API等から取得する非同期データ（例: `kifu` などの対局メタデータ）が `null` になる可能性を TypeScript が検出するため、HTML テンプレート側で `{kifu?.prop}` または `{#if kifu}` によるガードを入れる必要があります。
+
