@@ -17,15 +17,50 @@
   const dispatch = createEventDispatcher<{
     selectKifu: string;
   }>();
-  let kifus: KifuItem[] = [];
-  let loading: boolean = true;
-  let error: string | null = null;
+
+  // Reactive states using Svelte 5 Runes
+  let kifus = $state<KifuItem[]>([]);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
 
   // Form states
-  let title: string = "";
-  let sgfData: string = "";
-  let showUploadForm: boolean = false;
-  let uploading: boolean = false;
+  let title = $state("");
+  let sgfData = $state("");
+  let showUploadForm = $state(false);
+  let uploading = $state(false);
+
+  // Filter states
+  let searchQuery = $state("");
+  let startDate = $state("");
+  let endDate = $state("");
+
+  // Derived filtered kifu list
+  let filteredKifus = $derived.by(() => {
+    return kifus.filter(k => {
+      // 1. Text search
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = k.title?.toLowerCase().includes(query);
+        const blackMatch = k.black_player?.toLowerCase().includes(query);
+        const whiteMatch = k.white_player?.toLowerCase().includes(query);
+        if (!titleMatch && !blackMatch && !whiteMatch) {
+          return false;
+        }
+      }
+
+      // 2. Date range filtering (game_date is YYYY-MM-DD)
+      const gameDateStr = k.game_date;
+      if (gameDateStr) {
+        if (startDate && gameDateStr < startDate) return false;
+        if (endDate && gameDateStr > endDate) return false;
+      } else {
+        // Exclude if filter is active but game_date is missing
+        if (startDate || endDate) return false;
+      }
+
+      return true;
+    });
+  });
 
   // Type helper for Materialize global object
   const getM = () => (window as any).M;
@@ -138,11 +173,50 @@
 <div class="row">
   <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem;">
     <h4 style="margin: 0; font-weight: 500;" class="brown-text text-darken-3">棋譜ライブラリ</h4>
-    <button class="btn waves-effect waves-light brown darken-2" on:click={() => showUploadForm = !showUploadForm}>
+    <button class="btn waves-effect waves-light brown darken-2" onclick={() => showUploadForm = !showUploadForm}>
       <i class="material-icons left">{showUploadForm ? 'close' : 'cloud_upload'}</i>
       {showUploadForm ? '閉じる' : '新規登録'}
     </button>
   </div>
+
+  <!-- Filter Panel -->
+  {#if !loading && !error && kifus.length > 0}
+    <div class="col s12" style="margin-bottom: 1rem;">
+      <div class="card white filter-card animate-fade-in" style="margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); border-radius: 8px;">
+        <div class="card-content" style="padding: 16px 20px;">
+          <span class="card-title brown-text text-darken-3" style="font-size: 1.05rem; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+            <i class="material-icons" style="font-size: 1.15rem; vertical-align: middle;">filter_list</i> フィルター検索
+          </span>
+          <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 10px 0;">
+            <!-- Text Search -->
+            <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
+              <i class="material-icons prefix" style="font-size: 1.3rem; margin-top: 8px;">search</i>
+              <input id="search-query" type="text" bind:value={searchQuery} placeholder="対局名、対局者名（黒/白）" style="margin-bottom: 8px; height: 2.5rem;" />
+              <label for="search-query" class="active">キーワード</label>
+            </div>
+            <!-- Date Start -->
+            <div class="input-field col s6 m3" style="margin-top: 0; margin-bottom: 0;">
+              <input id="start-date" type="date" bind:value={startDate} style="margin-bottom: 8px; height: 2.5rem;" />
+              <label for="start-date" class="active">対局日 (開始)</label>
+            </div>
+            <!-- Date End -->
+            <div class="input-field col s6 m3" style="margin-top: 0; margin-bottom: 0;">
+              <input id="end-date" type="date" bind:value={endDate} style="margin-bottom: 8px; height: 2.5rem;" />
+              <label for="end-date" class="active">対局日 (終了)</label>
+            </div>
+          </div>
+          {#if searchQuery || startDate || endDate}
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <div class="right-align" style="margin-top: 4px;">
+              <a class="cursor-pointer brown-text text-darken-2" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="material-icons" style="font-size: 1rem;">clear_all</i>検索条件をクリア
+              </a>
+            </div>
+          {/if}
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Upload Form -->
   {#if showUploadForm}
@@ -155,7 +229,7 @@
             <div class="file-field input-field col s12 m6">
               <div class="btn brown lighten-1">
                 <span>SGFファイル選択</span>
-                <input type="file" accept=".sgf" on:change={handleFileChange} />
+                <input type="file" accept=".sgf" onchange={handleFileChange} />
               </div>
               <div class="file-path-wrapper">
                 <input class="file-path validate" type="text" placeholder="または以下のテキストエリアに直接貼り付けてください" />
@@ -174,8 +248,8 @@
           </div>
         </div>
         <div class="card-action right-align" style="background-color: #fafafa;">
-          <button class="btn-flat waves-effect" on:click={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
-          <button class="btn waves-effect waves-light brown" disabled={!sgfData.trim() || uploading} on:click={handleUpload}>
+          <button class="btn-flat waves-effect" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
+          <button class="btn waves-effect waves-light brown" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
             {#if uploading}
               保存中...
             {:else}
@@ -216,13 +290,19 @@
       <h5 class="grey-text text-darken-1">登録されている棋譜がありません</h5>
       <p class="grey-text">「新規登録」ボタンからSGFファイルをアップロードして開始してください。</p>
     </div>
+  {:else if filteredKifus.length === 0}
+    <div class="col s12 center-align" style="margin-top: 4rem; padding: 2rem;">
+      <i class="material-icons grey-text" style="font-size: 5rem;">search_off</i>
+      <h5 class="grey-text text-darken-1">条件に一致する棋譜が見つかりません</h5>
+      <p class="grey-text">検索キーワードや日付の範囲を変更してお試しください。</p>
+    </div>
   {:else}
     <!-- Kifu Cards Grid -->
-    {#each kifus as k (k.id)}
+    {#each filteredKifus as k (k.id)}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="col s12 m6 l4">
-        <div class="card hoverable kifu-card waves-effect waves-block" style="width: 100%; display: block; text-align: left;" on:click={() => dispatch('selectKifu', k.id)}>
+        <div class="card hoverable kifu-card waves-effect waves-block" style="width: 100%; display: block; text-align: left;" onclick={() => dispatch('selectKifu', k.id)}>
           <div class="card-content">
             <span class="card-title truncate brown-text text-darken-4" style="font-weight: 500; font-size: 1.25rem; margin-bottom: 0.5rem;" title={k.title}>
               {k.title}
@@ -254,7 +334,7 @@
           
           <div class="card-action d-flex justify-between" style="display: flex; justify-content: space-between; align-items: center; background-color: #fafafa; padding: 8px 20px;">
             <span class="brown-text text-darken-2" style="font-weight: 500;">開く <i class="material-icons right" style="vertical-align: middle; font-size: 1.1rem; line-height: inherit;">arrow_forward</i></span>
-            <button class="btn-flat btn-floating waves-effect waves-red" style="margin: 0; width: 36px; height: 36px; line-height: 36px;" on:click={(e) => handleDelete(k.id, e)} title="削除">
+            <button class="btn-flat btn-floating waves-effect waves-red" style="margin: 0; width: 36px; height: 36px; line-height: 36px;" onclick={(e) => handleDelete(k.id, e)} title="削除">
               <i class="material-icons red-text text-lighten-1">delete</i>
             </button>
           </div>
