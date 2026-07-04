@@ -4,7 +4,7 @@
   import ShareDialog from './ShareDialog.svelte';
   import { SgfPlayer } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
-  import { auth } from '../lib/auth';
+  import { auth } from '../lib/auth.svelte';
 
   export let kifuId = "";
   export let shareToken = "";

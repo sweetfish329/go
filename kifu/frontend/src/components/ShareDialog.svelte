@@ -1,6 +1,6 @@
 <script lang="ts">
   import QRCode from 'qrcode';
-  import { auth } from '../lib/auth';
+  import { auth } from '../lib/auth.svelte';
 
   interface Kifu {
     id: string;

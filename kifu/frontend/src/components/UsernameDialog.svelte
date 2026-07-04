@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { auth } from '../lib/auth';
+  import { auth } from '../lib/auth.svelte';
 
   let { onClose, onSuccess } = $props<{
     onClose: () => void;

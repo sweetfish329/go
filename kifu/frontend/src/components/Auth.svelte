@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { auth } from '../lib/auth';
+  import { auth } from '../lib/auth.svelte';
 
   let { onLoginSuccess } = $props<{ onLoginSuccess: () => void }>();
 

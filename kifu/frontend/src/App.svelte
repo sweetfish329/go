@@ -4,7 +4,7 @@
   import KifuDetail from './components/KifuDetail.svelte';
   import Auth from './components/Auth.svelte';
   import UsernameDialog from './components/UsernameDialog.svelte';
-  import { auth } from './lib/auth';
+  import { auth } from './lib/auth.svelte';
 
   let currentView = $state<"list" | "detail" | "auth">("list");
   let selectedKifuId = $state("");

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from 'svelte';
-  import { auth } from '../lib/auth';
+  import { auth } from '../lib/auth.svelte';
 
   interface KifuItem {
     id: string;
