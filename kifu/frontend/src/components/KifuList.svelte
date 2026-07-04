@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from 'svelte';
+  import { auth } from '../lib/auth';
 
   interface KifuItem {
     id: string;
@@ -32,7 +33,9 @@
   async function fetchKifus(): Promise<void> {
     loading = true;
     try {
-      const res = await fetch('/api/kifus');
+      const res = await fetch('/api/kifus', {
+        headers: auth.getHeaders()
+      });
       if (!res.ok) throw new Error("Failed to fetch games");
       kifus = await res.json();
     } catch (err: any) {
@@ -49,9 +52,7 @@
     try {
       const res = await fetch('/api/kifus', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: auth.getHeaders(),
         body: JSON.stringify({
           title: title.trim() || undefined,
           sgf_data: sgfData.trim()
@@ -91,7 +92,8 @@
 
     try {
       const res = await fetch(`/api/kifus/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: auth.getHeaders()
       });
       if (!res.ok) throw new Error("Failed to delete game");
       

@@ -1,11 +1,16 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import Board from './Board.svelte';
+  import ShareDialog from './ShareDialog.svelte';
   import { SgfPlayer } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
+  import { auth } from '../lib/auth';
 
   export let kifuId = "";
+  export let shareToken = "";
   export let onBack: () => void = () => {};
+
+  let showShareDialog = false;
 
   interface KifuDetailData {
     id: string;
@@ -19,6 +24,8 @@
     white_rank?: string;
     result?: string;
     game_date?: string;
+    share_token?: string;
+    share_expires_at?: string;
   }
 
   interface ReviewItem {
@@ -75,23 +82,38 @@
   async function loadKifu() {
     loading = true;
     try {
-      // 1. Fetch Kifu metadata & raw SGF
-      const kifuRes = await fetch(`/api/kifus/${kifuId}`);
-      if (!kifuRes.ok) throw new Error("Failed to fetch kifu details");
-      kifu = await kifuRes.json();
+      let kifuRes: Response;
+      let reviewRes: Response;
+
+      if (shareToken) {
+        kifuRes = await fetch(`/api/share/${shareToken}`);
+        if (!kifuRes.ok) throw new Error("Failed to fetch shared kifu details");
+        kifu = await kifuRes.json();
+
+        reviewRes = await fetch(`/api/share/${shareToken}/reviews`);
+      } else {
+        kifuRes = await fetch(`/api/kifus/${kifuId}`, {
+          headers: auth.getHeaders()
+        });
+        if (!kifuRes.ok) throw new Error("Failed to fetch kifu details");
+        kifu = await kifuRes.json();
+
+        reviewRes = await fetch(`/api/kifus/${kifuId}/reviews`, {
+          headers: auth.getHeaders()
+        });
+      }
+
       if (!kifu) throw new Error("Kifu data is null");
-      boardSize = kifu.handicap > 0 || kifu.sgf_data.includes("SZ[19]") ? 19 : 19; // Default 19, can extract from SGF
+      boardSize = kifu.handicap > 0 || kifu.sgf_data.includes("SZ[19]") ? 19 : 19;
       
-      // 2. Fetch Review comments
-      const reviewRes = await fetch(`/api/kifus/${kifuId}/reviews`);
       if (reviewRes.ok) {
         reviewList = await reviewRes.json();
       }
 
-      // 3. Initialize SgfPlayer
+      // Initialize SgfPlayer
       player = new SgfPlayer(kifu.sgf_data, boardSize);
       
-      // 4. Merge review comments and variations into SGF tree
+      // Merge review comments and variations into SGF tree
       mergeReviewsIntoPlayer();
 
       updatePlayerState();
@@ -338,19 +360,32 @@
         }
       }
 
-      const res = await fetch(`/api/kifus/${kifuId}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          move_number: currentIndex,
-          node_path: String(currentIndex), // Simple path string
-          reviewer_name: reviewerName.trim(),
-          comment: reviewComment.trim(),
-          variations: variationsSgf
-        })
-      });
+      let res: Response;
+      if (shareToken) {
+        res = await fetch(`/api/share/${shareToken}/reviews`, {
+          method: 'POST',
+          headers: auth.getHeaders(),
+          body: JSON.stringify({
+            move_number: currentIndex,
+            node_path: String(currentIndex),
+            reviewer_name: reviewerName.trim(),
+            comment: reviewComment.trim(),
+            variations: variationsSgf
+          })
+        });
+      } else {
+        res = await fetch(`/api/kifus/${kifuId}/reviews`, {
+          method: 'POST',
+          headers: auth.getHeaders(),
+          body: JSON.stringify({
+            move_number: currentIndex,
+            node_path: String(currentIndex),
+            reviewer_name: reviewerName.trim(),
+            comment: reviewComment.trim(),
+            variations: variationsSgf
+          })
+        });
+      }
 
       if (!res.ok) throw new Error("Failed to save review comment");
 
@@ -408,18 +443,28 @@
   });
 
   onMount(() => {
+    if (auth.username) {
+      reviewerName = auth.username;
+    }
     loadKifu();
   });
 </script>
 
 <div class="row" style="margin-top: 1rem;">
   <!-- Header Navigation -->
-  <div class="col s12 d-flex align-center" style="display: flex; align-items: center; margin-bottom: 1rem;">
-    <button class="btn-flat waves-effect brown-text" on:click={onBack} style="padding-left: 0;">
-      <i class="material-icons left">arrow_back</i>戻る
-    </button>
-    {#if kifu}
-      <h5 class="brown-text text-darken-4" style="margin: 0; font-weight: 500; margin-left: 1rem;">{kifu.title}</h5>
+  <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center;">
+      <button class="btn-flat waves-effect brown-text" on:click={onBack} style="padding-left: 0;">
+        <i class="material-icons left">arrow_back</i>戻る
+      </button>
+      {#if kifu}
+        <h5 class="brown-text text-darken-4" style="margin: 0; font-weight: 500; margin-left: 1rem;">{kifu.title}</h5>
+      {/if}
+    </div>
+    {#if kifu && !shareToken}
+      <button class="btn waves-effect waves-light brown lighten-1" on:click={() => showShareDialog = true}>
+        <i class="material-icons left">share</i>共有・QRコード
+      </button>
     {/if}
   </div>
 
@@ -613,6 +658,18 @@
     </div>
   {/if}
 </div>
+
+{#if showShareDialog && kifu}
+  <ShareDialog 
+    kifu={kifu} 
+    onClose={() => showShareDialog = false} 
+    onUpdate={(updatedKifu) => {
+      if (kifu) {
+        kifu = { ...kifu, ...updatedKifu } as KifuDetailData;
+      }
+    }} 
+  />
+{/if}
 
 <style>
   .border-amber {

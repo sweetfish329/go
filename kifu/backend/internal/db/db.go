@@ -58,6 +58,16 @@ func getEnv(key, fallback string) string {
 }
 
 func runMigrations(db *sql.DB) error {
+	// Create users table
+	usersTableQuery := `
+	CREATE TABLE IF NOT EXISTS users (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		username VARCHAR(100) UNIQUE NOT NULL,
+		password_hash VARCHAR(255) NOT NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);`
+
 	// Create kifus table
 	kifusTableQuery := `
 	CREATE TABLE IF NOT EXISTS kifus (
@@ -90,12 +100,24 @@ func runMigrations(db *sql.DB) error {
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);`
 
+	// Alter kifus table to add new columns if they do not exist
+	alterKifusQuery := `
+	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL;
+	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_token VARCHAR(100) UNIQUE;
+	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_expires_at TIMESTAMP;
+	`
+
 	// Create index for performance
 	indexQuery := `
 	CREATE INDEX IF NOT EXISTS idx_reviews_kifu_id ON reviews(kifu_id);
 	`
 
-	_, err := db.Exec(kifusTableQuery)
+	_, err := db.Exec(usersTableQuery)
+	if err != nil {
+		return fmt.Errorf("failed to create users table: %w", err)
+	}
+
+	_, err = db.Exec(kifusTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create kifus table: %w", err)
 	}
@@ -103,6 +125,11 @@ func runMigrations(db *sql.DB) error {
 	_, err = db.Exec(reviewsTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create reviews table: %w", err)
+	}
+
+	_, err = db.Exec(alterKifusQuery)
+	if err != nil {
+		return fmt.Errorf("failed to alter kifus table: %w", err)
 	}
 
 	_, err = db.Exec(indexQuery)

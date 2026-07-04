@@ -28,15 +28,18 @@ func main() {
 	// Initialize repositories
 	kifuRepo := repository.NewKifuRepository(database)
 	reviewRepo := repository.NewReviewRepository(database)
+	userRepo := repository.NewUserRepository(database)
 
 	// Initialize handlers
 	kifuHandler := handler.NewKifuHandler(kifuRepo)
-	reviewHandler := handler.NewReviewHandler(reviewRepo)
+	reviewHandler := handler.NewReviewHandler(reviewRepo, kifuRepo)
+	authHandler := handler.NewAuthHandler(userRepo)
 
 	// Routing setup
 	mux := http.NewServeMux()
 	kifuHandler.RegisterRoutes(mux)
 	reviewHandler.RegisterRoutes(mux)
+	authHandler.RegisterRoutes(mux)
 
 	// Serve static files from frontend build
 	fs := http.FileServer(http.Dir("./dist"))
