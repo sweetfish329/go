@@ -3,11 +3,13 @@
   import KifuList from './components/KifuList.svelte';
   import KifuDetail from './components/KifuDetail.svelte';
   import Auth from './components/Auth.svelte';
+  import UsernameDialog from './components/UsernameDialog.svelte';
   import { auth } from './lib/auth';
 
   let currentView = $state<"list" | "detail" | "auth">("list");
   let selectedKifuId = $state("");
   let selectedShareToken = $state("");
+  let showUsernameDialog = $state(false);
 
   // Determine view on mount based on URL query params & auth state
   onMount(() => {
@@ -70,7 +72,13 @@
         <!-- svelte-ignore a11y-missing-attribute -->
         <li><a onclick={handleBackToList} class="cursor-pointer">ホーム</a></li>
         {#if auth.isLoggedIn}
-          <li><span style="margin: 0 15px; font-weight: 500; font-size: 0.95rem; color: #efebe9;">{auth.username} さん</span></li>
+          <!-- svelte-ignore a11y-missing-attribute -->
+          <li>
+            <a onclick={() => showUsernameDialog = true} class="cursor-pointer" style="display: flex; align-items: center; gap: 4px; color: #efebe9; font-weight: 500; font-size: 0.95rem;">
+              <i class="material-icons tiny" style="font-size: 1rem; margin-right: 4px;">edit</i>
+              <span>{auth.username} さん</span>
+            </a>
+          </li>
           <!-- svelte-ignore a11y-missing-attribute -->
           <li><a onclick={handleLogout} class="cursor-pointer"><i class="material-icons left">exit_to_app</i>ログアウト</a></li>
         {/if}
@@ -89,6 +97,15 @@
     {/if}
   </main>
 </div>
+
+{#if showUsernameDialog}
+  <UsernameDialog 
+    onClose={() => showUsernameDialog = false} 
+    onSuccess={() => {
+      showUsernameDialog = false;
+    }} 
+  />
+{/if}
 
 <style>
   main {

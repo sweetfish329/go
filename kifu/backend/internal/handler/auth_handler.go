@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
@@ -22,6 +25,16 @@ type AuthRequest struct {
 	Password string `json:"password"`
 }
 
+type OAuthLoginRequest struct {
+	Provider        string `json:"provider"`
+	ProviderUserID  string `json:"provider_user_id"`
+	DefaultUsername string `json:"default_username"`
+}
+
+type UpdateUsernameRequest struct {
+	Username string `json:"username"`
+}
+
 type AuthResponse struct {
 	Token string      `json:"token"`
 	User  *model.User `json:"user"`
@@ -30,7 +43,11 @@ type AuthResponse struct {
 func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/register", h.Register)
 	mux.HandleFunc("POST /api/auth/login", h.Login)
+	mux.HandleFunc("POST /api/auth/oauth", h.OAuthLogin)
+
+	// Protected
 	mux.Handle("GET /api/auth/me", AuthMiddleware(http.HandlerFunc(h.Me)))
+	mux.Handle("PUT /api/auth/username", AuthMiddleware(http.HandlerFunc(h.UpdateUsername)))
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -63,9 +80,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pwdHash := string(hashedPassword)
 	user := &model.User{
 		Username:     req.Username,
-		PasswordHash: string(hashedPassword),
+		PasswordHash: &pwdHash,
 	}
 
 	if err := h.repo.Create(user); err != nil {
@@ -102,13 +120,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if user == nil {
+	if user == nil || user.PasswordHash == nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
 
 	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.Password)); err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
@@ -123,6 +141,104 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Token: token,
 		User:  user,
 	})
+}
+
+func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
+	var req OAuthLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if req.Provider == "" || req.ProviderUserID == "" {
+		respondWithError(w, http.StatusBadRequest, "provider and provider_user_id are required")
+		return
+	}
+
+	// 1. Check if user already registered this oauth
+	user, err := h.repo.FindByOAuth(req.Provider, req.ProviderUserID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if user == nil {
+		// 2. Register new user for this oauth identity
+		baseUsername := req.DefaultUsername
+		if baseUsername == "" {
+			baseUsername = req.Provider + "_user"
+		}
+
+		uniqueName := h.getUniqueUsername(baseUsername)
+
+		user = &model.User{
+			Username: uniqueName,
+		}
+		oauth := &model.UserOAuth{
+			Provider:       req.Provider,
+			ProviderUserID: req.ProviderUserID,
+		}
+
+		if err := h.repo.CreateWithOAuth(user, oauth); err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	// 3. Generate token
+	token, err := GenerateToken(user.ID, user.Username)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, AuthResponse{
+		Token: token,
+		User:  user,
+	})
+}
+
+func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req UpdateUsernameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if req.Username == "" {
+		respondWithError(w, http.StatusBadRequest, "Username is required")
+		return
+	}
+
+	// Check name duplication
+	existing, err := h.repo.FindByUsername(req.Username)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if existing != nil && existing.ID != userID {
+		respondWithError(w, http.StatusConflict, "Username is already taken")
+		return
+	}
+
+	if err := h.repo.UpdateUsername(userID, req.Username); err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	updatedUser, err := h.repo.FindByID(userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to fetch updated user info")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, updatedUser)
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
@@ -143,4 +259,18 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, user)
+}
+
+func (h *AuthHandler) getUniqueUsername(base string) string {
+	username := base
+	for {
+		existing, err := h.repo.FindByUsername(username)
+		if err == nil && existing == nil {
+			return username
+		}
+		// Append random hex suffix
+		bytes := make([]byte, 2)
+		_, _ = rand.Read(bytes)
+		username = fmt.Sprintf("%s_%s", base, hex.EncodeToString(bytes))
+	}
 }

@@ -58,14 +58,26 @@ func getEnv(key, fallback string) string {
 }
 
 func runMigrations(db *sql.DB) error {
-	// Create users table
+	// Create users table (password_hash is nullable to support OAuth-only accounts)
 	usersTableQuery := `
 	CREATE TABLE IF NOT EXISTS users (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		username VARCHAR(100) UNIQUE NOT NULL,
-		password_hash VARCHAR(255) NOT NULL,
+		password_hash VARCHAR(255),
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	// Create user_oauths table
+	oauthsTableQuery := `
+	CREATE TABLE IF NOT EXISTS user_oauths (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		provider VARCHAR(50) NOT NULL,
+		provider_user_id VARCHAR(255) NOT NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		CONSTRAINT unique_provider_user UNIQUE (provider, provider_user_id)
 	);`
 
 	// Create kifus table
@@ -107,6 +119,11 @@ func runMigrations(db *sql.DB) error {
 	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_expires_at TIMESTAMP;
 	`
 
+	// Drop NOT NULL constraint on users.password_hash if it exists (for existing tables)
+	alterUsersQuery := `
+	ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+	`
+
 	// Create index for performance
 	indexQuery := `
 	CREATE INDEX IF NOT EXISTS idx_reviews_kifu_id ON reviews(kifu_id);
@@ -115,6 +132,11 @@ func runMigrations(db *sql.DB) error {
 	_, err := db.Exec(usersTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %w", err)
+	}
+
+	_, err = db.Exec(oauthsTableQuery)
+	if err != nil {
+		return fmt.Errorf("failed to create user_oauths table: %w", err)
 	}
 
 	_, err = db.Exec(kifusTableQuery)
@@ -130,6 +152,11 @@ func runMigrations(db *sql.DB) error {
 	_, err = db.Exec(alterKifusQuery)
 	if err != nil {
 		return fmt.Errorf("failed to alter kifus table: %w", err)
+	}
+
+	_, err = db.Exec(alterUsersQuery)
+	if err != nil {
+		return fmt.Errorf("failed to alter users table: %w", err)
 	}
 
 	_, err = db.Exec(indexQuery)
