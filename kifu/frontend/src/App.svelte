@@ -5,9 +5,11 @@
   import Auth from './components/Auth.svelte';
   import UsernameDialog from './components/UsernameDialog.svelte';
   import KifuCreator from './components/KifuCreator.svelte';
+  import AdminAuth from './components/AdminAuth.svelte';
+  import AdminDashboard from './components/AdminDashboard.svelte';
   import { auth } from './lib/auth.svelte';
 
-  let currentView = $state<"list" | "detail" | "auth" | "create">("list");
+  let currentView = $state<"list" | "detail" | "auth" | "create" | "admin_auth" | "admin_dashboard">("list");
   let selectedKifuId = $state("");
   let selectedShareToken = $state("");
   let showUsernameDialog = $state(false);
@@ -16,10 +18,18 @@
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     const share = params.get('share');
+    const admin = params.has('admin');
     
     if (share) {
       selectedShareToken = share;
       currentView = "detail";
+    } else if (admin) {
+      const adminToken = localStorage.getItem("admin_token");
+      if (adminToken) {
+        currentView = "admin_dashboard";
+      } else {
+        currentView = "admin_auth";
+      }
     } else {
       if (!auth.isLoggedIn) {
         currentView = "auth";
@@ -97,6 +107,10 @@
       <KifuCreator onSaveSuccess={handleLoginSuccess} onCancel={handleBackToList} />
     {:else if currentView === "detail" && (selectedKifuId || selectedShareToken)}
       <KifuDetail kifuId={selectedKifuId} shareToken={selectedShareToken} onBack={handleBackToList} />
+    {:else if currentView === "admin_auth"}
+      <AdminAuth onLoginSuccess={() => currentView = "admin_dashboard"} />
+    {:else if currentView === "admin_dashboard"}
+      <AdminDashboard onLogout={() => currentView = "admin_auth"} />
     {/if}
   </main>
 </div>

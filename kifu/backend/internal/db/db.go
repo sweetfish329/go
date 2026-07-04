@@ -129,6 +129,17 @@ func runMigrations(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_reviews_kifu_id ON reviews(kifu_id);
 	`
 
+	// Create oauth_settings table
+	oauthSettingsTableQuery := `
+	CREATE TABLE IF NOT EXISTS oauth_settings (
+		provider VARCHAR(50) PRIMARY KEY,
+		client_id TEXT NOT NULL,
+		client_secret TEXT NOT NULL,
+		redirect_url TEXT NOT NULL,
+		enabled BOOLEAN NOT NULL DEFAULT true,
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);`
+
 	_, err := db.Exec(usersTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %w", err)
@@ -162,6 +173,11 @@ func runMigrations(db *sql.DB) error {
 	_, err = db.Exec(indexQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create reviews index: %w", err)
+	}
+
+	_, err = db.Exec(oauthSettingsTableQuery)
+	if err != nil {
+		return fmt.Errorf("failed to create oauth_settings table: %w", err)
 	}
 
 	log.Println("Database migrations applied successfully.")

@@ -29,17 +29,20 @@ func main() {
 	kifuRepo := repository.NewKifuRepository(database)
 	reviewRepo := repository.NewReviewRepository(database)
 	userRepo := repository.NewUserRepository(database)
+	oauthRepo := repository.NewOAuthRepository(database)
 
 	// Initialize handlers
 	kifuHandler := handler.NewKifuHandler(kifuRepo)
 	reviewHandler := handler.NewReviewHandler(reviewRepo, kifuRepo)
 	authHandler := handler.NewAuthHandler(userRepo)
+	adminHandler := handler.NewAdminHandler(oauthRepo)
 
 	// Routing setup
 	mux := http.NewServeMux()
 	kifuHandler.RegisterRoutes(mux)
 	reviewHandler.RegisterRoutes(mux)
 	authHandler.RegisterRoutes(mux)
+	adminHandler.RegisterRoutes(mux)
 
 	// Serve static files and assets, but intercept GET "/" exactly to inject OGP tags
 	fs := http.FileServer(http.Dir("./dist"))

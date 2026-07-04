@@ -20,6 +20,7 @@ var jwtSecret = []byte("kifu-secret-key-1234") // In production, use environment
 type Claims struct {
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
+	IsAdmin  bool   `json:"is_admin,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -28,6 +29,21 @@ func GenerateToken(userID string, username string) (string, error) {
 	claims := &Claims{
 		UserID:   userID,
 		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}
+
+func GenerateAdminToken(username string) (string, error) {
+	expirationTime := time.Now().Add(12 * time.Hour) // 12 hours
+	claims := &Claims{
+		UserID:   "admin",
+		Username: username,
+		IsAdmin:  true,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -105,5 +121,37 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// AdminMiddleware protects routes that require admin privileges
+func AdminMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			respondWithError(w, http.StatusUnauthorized, "Authorization header required")
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			respondWithError(w, http.StatusUnauthorized, "Authorization header format must be Bearer <token>")
+			return
+		}
+
+		claims, err := ValidateToken(parts[1])
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
+			return
+		}
+
+		if !claims.IsAdmin {
+			respondWithError(w, http.StatusForbidden, "Admin privileges required")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+		ctx = context.WithValue(ctx, UsernameKey, claims.Username)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
