@@ -2,6 +2,8 @@
   import { createBoard, placeStone, coordsToSgf } from '../lib/goEngine';
   import Board from './Board.svelte';
   import { auth } from '../lib/auth.svelte';
+  import { stringifySgf } from '../lib/sgfPlayer';
+  import type { SgfNode } from '../lib/sgfPlayer';
 
   let { onSaveSuccess, onCancel } = $props<{
     onSaveSuccess: () => void;
@@ -146,25 +148,45 @@
     const ev = gameTitle.trim() || "ブラウザ対局";
     const pb = blackPlayer.trim() || "黒番";
     const pw = whitePlayer.trim() || "白番";
-    const br = blackRank.trim() ? `BR[${blackRank.trim()}]` : "";
-    const wr = whiteRank.trim() ? `WR[${whiteRank.trim()}]` : "";
     const dt = gameDate.trim() || new Date().toISOString().slice(0,10);
 
-    let sgf = `(;GM[1]FF[4]SZ[${size}]PB[${pb}]${br}PW[${pw}]${wr}DT[${dt}]EV[${ev}]`;
+    const properties: Record<string, string[]> = {
+      GM: ["1"],
+      FF: ["4"],
+      SZ: [String(size)],
+      PB: [pb],
+      PW: [pw],
+      DT: [dt],
+      EV: [ev]
+    };
 
-    // Write moves
+    if (blackRank.trim()) properties.BR = [blackRank.trim()];
+    if (whiteRank.trim()) properties.WR = [whiteRank.trim()];
+
+    const rootNode: SgfNode = {
+      properties,
+      children: [],
+      parent: null
+    };
+
+    let currentNode = rootNode;
     for (const m of moves) {
-      const colorChar = m.color === 1 ? 'B' : 'W';
-      if (m.x === null || m.y === null) {
-        sgf += `;${colorChar}[]`;
-      } else {
-        const coord = coordsToSgf(m.x, m.y);
-        sgf += `;${colorChar}[${coord}]`;
-      }
+      const colorKey = m.color === 1 ? 'B' : 'W';
+      const moveValue = (m.x === null || m.y === null) ? "" : coordsToSgf(m.x, m.y);
+      
+      const nextNode: SgfNode = {
+        properties: {
+          [colorKey]: [moveValue]
+        },
+        children: [],
+        parent: currentNode
+      };
+      
+      currentNode.children.push(nextNode);
+      currentNode = nextNode;
     }
 
-    sgf += `)`;
-    return sgf;
+    return stringifySgf(rootNode);
   }
 
   async function handleSave() {

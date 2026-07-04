@@ -13,169 +13,91 @@ export interface HistoryEntry {
   node: SgfNode | null;
 }
 
-// Parse SGF string into a JS tree structure
+import { parse as sabakiParse, stringify as sabakiStringify } from '@sabaki/sgf';
+
+// Convert Sabaki's SGF Node to our internal SgfNode structure (with parent pointers)
+function convertSabakiNode(sabakiNode: any, parent: SgfNode | null = null): SgfNode {
+  const node: SgfNode = {
+    properties: sabakiNode.data || {},
+    children: [],
+    parent: parent
+  };
+
+  if (sabakiNode.children && sabakiNode.children.length > 0) {
+    node.children = sabakiNode.children.map((child: any) => convertSabakiNode(child, node));
+  }
+
+  return node;
+}
+
+// Convert our SgfNode back to Sabaki Sgf node structure for serialization
+function convertToSabakiNode(node: SgfNode, idCounter = { val: 1 }): any {
+  const currentId = idCounter.val++;
+  const sabakiNode: any = {
+    id: currentId,
+    data: node.properties,
+    parentId: null,
+    children: []
+  };
+
+  sabakiNode.children = node.children.map(child => {
+    const childNode = convertToSabakiNode(child, idCounter);
+    childNode.parentId = currentId;
+    return childNode;
+  });
+
+  return sabakiNode;
+}
+
+// Parse SGF string into a JS tree structure using @sabaki/sgf
 export function parseSgf(sgfStr: string): SgfNode | null {
   sgfStr = sgfStr.trim();
   if (!sgfStr) return null;
 
-  let index = 0;
-  const len = sgfStr.length;
-
-  function parseNode(): SgfNode {
-    const node: SgfNode = {
-      properties: {},
-      children: [],
-      parent: null
-    };
-
-    while (index < len) {
-      // Skip whitespaces
-      while (index < len && /\s/.test(sgfStr[index])) {
-        index++;
-      }
-
-      if (index >= len) break;
-
-      const char = sgfStr[index];
-
-      if (char === '(' || char === ')' || char === ';') {
-        break;
-      }
-
-      // Read property name (uppercase letters)
-      let propName = "";
-      while (index < len && sgfStr[index] >= 'A' && sgfStr[index] <= 'Z') {
-        propName += sgfStr[index];
-        index++;
-      }
-
-      if (!propName) {
-        index++; // safeguard against infinite loops on weird chars
-        continue;
-      }
-
-      // Read values enclosed in [...]
-      const values: string[] = [];
-      while (index < len && sgfStr[index] === '[') {
-        index++; // skip '['
-        let val = "";
-        let escaped = false;
-        while (index < len) {
-          if (escaped) {
-            val += sgfStr[index];
-            escaped = false;
-            index++;
-            continue;
-          }
-          if (sgfStr[index] === '\\') {
-            escaped = true;
-            index++;
-            continue;
-          }
-          if (sgfStr[index] === ']') {
-            break;
-          }
-          val += sgfStr[index];
-          index++;
-        }
-          values.push(val);
-        index++; // skip ']'
-      }
-
-      if (values.length > 0) {
-        node.properties[propName] = values;
-      }
-    }
-
-    return node;
+  try {
+    const rootNodes = sabakiParse(sgfStr);
+    if (!rootNodes || rootNodes.length === 0) return null;
+    return convertSabakiNode(rootNodes[0]);
+  } catch (err) {
+    console.error("Failed to parse SGF with @sabaki/sgf:", err);
+    return null;
   }
-
-  function parseSubtree(parent: SgfNode | null): SgfNode | undefined {
-    let current = parent;
-    const branchNodes: SgfNode[] = [];
-
-    while (index < len) {
-      // Skip whitespaces
-      while (index < len && /\s/.test(sgfStr[index])) {
-        index++;
-      }
-      if (index >= len) break;
-
-      const char = sgfStr[index];
-
-      if (char === '(') {
-        index++; // skip '('
-        // Parse branch
-        parseSubtree(current);
-      } else if (char === ')') {
-        index++; // skip ')'
-        return; // End of branch
-      } else if (char === ';') {
-        index++; // skip ';'
-        const node = parseNode();
-        node.parent = current;
-        if (current) {
-          current.children.push(node);
-        }
-        current = node;
-        branchNodes.push(node);
-      } else {
-        index++;
-      }
-    }
-
-    return branchNodes[0];
-  }
-
-  // Find the first '('
-  const firstParen = sgfStr.indexOf('(');
-  if (firstParen === -1) return null;
-  index = firstParen + 1;
-
-  // Find the first ';' inside
-  while (index < len && sgfStr[index] !== ';') {
-    index++;
-  }
-  if (index >= len) return null;
-  index++; // skip ';'
-
-  const root = parseNode();
-  parseSubtree(root);
-  return root;
 }
 
-// Generate an SGF string from a tree
+// Generate an SGF string from a tree using @sabaki/sgf
 export function stringifySgf(rootNode: SgfNode): string {
-  let sgf = "";
-
-  function traverse(node: SgfNode): void {
-    sgf += ";";
-    for (const [key, values] of Object.entries(node.properties)) {
-      sgf += key;
-      for (const val of values) {
-        // Escape brackets
-        const escaped = val.replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
-        sgf += `[${escaped}]`;
+  try {
+    const sabakiRoot = convertToSabakiNode(rootNode);
+    return sabakiStringify([sabakiRoot]);
+  } catch (err) {
+    console.error("Failed to stringify SGF with @sabaki/sgf:", err);
+    // Simple manual fallback
+    let sgf = "";
+    function traverse(node: SgfNode): void {
+      sgf += ";";
+      for (const [key, values] of Object.entries(node.properties)) {
+        sgf += key;
+        for (const val of values) {
+          const escaped = val.replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
+          sgf += `[${escaped}]`;
+        }
+      }
+      if (node.children.length === 0) return;
+      if (node.children.length === 1) {
+        traverse(node.children[0]);
+      } else {
+        for (const child of node.children) {
+          sgf += "(";
+          traverse(child);
+          sgf += ")";
+        }
       }
     }
-
-    if (node.children.length === 0) {
-      return;
-    } else if (node.children.length === 1) {
-      traverse(node.children[0]);
-    } else {
-      for (const child of node.children) {
-        sgf += "(";
-        traverse(child);
-        sgf += ")";
-      }
-    }
+    sgf += "(";
+    traverse(rootNode);
+    sgf += ")";
+    return sgf;
   }
-
-  sgf += "(";
-  traverse(rootNode);
-  sgf += ")";
-  return sgf;
 }
 
 // SgfPlayer class manages navigation and board state transitions

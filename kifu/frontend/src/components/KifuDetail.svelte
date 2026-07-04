@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import Board from './Board.svelte';
   import ShareDialog from './ShareDialog.svelte';
-  import { SgfPlayer } from '../lib/sgfPlayer';
+  import { SgfPlayer, stringifySgf } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
   import { auth } from '../lib/auth.svelte';
 
@@ -415,26 +415,7 @@
 
   // Simple serialization helper for a variation branch node
   function serializeSubtree(node: SgfNode) {
-    let sgf = "";
-    
-    function traverse(n: SgfNode) {
-      sgf += ";";
-      for (const [key, values] of Object.entries(n.properties)) {
-        sgf += key;
-        for (const val of values) {
-          sgf += `[${val}]`;
-        }
-      }
-      if (n.children.length > 0) {
-        // Just serialize the first branch path for now
-        traverse(n.children[0]);
-      }
-    }
-
-    sgf += "(";
-    traverse(node);
-    sgf += ")";
-    return sgf;
+    return stringifySgf(node);
   }
 
   // Clean up timers
