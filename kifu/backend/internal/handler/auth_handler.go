@@ -12,11 +12,12 @@ import (
 )
 
 type AuthHandler struct {
-	repo *repository.UserRepository
+	repo      *repository.UserRepository
+	oauthRepo *repository.OAuthRepository
 }
 
-func NewAuthHandler(repo *repository.UserRepository) *AuthHandler {
-	return &AuthHandler{repo: repo}
+func NewAuthHandler(repo *repository.UserRepository, oauthRepo *repository.OAuthRepository) *AuthHandler {
+	return &AuthHandler{repo: repo, oauthRepo: oauthRepo}
 }
 
 type AuthRequest struct {
@@ -43,6 +44,7 @@ func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/register", h.Register)
 	mux.HandleFunc("POST /api/auth/login", h.Login)
 	mux.HandleFunc("POST /api/auth/oauth", h.OAuthLogin)
+	mux.HandleFunc("GET /api/auth/providers", h.GetEnabledProviders)
 
 	// Protected
 	mux.Handle("GET /api/auth/me", AuthMiddleware(http.HandlerFunc(h.Me)))
@@ -187,4 +189,24 @@ func (h *AuthHandler) getUniqueUsername(base string) string {
 		_, _ = rand.Read(bytes)
 		username = fmt.Sprintf("%s_%s", base, hex.EncodeToString(bytes))
 	}
+}
+
+func (h *AuthHandler) GetEnabledProviders(w http.ResponseWriter, r *http.Request) {
+	settings, err := h.oauthRepo.FindAll()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	statuses := map[string]bool{
+		"google": false,
+		"line":   false,
+		"meta":   false,
+	}
+
+	for _, s := range settings {
+		statuses[s.Provider] = s.Enabled
+	}
+
+	respondWithJSON(w, http.StatusOK, statuses)
 }

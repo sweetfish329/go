@@ -34,7 +34,7 @@ func main() {
 	// Initialize handlers
 	kifuHandler := handler.NewKifuHandler(kifuRepo)
 	reviewHandler := handler.NewReviewHandler(reviewRepo, kifuRepo)
-	authHandler := handler.NewAuthHandler(userRepo)
+	authHandler := handler.NewAuthHandler(userRepo, oauthRepo)
 	adminHandler := handler.NewAdminHandler(oauthRepo)
 
 	// Routing setup

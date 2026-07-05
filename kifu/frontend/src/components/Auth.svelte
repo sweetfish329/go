@@ -1,12 +1,31 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { auth } from '../lib/auth.svelte';
 
   let { onLoginSuccess } = $props<{ onLoginSuccess: () => void }>();
 
   let error = $state<string | null>(null);
-  let loading = $state(false);
+  let loading = $state(true);
+  let providers = $state<Record<string, boolean>>({
+    google: false,
+    line: false,
+    meta: false
+  });
 
   const getM = () => (window as any).M;
+
+  onMount(async () => {
+    try {
+      const res = await fetch('/api/auth/providers');
+      if (res.ok) {
+        providers = await res.json();
+      }
+    } catch (err) {
+      console.error("プロバイダ状態の取得に失敗しました", err);
+    } finally {
+      loading = false;
+    }
+  });
 
   async function handleOAuth(provider: string) {
     loading = true;
@@ -73,20 +92,46 @@
           {/if}
 
           <!-- Social Login Buttons -->
-          <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 14px;">
-            <!-- Google Button -->
-            <button class="btn social-btn google-btn waves-effect w-100" onclick={() => handleOAuth('google')} disabled={loading}>
-              <i class="material-icons left">g_mobiledata</i> Googleでログイン / 新規登録
-            </button>
-            <!-- LINE Button -->
-            <button class="btn social-btn line-btn waves-effect w-100" onclick={() => handleOAuth('line')} disabled={loading}>
-              <i class="material-icons left">chat</i> LINEでログイン / 新規登録
-            </button>
-            <!-- Meta Button -->
-            <button class="btn social-btn meta-btn waves-effect w-100" onclick={() => handleOAuth('meta')} disabled={loading}>
-              <i class="material-icons left">facebook</i> Metaでログイン / 新規登録
-            </button>
-          </div>
+          {#if loading}
+            <div class="center-align" style="margin: 2rem 0;">
+              <div class="preloader-wrapper small active">
+                <div class="spinner-layer spinner-brown-only">
+                  <div class="circle-clipper left"><div class="circle"></div></div>
+                  <div class="gap-patch"><div class="circle"></div></div>
+                  <div class="circle-clipper right"><div class="circle"></div></div>
+                </div>
+              </div>
+            </div>
+          {:else}
+            {#if !providers.google && !providers.line && !providers.meta}
+              <div class="card-panel orange lighten-5 orange-text text-darken-4 center-align" style="border-radius: 8px; padding: 1.5rem; border: 1px solid #ffe0b2; margin-top: 15px;">
+                <i class="material-icons" style="font-size: 2.5rem; margin-bottom: 8px;">warning</i>
+                <p style="margin: 0; font-weight: 500; font-size: 1.05rem;">現在、ソーシャルログインは一時的に無効化されています。</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #757575;">恐れ入りますが、しばらく時間をおいてから再度お試しいただくか、管理者へお問い合わせください。</p>
+              </div>
+            {:else}
+              <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 14px;">
+                <!-- Google Button -->
+                {#if providers.google}
+                  <button class="btn social-btn google-btn waves-effect w-100" onclick={() => handleOAuth('google')}>
+                    <i class="material-icons left">g_mobiledata</i> Googleでログイン / 新規登録
+                  </button>
+                {/if}
+                <!-- LINE Button -->
+                {#if providers.line}
+                  <button class="btn social-btn line-btn waves-effect w-100" onclick={() => handleOAuth('line')}>
+                    <i class="material-icons left">chat</i> LINEでログイン / 新規登録
+                  </button>
+                {/if}
+                <!-- Meta Button -->
+                {#if providers.meta}
+                  <button class="btn social-btn meta-btn waves-effect w-100" onclick={() => handleOAuth('meta')}>
+                    <i class="material-icons left">facebook</i> Metaでログイン / 新規登録
+                  </button>
+                {/if}
+              </div>
+            {/if}
+          {/if}
         </div>
       </div>
     </div>
