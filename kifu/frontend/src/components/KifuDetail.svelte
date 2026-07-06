@@ -312,25 +312,28 @@
     activeReviewer = reviewer;
 
     // Get alternative branches (siblings)
-    alternativeBranches = player.getAlternativeBranches().map((node) => {
-      let moveLabel = "変化図";
-      if (node.properties.B) moveLabel = `黒 ${node.properties.B[0]}`;
-      else if (node.properties.W) moveLabel = `白 ${node.properties.W[0]}`;
-      
-      const nodeReviewer = (node as any).reviewer_name || "";
-      const label = nodeReviewer ? `${nodeReviewer} さんの指導 (${moveLabel})` : `変化図 (${moveLabel})`;
-      
-      let originalIndex = -1;
-      if (node.parent) {
-        originalIndex = node.parent.children.indexOf(node);
-      }
-      
-      return {
-        label: label,
-        node: node,
-        originalIndex: originalIndex
-      };
-    });
+    // Filter out primary path nodes (only show actual variation review branches)
+    alternativeBranches = player.getAlternativeBranches()
+      .filter((node) => (node as any).is_variation === true)
+      .map((node) => {
+        let moveLabel = "変化図";
+        if (node.properties.B) moveLabel = `黒 ${node.properties.B[0]}`;
+        else if (node.properties.W) moveLabel = `白 ${node.properties.W[0]}`;
+        
+        const nodeReviewer = (node as any).reviewer_name || "";
+        const label = nodeReviewer ? `${nodeReviewer} さんの指導 (${moveLabel})` : `変化図 (${moveLabel})`;
+        
+        let originalIndex = -1;
+        if (node.parent) {
+          originalIndex = node.parent.children.indexOf(node);
+        }
+        
+        return {
+          label: label,
+          node: node,
+          originalIndex: originalIndex
+        };
+      });
   }
 
   // Navigation handlers
