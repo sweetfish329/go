@@ -47,6 +47,7 @@ func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/login", h.Login)
 	mux.HandleFunc("POST /api/auth/oauth", h.OAuthLogin)
 	mux.HandleFunc("GET /api/auth/providers", h.GetEnabledProviders)
+	mux.HandleFunc("GET /api/users/{userId}/username", h.GetUsername)
 
 	// Real OAuth2 flow endpoints
 	mux.HandleFunc("GET /api/auth/oauth/redirect/{provider}", h.OAuth2Redirect)
@@ -456,4 +457,24 @@ func getUserInfoURL(provider string) string {
 	default:
 		return ""
 	}
+}
+
+func (h *AuthHandler) GetUsername(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	if userId == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing UserID")
+		return
+	}
+
+	user, err := h.repo.FindByID(userId)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if user == nil {
+		respondWithError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]string{"username": user.Username})
 }

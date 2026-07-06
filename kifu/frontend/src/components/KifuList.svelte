@@ -29,6 +29,7 @@
   let kifus = $state<KifuItem[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
+  let ownerUsername = $state<string | null>(null);
 
   // Form states
   let title = $state("");
@@ -172,14 +173,34 @@
     reader.readAsText(file);
   }
 
+  async function fetchOwnerUsername(): Promise<void> {
+    if (!publicMode || !userId) return;
+    try {
+      const res = await fetch(`/api/users/${userId}/username`);
+      if (res.ok) {
+        const data = await res.json();
+        ownerUsername = data.username;
+      }
+    } catch (err) {
+      console.error("Failed to fetch owner username:", err);
+    }
+  }
+
   onMount(() => {
     fetchKifus();
+    fetchOwnerUsername();
   });
 </script>
 
 <div class="row">
   <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-    <h4 style="margin: 0; font-weight: 700; color: var(--nm-accent);" class="font-pixel">{publicMode ? '公開棋譜ライブラリ' : '棋譜ライブラリ'}</h4>
+    <h4 style="margin: 0; font-weight: 700; color: var(--nm-accent);" class="font-pixel">
+      {#if publicMode}
+        {ownerUsername ? `${ownerUsername}'s Kifu Store` : 'Public Kifu Store'}
+      {:else}
+        {auth.username ? `${auth.username}'s Kifu Store` : 'My Kifu Store'}
+      {/if}
+    </h4>
     {#if !publicMode}
       <div style="display: flex; gap: 12px;">
         <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue font-pixel" onclick={() => dispatch('createKifu')} style="color: #1a1e24 !important;">
