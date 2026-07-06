@@ -10,11 +10,15 @@ import (
 )
 
 type AdminHandler struct {
-	oauthRepo *repository.OAuthRepository
+	oauthRepo       *repository.OAuthRepository
+	siteSettingRepo *repository.SiteSettingRepository
 }
 
-func NewAdminHandler(oauthRepo *repository.OAuthRepository) *AdminHandler {
-	return &AdminHandler{oauthRepo: oauthRepo}
+func NewAdminHandler(oauthRepo *repository.OAuthRepository, siteSettingRepo *repository.SiteSettingRepository) *AdminHandler {
+	return &AdminHandler{
+		oauthRepo:       oauthRepo,
+		siteSettingRepo: siteSettingRepo,
+	}
 }
 
 type AdminLoginRequest struct {
@@ -29,9 +33,13 @@ type AdminLoginResponse struct {
 func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/admin/login", h.Login)
 
+	// Public site settings read API
+	mux.HandleFunc("GET /api/site-settings", h.GetSiteSettings)
+
 	// Protected Admin routes
 	mux.Handle("GET /api/admin/oauth-settings", AdminMiddleware(http.HandlerFunc(h.GetOAuthSettings)))
 	mux.Handle("PUT /api/admin/oauth-settings", AdminMiddleware(http.HandlerFunc(h.SaveOAuthSettings)))
+	mux.Handle("PUT /api/admin/site-settings", AdminMiddleware(http.HandlerFunc(h.SaveSiteSettings)))
 }
 
 func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +96,34 @@ func (h *AdminHandler) SaveOAuthSettings(w http.ResponseWriter, r *http.Request)
 	if err := h.oauthRepo.Save(&req); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	respondWithJSON(w, http.StatusOK, req)
+}
+
+func (h *AdminHandler) GetSiteSettings(w http.ResponseWriter, r *http.Request) {
+	settings, err := h.siteSettingRepo.FindAll()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondWithJSON(w, http.StatusOK, settings)
+}
+
+func (h *AdminHandler) SaveSiteSettings(w http.ResponseWriter, r *http.Request) {
+	var req map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	for k, v := range req {
+		if k == "title" || k == "tab_name" || k == "favicon" || k == "theme_color" {
+			if err := h.siteSettingRepo.Save(k, v); err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
 	}
 
 	respondWithJSON(w, http.StatusOK, req)

@@ -17,11 +17,15 @@ import (
 )
 
 type KifuHandler struct {
-	repo *repository.KifuRepository
+	repo            *repository.KifuRepository
+	siteSettingRepo *repository.SiteSettingRepository
 }
 
-func NewKifuHandler(repo *repository.KifuRepository) *KifuHandler {
-	return &KifuHandler{repo: repo}
+func NewKifuHandler(repo *repository.KifuRepository, siteSettingRepo *repository.SiteSettingRepository) *KifuHandler {
+	return &KifuHandler{
+		repo:            repo,
+		siteSettingRepo: siteSettingRepo,
+	}
 }
 
 type UploadKifuRequest struct {
@@ -351,19 +355,17 @@ func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// RootHandler handles serving the index.html and dynamically injecting OGP tags if ?share=<token> is present
+// RootHandler handles serving the index.html and dynamically injecting site settings and OGP tags
 func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
-	shareToken := r.URL.Query().Get("share")
-	if shareToken == "" {
-		http.ServeFile(w, r, "./dist/index.html")
-		return
-	}
-
-	kifu, err := h.repo.FindByShareToken(shareToken)
-	if err != nil || (kifu.ShareExpiresAt != nil && kifu.ShareExpiresAt.Before(time.Now())) {
-		// Fallback to normal html
-		http.ServeFile(w, r, "./dist/index.html")
-		return
+	// Retrieve site settings
+	settings, err := h.siteSettingRepo.FindAll()
+	if err != nil {
+		settings = map[string]string{
+			"title":       "kifu_store",
+			"tab_name":    "kifu_store",
+			"favicon":     "",
+			"theme_color": "#4e342e",
+		}
 	}
 
 	htmlBytes, err := os.ReadFile("./dist/index.html")
@@ -374,38 +376,65 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 
 	html := string(htmlBytes)
 
-	// Dynamic OGP properties
-	title := kifu.Title
-	description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
-	if kifu.Result != "" {
-		description += fmt.Sprintf(" (結果: %s)", kifu.Result)
+	// Replace title tag
+	tabName := settings["tab_name"]
+	if tabName == "" {
+		tabName = "kifu_store"
+	}
+	html = strings.Replace(html, "<title>kifu_store</title>", "<title>"+tabName+"</title>", 1)
+
+	// Replace favicon if configured
+	favicon := settings["favicon"]
+	if favicon != "" {
+		html = strings.Replace(html, `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`, `<link rel="icon" href="`+favicon+`" />`, 1)
 	}
 
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
+	// Inject CSS variable for theme color
+	themeColor := settings["theme_color"]
+	if themeColor == "" {
+		themeColor = "#4e342e"
 	}
-	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-		scheme = proto
+	themeStyle := fmt.Sprintf("\n\t<style>:root { --theme-color: %s; }</style>", themeColor)
+	html = strings.Replace(html, "</head>", themeStyle+"\n</head>", 1)
+
+	shareToken := r.URL.Query().Get("share")
+	if shareToken != "" {
+		kifu, err := h.repo.FindByShareToken(shareToken)
+		if err == nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.Before(time.Now())) {
+			// Dynamic OGP properties
+			title := kifu.Title
+			description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
+			if kifu.Result != "" {
+				description += fmt.Sprintf(" (結果: %s)", kifu.Result)
+			}
+
+			scheme := "http"
+			if r.TLS != nil {
+				scheme = "https"
+			}
+			if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+				scheme = proto
+			}
+			host := r.Host
+			ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, shareToken)
+
+			ogpMeta := fmt.Sprintf(`
+			<meta property="og:title" content="%s | %s" />
+			<meta property="og:description" content="%s" />
+			<meta property="og:image" content="%s" />
+			<meta property="og:type" content="website" />
+			<meta name="twitter:card" content="summary_large_image" />
+			<meta name="twitter:title" content="%s | %s" />
+			<meta name="twitter:description" content="%s" />
+			<meta name="twitter:image" content="%s" />`,
+				title, tabName, description, ogImageUrl,
+				title, tabName, description, ogImageUrl,
+			)
+
+			// Replace </head> with OGP tags inserted right before it
+			html = strings.Replace(html, "</head>", ogpMeta+"\n</head>", 1)
+		}
 	}
-	host := r.Host
-	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, shareToken)
-
-	ogpMeta := fmt.Sprintf(`
-	<meta property="og:title" content="%s | 囲碁 棋譜ストア & 添削" />
-	<meta property="og:description" content="%s" />
-	<meta property="og:image" content="%s" />
-	<meta property="og:type" content="website" />
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="%s | 囲碁 棋譜ストア & 添削" />
-	<meta name="twitter:description" content="%s" />
-	<meta name="twitter:image" content="%s" />`,
-		title, description, ogImageUrl,
-		title, description, ogImageUrl,
-	)
-
-	// Replace </head> with OGP tags inserted right before it
-	html = strings.Replace(html, "</head>", ogpMeta+"\n</head>", 1)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(html))

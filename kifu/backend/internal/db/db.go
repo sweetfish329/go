@@ -140,6 +140,14 @@ func runMigrations(db *sql.DB) error {
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);`
 
+	// Create site_settings table
+	siteSettingsTableQuery := `
+	CREATE TABLE IF NOT EXISTS site_settings (
+		key VARCHAR(100) PRIMARY KEY,
+		value TEXT NOT NULL,
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);`
+
 	_, err := db.Exec(usersTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %w", err)
@@ -178,6 +186,25 @@ func runMigrations(db *sql.DB) error {
 	_, err = db.Exec(oauthSettingsTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create oauth_settings table: %w", err)
+	}
+
+	_, err = db.Exec(siteSettingsTableQuery)
+	if err != nil {
+		return fmt.Errorf("failed to create site_settings table: %w", err)
+	}
+
+	// Insert default settings
+	insertDefaultSettingsQuery := `
+	INSERT INTO site_settings (key, value) VALUES
+	('title', 'kifu_store'),
+	('tab_name', 'kifu_store'),
+	('favicon', ''),
+	('theme_color', '#4e342e')
+	ON CONFLICT (key) DO NOTHING;`
+
+	_, err = db.Exec(insertDefaultSettingsQuery)
+	if err != nil {
+		return fmt.Errorf("failed to insert default site settings: %w", err)
 	}
 
 	log.Println("Database migrations applied successfully.")

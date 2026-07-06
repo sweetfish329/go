@@ -14,8 +14,29 @@
   let selectedShareToken = $state("");
   let showUsernameDialog = $state(false);
 
+  let siteSettings = $state({
+    title: 'kifu_store',
+    tab_name: 'kifu_store',
+    favicon: '',
+    theme_color: '#4e342e'
+  });
+
   // Determine view on mount based on URL query params & auth state
-  onMount(() => {
+  onMount(async () => {
+    // Fetch site settings
+    try {
+      const res = await fetch('/api/site-settings');
+      if (res.ok) {
+        const data = await res.json();
+        siteSettings.title = data.title || 'kifu_store';
+        siteSettings.tab_name = data.tab_name || 'kifu_store';
+        siteSettings.favicon = data.favicon || '';
+        siteSettings.theme_color = data.theme_color || '#4e342e';
+      }
+    } catch (err) {
+      console.error("Failed to load site settings:", err);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const share = params.get('share');
     const admin = params.has('admin');
@@ -36,6 +57,24 @@
       } else {
         currentView = "list";
       }
+    }
+  });
+
+  // Reactively apply settings to DOM
+  $effect(() => {
+    document.documentElement.style.setProperty('--theme-color', siteSettings.theme_color);
+    document.title = siteSettings.tab_name;
+    
+    let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!faviconLink) {
+      faviconLink = document.createElement('link');
+      faviconLink.rel = 'icon';
+      document.head.appendChild(faviconLink);
+    }
+    if (siteSettings.favicon) {
+      faviconLink.href = siteSettings.favicon;
+    } else {
+      faviconLink.href = '/vite.svg';
     }
   });
 
@@ -70,14 +109,14 @@
 
 <div>
   <!-- Navigation Header -->
-  <nav class="brown darken-3 z-depth-1">
+  <nav class="z-depth-1" style="background-color: var(--theme-color, #4e342e);">
     <div class="nav-wrapper container">
       <!-- svelte-ignore a11y-missing-attribute -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <a class="brand-logo d-flex align-center cursor-pointer" onclick={handleBackToList} style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1.4rem;">
         <i class="material-icons">grid_on</i>
-        <span>囲碁 棋譜ストア & 添削</span>
+        <span>{siteSettings.title}</span>
       </a>
       <ul id="nav-mobile" class="right">
         <!-- svelte-ignore a11y-missing-attribute -->

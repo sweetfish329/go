@@ -30,12 +30,13 @@ func main() {
 	reviewRepo := repository.NewReviewRepository(database)
 	userRepo := repository.NewUserRepository(database)
 	oauthRepo := repository.NewOAuthRepository(database)
+	siteSettingRepo := repository.NewSiteSettingRepository(database)
 
 	// Initialize handlers
-	kifuHandler := handler.NewKifuHandler(kifuRepo)
+	kifuHandler := handler.NewKifuHandler(kifuRepo, siteSettingRepo)
 	reviewHandler := handler.NewReviewHandler(reviewRepo, kifuRepo)
 	authHandler := handler.NewAuthHandler(userRepo, oauthRepo)
-	adminHandler := handler.NewAdminHandler(oauthRepo)
+	adminHandler := handler.NewAdminHandler(oauthRepo, siteSettingRepo)
 
 	// Routing setup
 	mux := http.NewServeMux()

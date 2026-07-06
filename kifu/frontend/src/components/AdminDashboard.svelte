@@ -17,14 +17,21 @@
     meta: { provider: 'meta', client_id: '', client_secret: '', redirect_url: '', enabled: false }
   });
 
-  let activeTab = $state('google');
+  let siteSettingsForm = $state({
+    title: 'kifu_store',
+    tab_name: 'kifu_store',
+    favicon: '',
+    theme_color: '#4e342e'
+  });
+
+  let activeTab = $state('site');
   let loading = $state(true);
   let saving = $state(false);
 
   const getM = () => (window as any).M;
 
   onMount(async () => {
-    await fetchSettings();
+    await Promise.all([fetchSettings(), fetchSiteSettings()]);
   });
 
   async function fetchSettings() {
@@ -95,6 +102,69 @@
     }
   }
 
+  async function fetchSiteSettings() {
+    try {
+      const res = await fetch("/api/site-settings");
+      if (res.ok) {
+        const data = await res.json();
+        siteSettingsForm.title = data.title || 'kifu_store';
+        siteSettingsForm.tab_name = data.tab_name || 'kifu_store';
+        siteSettingsForm.favicon = data.favicon || '';
+        siteSettingsForm.theme_color = data.theme_color || '#4e342e';
+      }
+    } catch (err: any) {
+      console.error("サイト設定の取得に失敗しました", err);
+    }
+  }
+
+  function handleFaviconChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        siteSettingsForm.favicon = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function handleSaveSiteSettings() {
+    saving = true;
+    const token = localStorage.getItem("admin_token");
+
+    try {
+      const res = await fetch("/api/admin/site-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(siteSettingsForm)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "サイト設定の保存に失敗しました。");
+      }
+
+      const M = getM();
+      if (M) {
+        M.toast({ html: "サイト設定を保存しました。画面を再ロードします...", classes: 'green' });
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      const M = getM();
+      if (M) {
+        M.toast({ html: `エラー: ${err.message}`, classes: 'red' });
+      }
+    } finally {
+      saving = false;
+    }
+  }
+
   function handleLogout() {
     localStorage.removeItem("admin_token");
     onLogout();
@@ -125,6 +195,9 @@
       <div class="card-panel white" style="padding: 0; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
         <ul class="tabs-list" style="display: flex; list-style: none; margin: 0; padding: 0; border-bottom: 1px solid #e0e0e0;">
           <li style="flex: 1;">
+            <button class="tab-btn w-100 {activeTab === 'site' ? 'active' : ''}" onclick={() => activeTab = 'site'}>サイト設定</button>
+          </li>
+          <li style="flex: 1;">
             <button class="tab-btn w-100 {activeTab === 'google' ? 'active' : ''}" onclick={() => activeTab = 'google'}>Google</button>
           </li>
           <li style="flex: 1;">
@@ -139,6 +212,69 @@
 
     <!-- Active Tab Panel -->
     <div class="col s12">
+      {#if activeTab === 'site'}
+        <div class="card white animate-fade-in" style="border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.03);">
+          <div class="card-content" style="padding: 2rem;">
+            <span class="card-title brown-text text-darken-3" style="font-weight: 500; font-size: 1.3rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">
+              <i class="material-icons">web</i> サイト基本設定
+            </span>
+
+            <div class="row">
+              <div class="input-field col s12" style="margin-bottom: 1.5rem;">
+                <input id="site_title" type="text" bind:value={siteSettingsForm.title} placeholder="kifu_store" />
+                <label for="site_title" class="active">ページ右上のタイトル</label>
+              </div>
+
+              <div class="input-field col s12" style="margin-bottom: 1.5rem;">
+                <input id="site_tab_name" type="text" bind:value={siteSettingsForm.tab_name} placeholder="kifu_store" />
+                <label for="site_tab_name" class="active">タブ名 (ブラウザのタイトル)</label>
+              </div>
+
+              <div class="col s12" style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.8rem; color: #9e9e9e;">ファビコン (Favicon)</label>
+                <div class="file-field input-field" style="margin-top: 0;">
+                  <div class="btn brown darken-1">
+                    <span>画像を選択</span>
+                    <input type="file" accept="image/*" onchange={handleFaviconChange} />
+                  </div>
+                  <div class="file-path-wrapper">
+                    <input class="file-path validate" type="text" placeholder="ファビコン用の画像ファイルをアップロードしてください (.ico, .png, .svg など)" />
+                  </div>
+                </div>
+                {#if siteSettingsForm.favicon}
+                  <div style="margin-top: 8px; display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 0.9rem; color: #555;">プレビュー:</span>
+                    <img src={siteSettingsForm.favicon} alt="Favicon Preview" style="width: 32px; height: 32px; object-fit: contain; border: 1px solid #ddd; padding: 2px; border-radius: 4px; background: #fff;" />
+                    <button class="btn-flat waves-effect red-text text-darken-2" onclick={() => siteSettingsForm.favicon = ''} style="padding: 0 8px;">
+                      削除
+                    </button>
+                  </div>
+                {/if}
+              </div>
+
+              <div class="col s12" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 16px;">
+                <div style="flex: 1;">
+                  <label for="site_theme_color" style="font-size: 0.8rem; color: #9e9e9e; display: block; margin-bottom: 4px;">テーマカラー</label>
+                  <input id="site_theme_color" type="color" bind:value={siteSettingsForm.theme_color} style="width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 4px; padding: 0; cursor: pointer; background: none;" />
+                </div>
+                <div style="flex: 3; display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 0.95rem; font-weight: 500; color: #555;">現在の色: {siteSettingsForm.theme_color}</span>
+                  <button class="btn-flat waves-effect brown-text" onclick={() => siteSettingsForm.theme_color = '#4e342e'} style="align-self: flex-start; padding: 0; font-size: 0.85rem; height: auto; line-height: normal;">
+                    デフォルトの茶色 (#4e342e) に戻す
+                  </button>
+                </div>
+              </div>
+
+              <div class="col s12 right-align">
+                <button class="btn waves-effect waves-light brown darken-2" onclick={handleSaveSiteSettings} disabled={saving}>
+                  <i class="material-icons left">save</i>設定を保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {/if}
+
       {#each ['google', 'line', 'meta'] as provider}
         {#if activeTab === provider}
           <div class="card white animate-fade-in" style="border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.03);">
