@@ -6,15 +6,19 @@
   import type { SgfNode } from '../lib/sgfPlayer';
   import { auth } from '../lib/auth.svelte';
 
-  export let kifuId = "";
-  export let shareToken = "";
-  export let userId = "";
-  export let onBack: () => void = () => {};
+  let {
+    kifuId = "",
+    shareToken = "",
+    userId = "",
+    onBack = () => {}
+  } = $props<{
+    kifuId?: string;
+    shareToken?: string;
+    userId?: string;
+    onBack?: () => void;
+  }>();
 
-  let showShareDialog = false;
-
-  $: isPublicProfileMode = !!userId && !!kifuId;
-  $: isOwner = kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId;
+  let showShareDialog = $state(false);
 
   interface KifuDetailData {
     id: string;
@@ -52,35 +56,38 @@
     node: SgfNode;
   }
 
-  let kifu: KifuDetailData | null = null;
-  let loading = true;
-  let error: string | null = null;
+  let kifu = $state<KifuDetailData | null>(null);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
 
   // Player state
-  let player: SgfPlayer | null = null;
-  let boardState: number[][] = [];
-  let lastMove: { x: number; y: number } | null = null;
-  let captives = { B: 0, W: 0 };
-  let currentIndex = 0;
-  let maxIndex = 0;
-  let comments: CommentItem[] = []; // Comments at current move
-  let alternativeBranches: BranchItem[] = []; // Sibling nodes (alternative moves)
+  let player = $state<SgfPlayer | null>(null);
+  let boardState = $state<number[][]>([]);
+  let lastMove = $state<{ x: number; y: number } | null>(null);
+  let captives = $state({ B: 0, W: 0 });
+  let currentIndex = $state(0);
+  let maxIndex = $state(0);
+  let comments = $state<CommentItem[]>([]); // Comments at current move
+  let alternativeBranches = $state<BranchItem[]>([]); // Sibling nodes (alternative moves)
 
   // Autoplay state
-  let autoplayInterval: any = null;
-  let isAutoplay = false;
-  let autoplaySpeed = 2000; // ms
+  let autoplayInterval = $state<any>(null);
+  let isAutoplay = $state(false);
+  let autoplaySpeed = $state(2000); // ms
 
   // Review mode state
-  let reviewMode = false;
-  let reviewerName = "";
-  let reviewComment = "";
-  let isAddingReview = false;
-  let reviewList: ReviewItem[] = []; // Review items fetched from database
+  let reviewMode = $state(false);
+  let reviewerName = $state("");
+  let reviewComment = $state("");
+  let isAddingReview = $state(false);
+  let reviewList = $state<ReviewItem[]>([]); // Review items fetched from database
 
   // For board config
-  let boardSize = 19;
-  let currentTurn = 1; // 1: Black, 2: White (used for review mode placing stones)
+  let boardSize = $state(19);
+  let currentTurn = $state(1); // 1: Black, 2: White (used for review mode placing stones)
+
+  const isPublicProfileMode = $derived(!!userId && !!kifuId);
+  const isOwner = $derived(!!kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId);
 
   // Type helper for Materialize global object
   const getM = () => (window as any).M;
@@ -142,7 +149,6 @@
 
     for (const rev of reviewList) {
       // Find the target node in SGF based on move_number
-      // Simplified: Find node by traversing main branch to move_number
       let node: SgfNode | null = player.root;
       let count = 0;
       
@@ -156,22 +162,21 @@
         }
       }
 
-      if (node && count === rev.move_number) {
-        // Add comment
-        if (!node.properties["C"]) {
-          node.properties["C"] = [];
-        }
-        node.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
+      if (node) {
+        if (count === rev.move_number) {
+          // Case 1: Target move is within the existing primary path
+          // Add comment
+          if (!node.properties["C"]) {
+            node.properties["C"] = [];
+          }
+          node.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
 
-        // Add variation if present
-        if (rev.variations && rev.variations.trim() !== "") {
-          try {
-            // Variations is stored as an SGF node/tree
-            const varPlayer = new SgfPlayer(rev.variations, boardSize);
-            if (varPlayer.root) {
-              // Attach variation as a child of the current node's parent (making it a sibling)
-              // Or attach it directly as a sibling to create a branch
-              if (node.parent) {
+          // Add variation if present
+          if (rev.variations && rev.variations.trim() !== "") {
+            try {
+              // Variations is stored as an SGF node/tree
+              const varPlayer = new SgfPlayer(rev.variations, boardSize);
+              if (varPlayer.root && node.parent) {
                 // Ensure it's not already added
                 const targetProps = JSON.stringify(varPlayer.root.properties);
                 const alreadyExists = node.parent.children.some(child => {
@@ -182,9 +187,42 @@
                   node.parent.children.push(varPlayer.root);
                 }
               }
+            } catch (e) {
+              console.error("Failed to parse variation SGF:", e);
             }
-          } catch (e) {
-            console.error("Failed to parse variation SGF:", e);
+          }
+        } else if (count === rev.move_number - 1) {
+          // Case 2: Target move is directly after the last move of the primary path
+          // Attach the variation root as a child of the last node
+          if (rev.variations && rev.variations.trim() !== "") {
+            try {
+              const varPlayer = new SgfPlayer(rev.variations, boardSize);
+              if (varPlayer.root) {
+                const targetProps = JSON.stringify(varPlayer.root.properties);
+                const alreadyExists = node.children.some(child => {
+                  return JSON.stringify(child.properties) === targetProps;
+                });
+                if (!alreadyExists) {
+                  // Append comment directly onto the variation root node since no primary node exists at this index
+                  if (rev.comment && rev.comment.trim() !== "") {
+                    if (!varPlayer.root.properties["C"]) {
+                      varPlayer.root.properties["C"] = [];
+                    }
+                    varPlayer.root.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
+                  }
+                  varPlayer.root.parent = node;
+                  node.children.push(varPlayer.root);
+                }
+              }
+            } catch (e) {
+              console.error("Failed to parse variation SGF:", e);
+            }
+          } else {
+            // No variation, just comment on the subsequent empty slot. Attach to the last node.
+            if (!node.properties["C"]) {
+              node.properties["C"] = [];
+            }
+            node.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
           }
         }
       }
