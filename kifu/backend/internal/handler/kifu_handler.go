@@ -44,11 +44,14 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /api/kifus/{id}", AuthMiddleware(http.HandlerFunc(h.Get)))
 	mux.Handle("POST /api/kifus", AuthMiddleware(http.HandlerFunc(h.Upload)))
 	mux.Handle("POST /api/kifus/{id}/share", AuthMiddleware(http.HandlerFunc(h.Share)))
+	mux.Handle("PUT /api/kifus/{id}/privacy", AuthMiddleware(http.HandlerFunc(h.UpdatePrivacy)))
 	mux.Handle("DELETE /api/kifus/{id}", AuthMiddleware(http.HandlerFunc(h.Delete)))
 
 	// Public routes
 	mux.HandleFunc("GET /api/share/{token}", h.GetShared)
 	mux.HandleFunc("GET /api/share/{token}/og-image", h.GetSharedOgImage)
+	mux.HandleFunc("GET /api/u/{userId}/kifus", h.ListPublic)
+	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}", h.GetPublicKifu)
 }
 
 func (h *KifuHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -146,6 +149,7 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		Handicap:    meta.Handicap,
 		SgfData:     req.SgfData,
 		UploadedBy:  &userID,
+		IsPrivate:   true,
 	}
 
 	if err := h.repo.Save(kifu); err != nil {
@@ -301,6 +305,88 @@ func generateRandomToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
+type UpdatePrivacyRequest struct {
+	IsPrivate bool `json:"is_private"`
+}
+
+func (h *KifuHandler) UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing ID")
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	kifu, err := h.repo.FindByID(id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	if kifu.UploadedBy == nil || *kifu.UploadedBy != userID {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	var req UpdatePrivacyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := h.repo.UpdatePrivacy(id, req.IsPrivate); err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]interface{}{"result": "success", "is_private": req.IsPrivate})
+}
+
+func (h *KifuHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("userId")
+	if userID == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing UserID")
+		return
+	}
+
+	kifus, err := h.repo.FindAllPublicByUser(userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondWithJSON(w, http.StatusOK, kifus)
+}
+
+func (h *KifuHandler) GetPublicKifu(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("userId")
+	kifuID := r.PathValue("kifuId")
+	if userID == "" || kifuID == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing UserID or KifuID")
+		return
+	}
+
+	kifu, err := h.repo.FindByIDAndUser(kifuID, userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, kifu)
+}
+
 // Helpers for JSON response
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
@@ -397,11 +483,14 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	themeStyle := fmt.Sprintf("\n\t<style>:root { --theme-color: %s; }</style>", themeColor)
 	html = strings.Replace(html, "</head>", themeStyle+"\n</head>", 1)
 
-	shareToken := r.URL.Query().Get("share")
-	if shareToken != "" {
-		kifu, err := h.repo.FindByShareToken(shareToken)
-		if err == nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.Before(time.Now())) {
-			// Dynamic OGP properties
+	userId := r.PathValue("userId")
+	kifuId := r.PathValue("kifuId")
+
+	var ogpMeta string
+
+	if kifuId != "" && userId != "" {
+		kifu, err := h.repo.FindByIDAndUser(kifuId, userId)
+		if err == nil && kifu != nil {
 			title := kifu.Title
 			description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
 			if kifu.Result != "" {
@@ -416,24 +505,83 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 				scheme = proto
 			}
 			host := r.Host
-			ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, shareToken)
 
-			ogpMeta := fmt.Sprintf(`
+			robotsTag := ""
+			if kifu.IsPrivate {
+				robotsTag = `<meta name="robots" content="noindex, nofollow" />`
+			} else {
+				robotsTag = `<meta name="robots" content="index, follow" />`
+			}
+
+			ogImageUrl := ""
+			if kifu.ShareToken != nil && *kifu.ShareToken != "" {
+				ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, *kifu.ShareToken)
+			}
+
+			ogpMeta = fmt.Sprintf(`
+			%s
 			<meta property="og:title" content="%s | %s" />
 			<meta property="og:description" content="%s" />
-			<meta property="og:image" content="%s" />
 			<meta property="og:type" content="website" />
 			<meta name="twitter:card" content="summary_large_image" />
 			<meta name="twitter:title" content="%s | %s" />
-			<meta name="twitter:description" content="%s" />
-			<meta name="twitter:image" content="%s" />`,
-				title, tabName, description, ogImageUrl,
-				title, tabName, description, ogImageUrl,
+			<meta name="twitter:description" content="%s" />`,
+				robotsTag, title, tabName, description,
+				title, tabName, description,
 			)
 
-			// Replace </head> with OGP tags inserted right before it
-			html = strings.Replace(html, "</head>", ogpMeta+"\n</head>", 1)
+			if ogImageUrl != "" {
+				ogpMeta += fmt.Sprintf(`
+				<meta property="og:image" content="%s" />
+				<meta name="twitter:image" content="%s" />`, ogImageUrl, ogImageUrl)
+			}
 		}
+	} else if userId != "" {
+		ogpMeta = fmt.Sprintf(`
+		<meta name="robots" content="index, follow" />
+		<meta property="og:title" content="公開棋譜一覧 | %s" />
+		<meta property="og:description" content="ユーザーの一般公開棋譜一覧です。" />
+		<meta property="og:type" content="website" />`, tabName)
+	} else {
+		// Fallback to share token if any
+		shareToken := r.URL.Query().Get("share")
+		if shareToken != "" {
+			kifu, err := h.repo.FindByShareToken(shareToken)
+			if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.Before(time.Now())) {
+				title := kifu.Title
+				description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
+				if kifu.Result != "" {
+					description += fmt.Sprintf(" (結果: %s)", kifu.Result)
+				}
+
+				scheme := "http"
+				if r.TLS != nil {
+					scheme = "https"
+				}
+				if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+					scheme = proto
+				}
+				host := r.Host
+				ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, shareToken)
+
+				ogpMeta = fmt.Sprintf(`
+				<meta property="og:title" content="%s | %s" />
+				<meta property="og:description" content="%s" />
+				<meta property="og:image" content="%s" />
+				<meta property="og:type" content="website" />
+				<meta name="twitter:card" content="summary_large_image" />
+				<meta name="twitter:title" content="%s | %s" />
+				<meta name="twitter:description" content="%s" />
+				<meta name="twitter:image" content="%s" />`,
+					title, tabName, description, ogImageUrl,
+					title, tabName, description, ogImageUrl,
+				)
+			}
+		}
+	}
+
+	if ogpMeta != "" {
+		html = strings.Replace(html, "</head>", ogpMeta+"\n</head>", 1)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

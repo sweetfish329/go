@@ -45,6 +45,10 @@ func (h *ReviewHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Public share routes
 	mux.HandleFunc("GET /api/share/{token}/reviews", h.ListForShare)
 	mux.Handle("POST /api/share/{token}/reviews", OptionalAuthMiddleware(http.HandlerFunc(h.CreateForShare)))
+
+	// Public user profile routes
+	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}/reviews", h.ListForPublic)
+	mux.Handle("POST /api/u/{userId}/kifus/{kifuId}/reviews", OptionalAuthMiddleware(http.HandlerFunc(h.CreateForPublic)))
 }
 
 func (h *ReviewHandler) ListForKifu(w http.ResponseWriter, r *http.Request) {
@@ -334,4 +338,86 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+}
+
+func (h *ReviewHandler) ListForPublic(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("userId")
+	kifuID := r.PathValue("kifuId")
+	if userID == "" || kifuID == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing UserID or KifuID")
+		return
+	}
+
+	kifu, err := h.kifuRepo.FindByIDAndUser(kifuID, userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	reviews, err := h.repo.FindByKifuID(kifuID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, reviews)
+}
+
+func (h *ReviewHandler) CreateForPublic(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("userId")
+	kifuID := r.PathValue("kifuId")
+	if userID == "" || kifuID == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing UserID or KifuID")
+		return
+	}
+
+	kifu, err := h.kifuRepo.FindByIDAndUser(kifuID, userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	var req CreateReviewRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	reviewerName := req.ReviewerName
+	if loggedInUsername, exists := r.Context().Value(UsernameKey).(string); exists {
+		reviewerName = loggedInUsername
+	}
+
+	if reviewerName == "" {
+		respondWithError(w, http.StatusBadRequest, "reviewer_name is required")
+		return
+	}
+	if req.Comment == "" {
+		respondWithError(w, http.StatusBadRequest, "comment is required")
+		return
+	}
+
+	review := &model.Review{
+		KifuID:       kifuID,
+		MoveNumber:   req.MoveNumber,
+		NodePath:     req.NodePath,
+		ReviewerName: reviewerName,
+		Comment:      req.Comment,
+		Variations:   req.Variations,
+	}
+
+	if err := h.repo.Save(review); err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, review)
 }

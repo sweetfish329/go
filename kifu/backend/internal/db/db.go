@@ -117,6 +117,7 @@ func runMigrations(db *sql.DB) error {
 	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL;
 	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_token VARCHAR(100) UNIQUE;
 	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_expires_at TIMESTAMP;
+	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT TRUE;
 	`
 
 	// Drop NOT NULL constraint on users.password_hash if it exists (for existing tables)

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import KifuList from './components/KifuList.svelte';
   import KifuDetail from './components/KifuDetail.svelte';
   import Auth from './components/Auth.svelte';
@@ -9,9 +9,10 @@
   import AdminDashboard from './components/AdminDashboard.svelte';
   import { auth } from './lib/auth.svelte';
 
-  let currentView = $state<"list" | "detail" | "auth" | "create" | "admin_auth" | "admin_dashboard">("list");
+  let currentView = $state<"list" | "detail" | "auth" | "create" | "admin_auth" | "admin_dashboard" | "public_list">("list");
   let selectedKifuId = $state("");
   let selectedShareToken = $state("");
+  let selectedUserId = $state("");
   let showUsernameDialog = $state(false);
 
   let siteSettings = $state({
@@ -20,6 +21,55 @@
     favicon: '',
     theme_color: '#4e342e'
   });
+
+  // Perform routing based on URL path
+  function handleRouting() {
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    const admin = params.has('admin');
+
+    // Pattern: /u/:userId/:kifuId
+    const kifuDetailMatch = path.match(/^\/u\/([^/]+)\/([^/]+)\/?$/);
+    // Pattern: /u/:userId
+    const publicListMatch = path.match(/^\/u\/([^/]+)\/?$/);
+
+    if (kifuDetailMatch) {
+      selectedUserId = kifuDetailMatch[1];
+      selectedKifuId = kifuDetailMatch[2];
+      selectedShareToken = "";
+      currentView = "detail";
+    } else if (publicListMatch) {
+      selectedUserId = publicListMatch[1];
+      selectedKifuId = "";
+      selectedShareToken = "";
+      currentView = "public_list";
+    } else if (admin) {
+      const adminToken = localStorage.getItem("admin_token");
+      if (adminToken) {
+        currentView = "admin_dashboard";
+      } else {
+        currentView = "admin_auth";
+      }
+    } else {
+      // For backwards compatibility, still support ?share=TOKEN
+      const share = params.get('share');
+      if (share) {
+        selectedShareToken = share;
+        selectedUserId = "";
+        selectedKifuId = "";
+        currentView = "detail";
+      } else {
+        selectedUserId = "";
+        selectedKifuId = "";
+        selectedShareToken = "";
+        if (!auth.isLoggedIn) {
+          currentView = "auth";
+        } else {
+          currentView = "list";
+        }
+      }
+    }
+  }
 
   // Determine view on mount based on URL query params & auth state
   onMount(async () => {
@@ -37,26 +87,13 @@
       console.error("Failed to load site settings:", err);
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const share = params.get('share');
-    const admin = params.has('admin');
-    
-    if (share) {
-      selectedShareToken = share;
-      currentView = "detail";
-    } else if (admin) {
-      const adminToken = localStorage.getItem("admin_token");
-      if (adminToken) {
-        currentView = "admin_dashboard";
-      } else {
-        currentView = "admin_auth";
-      }
-    } else {
-      if (!auth.isLoggedIn) {
-        currentView = "auth";
-      } else {
-        currentView = "list";
-      }
+    handleRouting();
+    window.addEventListener('popstate', handleRouting);
+  });
+
+  onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('popstate', handleRouting);
     }
   });
 
@@ -80,21 +117,41 @@
 
   function handleSelectKifu(event: CustomEvent<string>) {
     selectedKifuId = event.detail;
-    currentView = "detail";
+    if (selectedUserId) {
+      window.history.pushState({}, '', `/u/${selectedUserId}/${selectedKifuId}`);
+      handleRouting();
+    } else {
+      currentView = "detail";
+    }
   }
 
   function handleBackToList() {
+    if (selectedUserId && currentView === "detail") {
+      window.history.pushState({}, '', `/u/${selectedUserId}`);
+      handleRouting();
+      return;
+    }
+
     if (selectedShareToken) {
       window.history.replaceState({}, '', window.location.pathname);
       selectedShareToken = "";
     }
     
     selectedKifuId = "";
+    selectedUserId = "";
     if (auth.isLoggedIn) {
       currentView = "list";
     } else {
       currentView = "auth";
     }
+  }
+
+  function handleGoHome() {
+    window.history.pushState({}, '', '/');
+    selectedUserId = "";
+    selectedKifuId = "";
+    selectedShareToken = "";
+    handleRouting();
   }
 
   function handleLoginSuccess() {
@@ -114,13 +171,13 @@
       <!-- svelte-ignore a11y-missing-attribute -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <a class="brand-logo d-flex align-center cursor-pointer" onclick={handleBackToList} style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1.4rem;">
+      <a class="brand-logo d-flex align-center cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1.4rem;">
         <i class="material-icons">grid_on</i>
         <span>{siteSettings.title}</span>
       </a>
       <ul id="nav-mobile" class="right">
         <!-- svelte-ignore a11y-missing-attribute -->
-        <li><a onclick={handleBackToList} class="cursor-pointer">ホーム</a></li>
+        <li><a onclick={handleGoHome} class="cursor-pointer">ホーム</a></li>
         {#if auth.isLoggedIn}
           <!-- svelte-ignore a11y-missing-attribute -->
           <li>
@@ -142,10 +199,12 @@
       <Auth onLoginSuccess={handleLoginSuccess} />
     {:else if currentView === "list"}
       <KifuList on:selectKifu={handleSelectKifu} on:createKifu={() => currentView = "create"} />
+    {:else if currentView === "public_list"}
+      <KifuList userId={selectedUserId} on:selectKifu={handleSelectKifu} />
     {:else if currentView === "create"}
       <KifuCreator onSaveSuccess={handleLoginSuccess} onCancel={handleBackToList} />
     {:else if currentView === "detail" && (selectedKifuId || selectedShareToken)}
-      <KifuDetail kifuId={selectedKifuId} shareToken={selectedShareToken} onBack={handleBackToList} />
+      <KifuDetail kifuId={selectedKifuId} shareToken={selectedShareToken} userId={selectedUserId} onBack={handleBackToList} />
     {:else if currentView === "admin_auth"}
       <AdminAuth onLoginSuccess={() => currentView = "admin_dashboard"} />
     {:else if currentView === "admin_dashboard"}

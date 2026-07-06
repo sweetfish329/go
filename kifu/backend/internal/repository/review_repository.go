@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 )
 
@@ -17,21 +18,28 @@ func NewReviewRepository(db *sql.DB) *ReviewRepository {
 }
 
 func (r *ReviewRepository) Save(review *model.Review) error {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate UUIDv7: %w", err)
+	}
+	review.ID = id.String()
+
 	query := `
 	INSERT INTO reviews (
-		kifu_id, move_number, node_path, reviewer_name, comment, variations
-	) VALUES ($1, $2, $3, $4, $5, $6)
-	RETURNING id, created_at, updated_at`
+		id, kifu_id, move_number, node_path, reviewer_name, comment, variations
+	) VALUES ($1, $2, $3, $4, $5, $6, $7)
+	RETURNING created_at, updated_at`
 
-	err := r.db.QueryRow(
+	err = r.db.QueryRow(
 		query,
+		review.ID,
 		review.KifuID,
 		review.MoveNumber,
 		review.NodePath,
 		review.ReviewerName,
 		review.Comment,
 		review.Variations,
-	).Scan(&review.ID, &review.CreatedAt, &review.UpdatedAt)
+	).Scan(&review.CreatedAt, &review.UpdatedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to save review: %w", err)

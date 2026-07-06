@@ -48,6 +48,8 @@ func main() {
 	// Serve static files and assets, but intercept GET "/" exactly to inject OGP tags
 	fs := http.FileServer(http.Dir("./dist"))
 	mux.HandleFunc("GET /{$}", kifuHandler.RootHandler)
+	mux.HandleFunc("GET /u/{userId}", kifuHandler.RootHandler)
+	mux.HandleFunc("GET /u/{userId}/{kifuId}", kifuHandler.RootHandler)
 	mux.Handle("/", fs)
 
 	// Wrap Mux with CORS middleware

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 )
 
@@ -17,12 +18,18 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(user *model.User) error {
-	query := `
-	INSERT INTO users (username, password_hash)
-	VALUES ($1, $2)
-	RETURNING id, created_at, updated_at`
+	id, err := uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate UUIDv7: %w", err)
+	}
+	user.ID = id.String()
 
-	err := r.db.QueryRow(query, user.Username, user.PasswordHash).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	query := `
+	INSERT INTO users (id, username, password_hash)
+	VALUES ($1, $2, $3)
+	RETURNING created_at, updated_at`
+
+	err = r.db.QueryRow(query, user.ID, user.Username, user.PasswordHash).Scan(&user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -50,24 +57,36 @@ func (r *UserRepository) CreateWithOAuth(user *model.User, oauth *model.UserOAut
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	uID, err := uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate User UUIDv7: %w", err)
+	}
+	user.ID = uID.String()
+
+	oID, err := uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate OAuth UUIDv7: %w", err)
+	}
+	oauth.ID = oID.String()
+
 	// 1. Insert User (password_hash will be NULL)
 	userQuery := `
-	INSERT INTO users (username, password_hash)
-	VALUES ($1, NULL)
-	RETURNING id, created_at, updated_at`
+	INSERT INTO users (id, username, password_hash)
+	VALUES ($1, $2, NULL)
+	RETURNING created_at, updated_at`
 
-	err = tx.QueryRow(userQuery, user.Username).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	err = tx.QueryRow(userQuery, user.ID, user.Username).Scan(&user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create user inside transaction: %w", err)
 	}
 
 	// 2. Insert UserOAuth
 	oauthQuery := `
-	INSERT INTO user_oauths (user_id, provider, provider_user_id)
-	VALUES ($1, $2, $3)
-	RETURNING id, created_at, updated_at`
+	INSERT INTO user_oauths (id, user_id, provider, provider_user_id)
+	VALUES ($1, $2, $3, $4)
+	RETURNING created_at, updated_at`
 
-	err = tx.QueryRow(oauthQuery, user.ID, oauth.Provider, oauth.ProviderUserID).Scan(&oauth.ID, &oauth.CreatedAt, &oauth.UpdatedAt)
+	err = tx.QueryRow(oauthQuery, oauth.ID, user.ID, oauth.Provider, oauth.ProviderUserID).Scan(&oauth.CreatedAt, &oauth.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create user oauth: %w", err)
 	}

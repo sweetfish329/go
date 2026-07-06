@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 )
 
@@ -17,15 +18,22 @@ func NewKifuRepository(db *sql.DB) *KifuRepository {
 }
 
 func (r *KifuRepository) Save(kifu *model.Kifu) error {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate UUIDv7: %w", err)
+	}
+	kifu.ID = id.String()
+
 	query := `
 	INSERT INTO kifus (
-		title, black_player, black_rank, white_player, white_rank,
-		game_date, result, komi, handicap, sgf_data, uploaded_by
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	RETURNING id, created_at, updated_at`
+		id, title, black_player, black_rank, white_player, white_rank,
+		game_date, result, komi, handicap, sgf_data, uploaded_by, is_private
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	RETURNING created_at, updated_at`
 
-	err := r.db.QueryRow(
+	err = r.db.QueryRow(
 		query,
+		kifu.ID,
 		kifu.Title,
 		kifu.BlackPlayer,
 		kifu.BlackRank,
@@ -37,7 +45,8 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 		kifu.Handicap,
 		kifu.SgfData,
 		kifu.UploadedBy,
-	).Scan(&kifu.ID, &kifu.CreatedAt, &kifu.UpdatedAt)
+		kifu.IsPrivate,
+	).Scan(&kifu.CreatedAt, &kifu.UpdatedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to save kifu: %w", err)
@@ -49,7 +58,7 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 	query := `
 	SELECT id, title, black_player, black_rank, white_player, white_rank,
-	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, created_at, updated_at
+	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
 	FROM kifus
 	WHERE uploaded_by = $1
 	ORDER BY created_at DESC`
@@ -66,7 +75,7 @@ func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 		var gameDate string
 		err := rows.Scan(
 			&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.CreatedAt, &k.UpdatedAt,
+			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan kifu row: %w", err)
@@ -85,7 +94,7 @@ func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 func (r *KifuRepository) FindByID(id string) (*model.Kifu, error) {
 	query := `
 	SELECT id, title, black_player, black_rank, white_player, white_rank,
-	       game_date, result, komi, handicap, sgf_data, uploaded_by, share_token, share_expires_at, created_at, updated_at
+	       game_date, result, komi, handicap, sgf_data, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
 	FROM kifus
 	WHERE id = $1`
 
@@ -93,7 +102,7 @@ func (r *KifuRepository) FindByID(id string) (*model.Kifu, error) {
 	var gameDate string
 	err := r.db.QueryRow(query, id).Scan(
 		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.CreatedAt, &k.UpdatedAt,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
 	)
 
 	if err != nil {
@@ -115,7 +124,7 @@ func (r *KifuRepository) FindByID(id string) (*model.Kifu, error) {
 func (r *KifuRepository) FindByShareToken(token string) (*model.Kifu, error) {
 	query := `
 	SELECT id, title, black_player, black_rank, white_player, white_rank,
-	       game_date, result, komi, handicap, sgf_data, uploaded_by, share_token, share_expires_at, created_at, updated_at
+	       game_date, result, komi, handicap, sgf_data, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
 	FROM kifus
 	WHERE share_token = $1`
 
@@ -123,7 +132,7 @@ func (r *KifuRepository) FindByShareToken(token string) (*model.Kifu, error) {
 	var gameDate string
 	err := r.db.QueryRow(query, token).Scan(
 		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.CreatedAt, &k.UpdatedAt,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
 	)
 
 	if err != nil {
@@ -131,6 +140,72 @@ func (r *KifuRepository) FindByShareToken(token string) (*model.Kifu, error) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to find kifu by share token: %w", err)
+	}
+
+	if len(gameDate) >= 10 {
+		k.GameDate = gameDate[:10]
+	} else {
+		k.GameDate = gameDate
+	}
+
+	return k, nil
+}
+
+func (r *KifuRepository) FindAllPublicByUser(userID string) ([]*model.Kifu, error) {
+	query := `
+	SELECT id, title, black_player, black_rank, white_player, white_rank,
+	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
+	FROM kifus
+	WHERE uploaded_by = $1 AND is_private = false
+	ORDER BY created_at DESC`
+
+	rows, err := r.db.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find all public user kifus: %w", err)
+	}
+	defer rows.Close()
+
+	kifus := []*model.Kifu{}
+	for rows.Next() {
+		k := &model.Kifu{}
+		var gameDate string
+		err := rows.Scan(
+			&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
+			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan public kifu row: %w", err)
+		}
+		if len(gameDate) >= 10 {
+			k.GameDate = gameDate[:10]
+		} else {
+			k.GameDate = gameDate
+		}
+		kifus = append(kifus, k)
+	}
+
+	return kifus, nil
+}
+
+func (r *KifuRepository) FindByIDAndUser(id string, userID string) (*model.Kifu, error) {
+	query := `
+	SELECT id, title, black_player, black_rank, white_player, white_rank,
+	       game_date, result, komi, handicap, sgf_data, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
+	FROM kifus
+	WHERE id = $1 AND uploaded_by = $2`
+
+	k := &model.Kifu{}
+	var gameDate string
+	err := r.db.QueryRow(query, id, userID).Scan(
+		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil // not found
+		}
+		return nil, fmt.Errorf("failed to find kifu by id and user: %w", err)
 	}
 
 	if len(gameDate) >= 10 {
@@ -151,6 +226,19 @@ func (r *KifuRepository) UpdateShare(id string, token *string, expiresAt *interf
 	_, err := r.db.Exec(query, token, expiresAt, id)
 	if err != nil {
 		return fmt.Errorf("failed to update kifu share settings: %w", err)
+	}
+	return nil
+}
+
+func (r *KifuRepository) UpdatePrivacy(id string, isPrivate bool) error {
+	query := `
+	UPDATE kifus
+	SET is_private = $1, updated_at = CURRENT_TIMESTAMP
+	WHERE id = $2`
+
+	_, err := r.db.Exec(query, isPrivate, id)
+	if err != nil {
+		return fmt.Errorf("failed to update kifu privacy settings: %w", err)
 	}
 	return nil
 }

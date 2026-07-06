@@ -19,6 +19,12 @@
     createKifu: void;
   }>();
 
+  let { userId = "" } = $props<{
+    userId?: string;
+  }>();
+
+  let publicMode = $derived(!!userId);
+
   // Reactive states using Svelte 5 Runes
   let kifus = $state<KifuItem[]>([]);
   let loading = $state(true);
@@ -69,9 +75,9 @@
   async function fetchKifus(): Promise<void> {
     loading = true;
     try {
-      const res = await fetch('/api/kifus', {
-        headers: auth.getHeaders()
-      });
+      const url = publicMode ? `/api/u/${userId}/kifus` : '/api/kifus';
+      const headers = publicMode ? {} : auth.getHeaders();
+      const res = await fetch(url, { headers });
       if (!res.ok) throw new Error("Failed to fetch games");
       kifus = await res.json();
     } catch (err: any) {
@@ -173,16 +179,18 @@
 
 <div class="row">
   <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-    <h4 style="margin: 0; font-weight: 500;" class="brown-text text-darken-3">棋譜ライブラリ</h4>
-    <div style="display: flex; gap: 8px;">
-      <button class="btn waves-effect waves-light brown lighten-1" onclick={() => dispatch('createKifu')}>
-        <i class="material-icons left">edit</i>自分で棋譜を作成
-      </button>
-      <button class="btn waves-effect waves-light brown darken-2" onclick={() => showUploadForm = !showUploadForm}>
-        <i class="material-icons left">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-        {showUploadForm ? '閉じる' : 'SGFアップロード'}
-      </button>
-    </div>
+    <h4 style="margin: 0; font-weight: 500;" class="brown-text text-darken-3">{publicMode ? '公開棋譜ライブラリ' : '棋譜ライブラリ'}</h4>
+    {#if !publicMode}
+      <div style="display: flex; gap: 8px;">
+        <button class="btn waves-effect waves-light brown lighten-1" onclick={() => dispatch('createKifu')}>
+          <i class="material-icons left">edit</i>自分で棋譜を作成
+        </button>
+        <button class="btn waves-effect waves-light brown darken-2" onclick={() => showUploadForm = !showUploadForm}>
+          <i class="material-icons left">{showUploadForm ? 'close' : 'cloud_upload'}</i>
+          {showUploadForm ? '閉じる' : 'SGFアップロード'}
+        </button>
+      </div>
+    {/if}
   </div>
 
   <!-- Filter Panel -->
@@ -340,9 +348,11 @@
           
           <div class="card-action d-flex justify-between" style="display: flex; justify-content: space-between; align-items: center; background-color: #fafafa; padding: 8px 20px;">
             <span class="brown-text text-darken-2" style="font-weight: 500;">開く <i class="material-icons right" style="vertical-align: middle; font-size: 1.1rem; line-height: inherit;">arrow_forward</i></span>
-            <button class="btn-flat btn-floating waves-effect waves-red" style="margin: 0; width: 36px; height: 36px; line-height: 36px;" onclick={(e) => handleDelete(k.id, e)} title="削除">
-              <i class="material-icons red-text text-lighten-1">delete</i>
-            </button>
+            {#if !publicMode}
+              <button class="btn-flat btn-floating waves-effect waves-red" style="margin: 0; width: 36px; height: 36px; line-height: 36px;" onclick={(e) => handleDelete(k.id, e)} title="削除">
+                <i class="material-icons red-text text-lighten-1">delete</i>
+              </button>
+            {/if}
           </div>
         </div>
       </div>

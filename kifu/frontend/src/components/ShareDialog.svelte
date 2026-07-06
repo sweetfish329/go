@@ -5,8 +5,8 @@
   interface Kifu {
     id: string;
     title: string;
+    is_private?: boolean;
     share_token?: string;
-    share_expires_at?: string;
   }
 
   let { kifu, onClose, onUpdate } = $props<{
@@ -15,18 +15,17 @@
     onUpdate: (updatedKifu: Kifu) => void;
   }>();
 
-  let expiresInDays = $state(0); // 0 means infinite
   let loading = $state(false);
   let qrCodeSvg = $state("");
   let copySuccess = $state(false);
+  let isPrivate = $state(kifu.is_private !== false);
 
   const getM = () => (window as any).M;
 
-  // Compute share URL
+  // Compute share URL using the format /u/:userId/:kifuId
   const shareUrl = $derived.by(() => {
-    if (!kifu.share_token) return "";
     const origin = window.location.origin;
-    return `${origin}/?share=${kifu.share_token}`;
+    return `${origin}/u/${auth.userId}/${kifu.id}`;
   });
 
   // Generate QR code when shareUrl changes
@@ -45,29 +44,30 @@
     }
   });
 
-  async function handleShare(disable = false) {
+  async function handleTogglePrivacy(checked: boolean) {
     loading = true;
+    const nextIsPrivate = !checked;
     try {
-      const res = await fetch(`/api/kifus/${kifu.id}/share`, {
-        method: 'POST',
+      const res = await fetch(`/api/kifus/${kifu.id}/privacy`, {
+        method: 'PUT',
         headers: auth.getHeaders(),
         body: JSON.stringify({
-          expires_in_days: disable ? null : (expiresInDays > 0 ? expiresInDays : null),
-          disable: disable
+          is_private: nextIsPrivate
         })
       });
 
-      const updated = await res.json();
+      const data = await res.json();
       if (!res.ok) {
-        throw new Error(updated.error || "共有設定の更新に失敗しました。");
+        throw new Error(data.error || "公開設定の更新に失敗しました。");
       }
 
-      onUpdate(updated);
+      isPrivate = nextIsPrivate;
+      onUpdate({ ...kifu, is_private: nextIsPrivate });
 
       const M = getM();
       if (M) {
         M.toast({ 
-          html: disable ? '共有リンクを無効化しました' : '共有リンクを生成しました！', 
+          html: nextIsPrivate ? '限定公開（リンクを知っている人のみ）に変更しました' : '一般公開（全員に公開）に変更しました！', 
           classes: 'green darken-1' 
         });
       }
@@ -105,64 +105,46 @@
         棋譜を共有する
       </span>
       <p class="grey-text text-darken-1" style="margin-bottom: 20px;">
-        この棋譜にアクセスし、添削を受け取るための公開リンクとQRコードを作成します。
+        この棋譜にアクセスし、添削を受け取るための公開リンクとQRコードです。
       </p>
 
-      {#if kifu.share_token}
-        <!-- Active Share State -->
-        <div class="share-active-box center-align">
-          <div class="qr-container z-depth-1">
-            {#if qrCodeSvg}
-              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              {@html qrCodeSvg}
-            {:else}
-              <div class="valign-wrapper justify-center" style="height: 200px; display: flex; align-items: center;">
-                <p class="grey-text">QRコード生成中...</p>
-              </div>
-            {/if}
-          </div>
-
-          <div class="share-url-container valign-wrapper" style="margin-top: 20px; display: flex; align-items: center;">
-            <input type="text" readonly value={shareUrl} class="share-url-input" />
-            <button class="btn brown darken-1 waves-effect waves-light" onclick={handleCopy} style="height: 36px; display: flex; align-items: center; justify-content: center; padding: 0 12px; margin-left: 8px;">
-              <i class="material-icons" style="font-size: 1.2rem;">{copySuccess ? 'check' : 'content_copy'}</i>
-            </button>
-          </div>
-
-          <div class="expires-info grey-text text-darken-1" style="margin-top: 15px; font-size: 0.9rem;">
-            {#if kifu.share_expires_at}
-              公開期限: {new Date(kifu.share_expires_at).toLocaleString('ja-JP')}
-            {:else}
-              公開期限: 無期限
-            {/if}
-          </div>
-
-          <div class="center-align" style="margin-top: 30px;">
-            <button class="btn-flat waves-effect waves-red red-text" onclick={() => handleShare(true)} disabled={loading}>
-              <i class="material-icons left">link_off</i>共有リンクを無効化
-            </button>
-          </div>
+      <div class="share-active-box center-align">
+        <div class="qr-container z-depth-1">
+          {#if qrCodeSvg}
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            {@html qrCodeSvg}
+          {:else}
+            <div class="valign-wrapper justify-center" style="height: 200px; display: flex; align-items: center;">
+              <p class="grey-text">QRコード生成中...</p>
+            </div>
+          {/if}
         </div>
-      {:else}
-        <!-- Inactive Share State (Setup) -->
-        <div class="share-setup-box">
-          <div class="input-field">
-            <select id="expires-select" bind:value={expiresInDays} class="browser-default" style="border: 1px solid #ccc; border-radius: 4px; padding: 10px; width: 100%; display: block; height: auto;">
-              <option value={0}>無期限 (デフォルト)</option>
-              <option value={1}>1日間有効</option>
-              <option value={7}>7日間有効</option>
-              <option value={30}>30日間有効</option>
-            </select>
-            <label for="expires-select" class="active brown-text text-darken-3" style="font-size: 0.9rem; position: static; display: block; margin-bottom: 8px;">公開期限を設定</label>
-          </div>
 
-          <div class="center-align" style="margin-top: 40px;">
-            <button class="btn btn-large waves-effect waves-light brown darken-2" onclick={() => handleShare(false)} disabled={loading} style="border-radius: 6px; width: 100%;">
-              <i class="material-icons left">link</i>共有用リンク・QRコードを作成
-            </button>
-          </div>
+        <div class="share-url-container valign-wrapper" style="margin-top: 20px; display: flex; align-items: center;">
+          <input type="text" readonly value={shareUrl} class="share-url-input" />
+          <button class="btn brown darken-1 waves-effect waves-light" onclick={handleCopy} style="height: 36px; display: flex; align-items: center; justify-content: center; padding: 0 12px; margin-left: 8px;">
+            <i class="material-icons" style="font-size: 1.2rem;">{copySuccess ? 'check' : 'content_copy'}</i>
+          </button>
         </div>
-      {/if}
+
+        <!-- Privacy Toggle -->
+        <div class="privacy-toggle-container left-align" style="margin-top: 25px; padding: 15px; background-color: #f5f5f5; border-radius: 8px; border: 1px dashed #ccc;">
+          <div class="switch">
+            <label class="black-text" style="font-weight: 500; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+              <span>一般公開（公開ライブラリや検索エンジンに掲載）</span>
+              <input type="checkbox" checked={!isPrivate} onchange={(e) => handleTogglePrivacy(e.currentTarget.checked)} disabled={loading}>
+              <span class="lever brown lighten-3"></span>
+            </label>
+          </div>
+          <p class="grey-text text-darken-1" style="margin: 8px 0 0 0; font-size: 0.8rem; line-height: 1.4;">
+            {#if isPrivate}
+              現在: <strong>限定公開</strong><br>リンクを知っている人だけが閲覧可能です。あなたの公開プロフィールや検索エンジンには掲載されません。
+            {:else}
+              現在: <strong>一般公開</strong><br>誰でも閲覧可能で、あなたの公開棋譜一覧に掲載され、Googleなどの検索エンジンにも登録されます。
+            {/if}
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="card-action right-align" style="background-color: #fafafa; padding: 15px 24px;">

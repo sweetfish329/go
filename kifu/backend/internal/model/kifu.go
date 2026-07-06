@@ -18,6 +18,7 @@ type Kifu struct {
 	UploadedBy     *string    `json:"uploaded_by,omitempty"`
 	ShareToken     *string    `json:"share_token,omitempty"`
 	ShareExpiresAt *time.Time `json:"share_expires_at,omitempty"`
+	IsPrivate      bool       `json:"is_private"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }

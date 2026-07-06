@@ -8,9 +8,13 @@
 
   export let kifuId = "";
   export let shareToken = "";
+  export let userId = "";
   export let onBack: () => void = () => {};
 
   let showShareDialog = false;
+
+  $: isPublicProfileMode = !!userId && !!kifuId;
+  $: isOwner = kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId;
 
   interface KifuDetailData {
     id: string;
@@ -26,6 +30,8 @@
     game_date?: string;
     share_token?: string;
     share_expires_at?: string;
+    uploaded_by?: string;
+    is_private?: boolean;
   }
 
   interface ReviewItem {
@@ -85,7 +91,13 @@
       let kifuRes: Response;
       let reviewRes: Response;
 
-      if (shareToken) {
+      if (isPublicProfileMode) {
+        kifuRes = await fetch(`/api/u/${userId}/kifus/${kifuId}`);
+        if (!kifuRes.ok) throw new Error("Failed to fetch public kifu details");
+        kifu = await kifuRes.json();
+
+        reviewRes = await fetch(`/api/u/${userId}/kifus/${kifuId}/reviews`);
+      } else if (shareToken) {
         kifuRes = await fetch(`/api/share/${shareToken}`);
         if (!kifuRes.ok) throw new Error("Failed to fetch shared kifu details");
         kifu = await kifuRes.json();
@@ -361,7 +373,19 @@
       }
 
       let res: Response;
-      if (shareToken) {
+      if (isPublicProfileMode) {
+        res = await fetch(`/api/u/${userId}/kifus/${kifuId}/reviews`, {
+          method: 'POST',
+          headers: auth.getHeaders(),
+          body: JSON.stringify({
+            move_number: currentIndex,
+            node_path: String(currentIndex),
+            reviewer_name: reviewerName.trim(),
+            comment: reviewComment.trim(),
+            variations: variationsSgf
+          })
+        });
+      } else if (shareToken) {
         res = await fetch(`/api/share/${shareToken}/reviews`, {
           method: 'POST',
           headers: auth.getHeaders(),
@@ -442,9 +466,9 @@
         <h5 class="brown-text text-darken-4" style="margin: 0; font-weight: 500; margin-left: 1rem;">{kifu.title}</h5>
       {/if}
     </div>
-    {#if kifu && !shareToken}
+    {#if kifu && isOwner}
       <button class="btn waves-effect waves-light brown lighten-1" on:click={() => showShareDialog = true}>
-        <i class="material-icons left">share</i>共有・QRコード
+        <i class="material-icons left">share</i>共有設定
       </button>
     {/if}
   </div>
