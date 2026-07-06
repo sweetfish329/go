@@ -1,0 +1,371 @@
+/* Neumorphism 2.0 (Soft UI) Design System for Kifu Store */
+
+:root {
+  /* Colors */
+  --nm-bg: #eef2f7;
+  --nm-bg-element: #eef2f7;
+  --nm-text-main: #3e4a5b;
+  --nm-text-muted: #7a8a9e;
+  --nm-accent: var(--theme-color, #5d4037);
+  --nm-accent-light: #8d6e63;
+  --nm-accent-text: #ffffff;
+  
+  /* Light theme shadows (Default) */
+  --nm-shadow-outset: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
+  --nm-shadow-outset-hover: 8px 8px 16px #c2cbd9, -8px -8px 16px #ffffff;
+  --nm-shadow-outset-sm: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff;
+  --nm-shadow-outset-sm-hover: 4px 4px 8px #c2cbd9, -4px -4px 8px #ffffff;
+  
+  --nm-shadow-inset: inset 3px 3px 6px #b8c4d6, inset -3px -3px 6px #ffffff;
+  --nm-shadow-inset-focus: inset 2px 2px 4px #b8c4d6, inset -2px -2px 4px #ffffff;
+  
+  /* Borders for accessibility */
+  --nm-border-light: 1px solid rgba(255, 255, 255, 0.8);
+  --nm-border-dark: 1px solid rgba(163, 177, 198, 0.35);
+  
+  /* Border Radius */
+  --nm-radius-sm: 8px;
+  --nm-radius-md: 16px;
+  --nm-radius-lg: 24px;
+  --nm-radius-round: 50%;
+  
+  /* Transitions */
+  --nm-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --nm-transition-fast: all 0.15s ease-in-out;
+}
+
+/* Global Body Override */
+body.grey.lighten-4 {
+  background-color: var(--nm-bg) !important;
+  color: var(--nm-text-main);
+  transition: var(--nm-transition);
+}
+
+/* Neumorphic Container / Wrapper */
+.nm-container {
+  background-color: var(--nm-bg);
+  min-height: 100vh;
+}
+
+/* Cards (Convex / Outset) */
+.nm-card {
+  background: var(--nm-bg-element) !important;
+  border-radius: var(--nm-radius-md) !important;
+  border: var(--nm-border-light) !important;
+  box-shadow: var(--nm-shadow-outset) !important;
+  box-sizing: border-box;
+  transition: var(--nm-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.nm-card.hoverable:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--nm-shadow-outset-hover) !important;
+  border: 1px solid rgba(255, 255, 255, 1) !important;
+}
+
+/* Small Cards */
+.nm-card-sm {
+  background: var(--nm-bg-element) !important;
+  border-radius: var(--nm-radius-sm) !important;
+  border: var(--nm-border-light) !important;
+  box-shadow: var(--nm-shadow-outset-sm) !important;
+  transition: var(--nm-transition);
+}
+
+/* Inset Panel (Concave) */
+.nm-panel-inset {
+  background: var(--nm-bg-element) !important;
+  border-radius: var(--nm-radius-md) !important;
+  border: var(--nm-border-dark) !important;
+  box-shadow: var(--nm-shadow-inset) !important;
+  padding: 20px;
+}
+
+/* Custom Buttons */
+.nm-btn {
+  background: var(--nm-bg-element) !important;
+  color: var(--nm-text-main) !important;
+  border: var(--nm-border-light) !important;
+  border-radius: var(--nm-radius-sm) !important;
+  box-shadow: var(--nm-shadow-outset-sm) !important;
+  padding: 8px 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: var(--nm-transition-fast);
+  text-transform: none !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+
+.nm-btn:hover {
+  box-shadow: var(--nm-shadow-outset-sm-hover) !important;
+  transform: translateY(-1px);
+}
+
+.nm-btn:active {
+  box-shadow: var(--nm-shadow-inset) !important;
+  transform: translateY(1px);
+  border: var(--nm-border-dark) !important;
+}
+
+/* Primary Button (Accent filled with outset shadow but distinct hover) */
+.nm-btn-primary {
+  background: var(--nm-accent) !important;
+  color: var(--nm-accent-text) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: var(--nm-radius-sm) !important;
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.15), -3px -3px 6px rgba(255, 255, 255, 0.7) !important;
+  padding: 10px 20px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: var(--nm-transition-fast);
+  text-transform: none !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+
+.nm-btn-primary:hover {
+  background: var(--nm-accent-light) !important;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.8) !important;
+  transform: translateY(-1px);
+}
+
+.nm-btn-primary:active {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.3) !important;
+  transform: translateY(1px);
+}
+
+/* Flat Button */
+.nm-btn-flat {
+  background: transparent !important;
+  color: var(--nm-text-main) !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: var(--nm-transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--nm-radius-sm) !important;
+  padding: 8px 16px;
+}
+
+.nm-btn-flat:hover {
+  background: rgba(163, 177, 198, 0.15) !important;
+}
+
+.nm-btn-flat:active {
+  background: rgba(163, 177, 198, 0.25) !important;
+  box-shadow: var(--nm-shadow-inset) !important;
+}
+
+/* Circular Floating Button */
+.nm-btn-round {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: var(--nm-radius-round) !important;
+  padding: 0 !important;
+  box-shadow: var(--nm-shadow-outset-sm) !important;
+}
+
+.nm-btn-round:hover {
+  box-shadow: var(--nm-shadow-outset-sm-hover) !important;
+}
+
+.nm-btn-round:active {
+  box-shadow: var(--nm-shadow-inset) !important;
+}
+
+/* Form Inputs (Inset) */
+.nm-input, 
+input[type=text].nm-input, 
+input[type=password].nm-input, 
+input[type=email].nm-input,
+textarea.nm-textarea {
+  background: var(--nm-bg-element) !important;
+  border: var(--nm-border-dark) !important;
+  border-radius: var(--nm-radius-sm) !important;
+  box-shadow: var(--nm-shadow-inset) !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  margin-bottom: 12px !important;
+  color: var(--nm-text-main) !important;
+  transition: var(--nm-transition-fast) !important;
+}
+
+.nm-input:focus, 
+input[type=text].nm-input:focus, 
+input[type=password].nm-input:focus, 
+input[type=email].nm-input:focus,
+textarea.nm-textarea:focus {
+  border-color: var(--nm-accent) !important;
+  box-shadow: var(--nm-shadow-inset-focus), 0 0 4px rgba(93, 64, 55, 0.2) !important;
+}
+
+/* Select element (if any) */
+.nm-select {
+  background: var(--nm-bg-element) !important;
+  border: var(--nm-border-dark) !important;
+  border-radius: var(--nm-radius-sm) !important;
+  box-shadow: var(--nm-shadow-outset-sm) !important;
+  padding: 10px 14px !important;
+  outline: none;
+  cursor: pointer;
+  transition: var(--nm-transition-fast);
+}
+
+.nm-select:focus {
+  border-color: var(--nm-accent) !important;
+}
+
+/* Custom Navigation Bar */
+.nm-nav {
+  background-color: var(--nm-bg) !important;
+  box-shadow: var(--nm-shadow-outset) !important;
+  border-bottom: var(--nm-border-light);
+  height: 64px;
+  line-height: 64px;
+  transition: var(--nm-transition);
+}
+
+.nm-nav .brand-logo {
+  color: var(--nm-accent) !important;
+  font-weight: 700 !important;
+}
+
+.nm-nav ul a {
+  color: var(--nm-text-main) !important;
+  font-weight: 500;
+  transition: var(--nm-transition-fast);
+  border-radius: var(--nm-radius-sm);
+  margin: 8px 4px;
+  height: 48px;
+  line-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px !important;
+}
+
+.nm-nav ul a:hover {
+  background-color: rgba(163, 177, 198, 0.15) !important;
+  box-shadow: var(--nm-shadow-outset-sm) !important;
+}
+
+/* Badges & Tags */
+.nm-badge {
+  background: var(--nm-bg-element);
+  border: var(--nm-border-light);
+  box-shadow: var(--nm-shadow-outset-sm);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nm-badge-inset {
+  background: var(--nm-bg-element);
+  border: var(--nm-border-dark);
+  box-shadow: var(--nm-shadow-inset);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Animations */
+.animate-pop-in {
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Grid Item Entrance Delay for staggered effect */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Custom Modal/Dialog Box override */
+.nm-modal {
+  background: var(--nm-bg-element) !important;
+  border-radius: var(--nm-radius-lg) !important;
+  border: var(--nm-border-light) !important;
+  box-shadow: 10px 10px 30px #b8c4d6, -10px -10px 30px #ffffff !important;
+  max-width: 500px;
+  width: 90% !important;
+  padding: 24px !important;
+  overflow: visible !important;
+}
+
+/* Scrollbar override for clean neumorphic look */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--nm-bg);
+  box-shadow: inset 1px 1px 3px #d1d9e6, inset -1px -1px 3px #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c2cbd9;
+  border-radius: 5px;
+  border: 2px solid var(--nm-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a3b1c6;
+}

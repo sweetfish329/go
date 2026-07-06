@@ -696,16 +696,16 @@
   <!-- Header Navigation -->
   <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
     <div style="display: flex; align-items: center;">
-      <button class="btn-flat waves-effect brown-text" on:click={onBack} style="padding-left: 0;">
-        <i class="material-icons left">arrow_back</i>戻る
+      <button class="nm-btn-flat" on:click={onBack} style="padding-left: 0; display: inline-flex; align-items: center; gap: 6px;">
+        <i class="material-icons">arrow_back</i>戻る
       </button>
       {#if kifu}
-        <h5 class="brown-text text-darken-4" style="margin: 0; font-weight: 500; margin-left: 1rem;">{kifu.title}</h5>
+        <h5 style="margin: 0; font-weight: 600; margin-left: 1.5rem; color: var(--nm-accent);">{kifu.title}</h5>
       {/if}
     </div>
     {#if kifu && isOwner}
-      <button class="btn waves-effect waves-light brown lighten-1" on:click={() => showShareDialog = true}>
-        <i class="material-icons left">share</i>共有設定
+      <button class="nm-btn" on:click={() => showShareDialog = true}>
+        <i class="material-icons" style="font-size: 1.2rem;">share</i>共有設定
       </button>
     {/if}
   </div>
@@ -750,11 +750,11 @@
       </div>
 
       <!-- Playback Controls -->
-      <div class="controls-panel card white" style="margin-top: 1rem; border-radius: 8px;">
-        <div class="card-content" style="padding: 12px 20px;">
+      <div class="nm-card controls-panel" style="margin-top: 1.5rem;">
+        <div class="card-content" style="padding: 16px 24px;">
           <!-- Slider -->
-          <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-            <span style="font-weight: 500; min-width: 50px;" class="brown-text">{currentIndex} / {maxIndex}手</span>
+          <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+            <span style="font-weight: 600; min-width: 60px; color: var(--nm-accent); font-size: 0.95rem;">{currentIndex} / {maxIndex}手</span>
             <input
               type="range"
               min="0"
@@ -766,35 +766,35 @@
           </div>
 
           <!-- Buttons Row -->
-          <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-            <button class="btn-flat btn-floating waves-effect brown-text" on:click={goFirst} title="最初へ">
+          <div class="buttons-row" style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
+            <button class="nm-btn-flat nm-btn-round" on:click={goFirst} title="最初へ">
               <i class="material-icons">first_page</i>
             </button>
-            <button class="btn-flat btn-floating waves-effect brown-text" on:click={() => stepBack(10)} title="10手戻る">
+            <button class="nm-btn-flat nm-btn-round" on:click={() => stepBack(10)} title="10手戻る">
               <i class="material-icons">fast_rewind</i>
             </button>
-            <button class="btn-flat btn-floating waves-effect brown-text" on:click={() => stepBack(1)} title="1手戻る">
+            <button class="nm-btn-flat nm-btn-round" on:click={() => stepBack(1)} title="1手戻る">
               <i class="material-icons">navigate_before</i>
             </button>
-            <button class="btn btn-floating waves-effect waves-light brown" on:click={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
+            <button class="nm-btn-primary nm-btn-round" style="width: 44px !important; height: 44px !important;" on:click={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
               <i class="material-icons">{isAutoplay ? 'pause' : 'play_arrow'}</i>
             </button>
-            <button class="btn-flat btn-floating waves-effect brown-text" on:click={() => stepForward(1)} title="1手進む">
+            <button class="nm-btn-flat nm-btn-round" on:click={() => stepForward(1)} title="1手進む">
               <i class="material-icons">navigate_next</i>
             </button>
-            <button class="btn-flat btn-floating waves-effect brown-text" on:click={() => stepForward(10)} title="10手進む">
+            <button class="nm-btn-flat nm-btn-round" on:click={() => stepForward(10)} title="10手進む">
               <i class="material-icons">fast_forward</i>
             </button>
-            <button class="btn-flat btn-floating waves-effect brown-text" on:click={goLast} title="最後へ">
+            <button class="nm-btn-flat nm-btn-round" on:click={goLast} title="最後へ">
               <i class="material-icons">last_page</i>
             </button>
           </div>
 
           {#if isViewingVariation}
             <!-- svelte-ignore a11y-missing-attribute -->
-            <div class="animate-fade-in" style="margin-top: 10px; display: flex; justify-content: center;">
-              <button class="btn waves-effect waves-light grey darken-3 btn-small" on:click={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; font-weight: 500;">
-                <i class="material-icons left" style="font-size: 1.15rem; margin: 0 4px 0 0;">assignment_return</i>
+            <div class="animate-fade-in" style="margin-top: 16px; display: flex; justify-content: center;">
+              <button class="nm-btn" on:click={handleReturnToMainPath} style="border-radius: 20px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
+                <i class="material-icons" style="font-size: 1.15rem;">assignment_return</i>
                 本線（元の棋譜）に戻る
               </button>
             </div>
@@ -807,29 +807,29 @@
     <div class="col s12 l6 text-left" style="text-align: left;">
       <!-- Game Info Card (Collapsible) -->
       {#if kifu}
-      <div class="card white game-info-card hoverable" style="border-radius: 8px; margin-top: 0; border: 1px solid #efebe9; transition: all 0.25s ease;">
+      <div class="nm-card game-info-card hoverable" style="margin-top: 0; margin-bottom: 1.5rem;">
         <!-- Card Header Toggle (Click to Toggle) -->
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="card-header-toggle cursor-pointer" on:click={() => isGameInfoExpanded = !isGameInfoExpanded} style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+        <div class="card-header-toggle cursor-pointer" on:click={() => isGameInfoExpanded = !isGameInfoExpanded} style="padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <span class="brown-text text-darken-3" style="font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 6px; margin-right: 4px;">
-              <i class="material-icons" style="font-size: 1.15rem;">info_outline</i>
+            <span style="font-weight: 600; font-size: 1rem; display: inline-flex; align-items: center; gap: 6px; color: var(--nm-accent);">
+              <i class="material-icons" style="font-size: 1.2rem;">info_outline</i>
               対局情報
             </span>
-            <span class="grey-text text-darken-3" style="font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <span style="font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--nm-text-main);">
               <span class="font-weight-500">● {kifu.black_player || '不明'}</span>
-              <span class="grey-text text-darken-1" style="font-size: 0.8rem;">(石 {captives.W})</span>
-              <span class="grey-text" style="font-size: 0.75rem;">vs</span>
+              <span style="font-size: 0.8rem; color: var(--nm-text-muted);">(石 {captives.W})</span>
+              <span style="font-size: 0.75rem; color: var(--nm-text-muted);">vs</span>
               <span class="font-weight-500">○ {kifu.white_player || '不明'}</span>
-              <span class="grey-text text-darken-1" style="font-size: 0.8rem;">(石 {captives.B})</span>
+              <span style="font-size: 0.8rem; color: var(--nm-text-muted);">(石 {captives.B})</span>
               {#if kifu.result}
-                <span class="brown-text lighten-1-text" style="margin-left: 6px; font-size: 0.8rem; padding: 1px 8px; background: #efebe9; border-radius: 12px; font-weight: 600;">{kifu.result}</span>
+                <span class="nm-badge-inset" style="margin-left: 6px; font-size: 0.75rem; padding: 2px 8px; font-weight: 600; color: var(--nm-accent);">{kifu.result}</span>
               {/if}
             </span>
           </div>
-          <button class="btn-flat btn-floating waves-effect waves-circle" style="width: 32px; height: 32px; line-height: 32px; display: flex; align-items: center; justify-content: center; margin: 0; background: transparent;">
-            <i class="material-icons" style="font-size: 1.4rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: #5d4037;">keyboard_arrow_down</i>
+          <button class="nm-btn-flat nm-btn-round" style="width: 32px; height: 32px; min-width: 32px; padding: 0;">
+            <i class="material-icons" style="font-size: 1.3rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--nm-accent);">keyboard_arrow_down</i>
           </button>
         </div>
 
@@ -867,23 +867,23 @@
 
       <!-- Branches & Variations Card -->
       {#if alternativeBranches.length > 0}
-        <div class="card amber lighten-5 border-amber" style="border-radius: 8px;">
-          <div class="card-content" style="padding: 12px 20px;">
-            <span class="valign-wrapper amber-text text-darken-4" style="font-weight: 500;">
-              <i class="material-icons left" style="font-size: 1.2rem;">call_split</i> 変化図があります
+        <div class="nm-card animate-fade-in" style="margin-bottom: 1.5rem; border: 1px solid rgba(255, 152, 0, 0.3) !important;">
+          <div class="card-content" style="padding: 16px 20px;">
+            <span class="valign-wrapper orange-text text-darken-4" style="font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+              <i class="material-icons" style="font-size: 1.2rem;">call_split</i> 変化図があります
             </span>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
               <!-- Main branch return button if not on primary branch -->
               {#if isViewingVariation}
                 <!-- svelte-ignore a11y-missing-attribute -->
-                <button class="btn-small waves-effect waves-light grey darken-3" on:click={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; font-weight: 500;">
-                  <i class="material-icons left" style="font-size: 1.1rem; margin-right: 4px; margin-left: 0;">assignment_return</i>
+                <button class="nm-btn" on:click={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; font-weight: 500;">
+                  <i class="material-icons" style="font-size: 1.1rem;">assignment_return</i>
                   本線に戻る
                 </button>
               {/if}
               <!-- Display other branch buttons -->
               {#each alternativeBranches as branch}
-                <button class="btn-small waves-effect waves-light brown lighten-1" on:click={() => selectBranch(branch.originalIndex)}>
+                <button class="nm-btn" on:click={() => selectBranch(branch.originalIndex)}>
                   {branch.label} に切り替え
                 </button>
               {/each}
@@ -893,36 +893,36 @@
       {/if}
 
       <!-- Comments / Review Card -->
-      <div class="card white" style="border-radius: 8px; min-height: 180px; display: flex; flex-direction: column;">
-        <div class="card-content" style="padding: 16px 20px; flex-grow: 1;">
-          <span class="card-title brown-text text-darken-3" style="font-size: 1.15rem; font-weight: 500; margin-bottom: 8px;">
+      <div class="nm-card" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 1.5rem;">
+        <div class="card-content" style="padding: 20px; flex-grow: 1;">
+          <span class="card-title" style="font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: var(--nm-accent);">
             検討・指導コメント (第 {currentIndex} 手)
           </span>
 
           {#if comments.length === 0}
             <div class="center-align grey-text text-lighten-1" style="padding: 2.5rem 0;">
-              <i class="material-icons" style="font-size: 3rem;">chat_bubble_outline</i>
-              <p style="margin: 5px 0 0 0; font-size: 0.9rem;">この手に対するコメントはありません</p>
+              <i class="material-icons" style="font-size: 3rem; color: var(--nm-text-muted); opacity: 0.6;">chat_bubble_outline</i>
+              <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: var(--nm-text-muted);">この手に対するコメントはありません</p>
             </div>
           {:else}
-            <div class="comments-list" style="max-height: 250px; overflow-y: auto;">
+            <div class="comments-list" style="max-height: 250px; overflow-y: auto; padding-right: 4px;">
               {#each comments as comment}
-                <div class="comment-item" style="border-bottom: 1px solid #f0f0f0; padding: 8px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="comment-item" style="border-bottom: 1px solid rgba(163, 177, 198, 0.15); padding: 12px 0; display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="flex-grow: 1; text-align: left;">
-                    <span class="chip brown lighten-4 brown-text text-darken-4" style="font-weight: 500; height: 24px; line-height: 24px; margin-bottom: 4px;">
+                    <span class="nm-badge" style="font-weight: 600; margin-bottom: 6px; padding: 2px 10px; font-size: 0.8rem; color: var(--nm-accent);">
                       {comment.author}
                     </span>
-                    <p style="margin: 0; padding-left: 4px; font-size: 0.95rem; white-space: pre-wrap;" class="grey-text text-darken-3">{comment.text}</p>
+                    <p style="margin: 0; padding-left: 4px; font-size: 0.95rem; white-space: pre-wrap; color: var(--nm-text-main); line-height: 1.5;">{comment.text}</p>
                   </div>
                   {#if comment.reviewId && (isOwner || auth.username === comment.reviewerName)}
-                    <div style="display: flex; gap: 4px; margin-left: 8px;">
+                    <div style="display: flex; gap: 6px; margin-left: 12px;">
                       <!-- svelte-ignore a11y-missing-attribute -->
-                      <button class="btn-flat btn-floating waves-effect waves-circle" on:click={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; line-height: 28px; display: flex; align-items: center; justify-content: center; background: transparent;">
-                        <i class="material-icons" style="font-size: 1.1rem; color: #5d4037; line-height: 28px; margin: 0;">edit</i>
+                      <button class="nm-btn-flat nm-btn-round" on:click={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0;">
+                        <i class="material-icons" style="font-size: 1.1rem; color: var(--nm-accent);">edit</i>
                       </button>
                       <!-- svelte-ignore a11y-missing-attribute -->
-                      <button class="btn-flat btn-floating waves-effect waves-circle" on:click={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" style="width: 28px; height: 28px; line-height: 28px; display: flex; align-items: center; justify-content: center; background: transparent;">
-                        <i class="material-icons" style="font-size: 1.1rem; color: #e53935; line-height: 28px; margin: 0;">delete</i>
+                      <button class="nm-btn-flat nm-btn-round" on:click={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0;">
+                        <i class="material-icons" style="font-size: 1.1rem; color: #e53935;">delete</i>
                       </button>
                     </div>
                   {/if}
@@ -933,43 +933,43 @@
         </div>
 
         <!-- Mode Toggle & Edit Panel Footer -->
-        <div class="card-action grey lighten-4" style="border-radius: 0 0 8px 8px; padding: 10px 20px;">
-          <div class="switch" style="margin-bottom: 10px;">
-            <label class="black-text" style="font-weight: 500;">
-              通常再生
+        <div class="card-action" style="border-top: 1px solid rgba(163, 177, 198, 0.2); padding: 16px 20px; border-radius: 0 0 var(--nm-radius-md) var(--nm-radius-md);">
+          <div class="switch" style="margin-bottom: 12px;">
+            <label class="black-text" style="font-weight: 500; display: inline-flex; align-items: center; gap: 8px;">
+              <span style="color: var(--nm-text-muted);">通常再生</span>
               <input type="checkbox" bind:checked={reviewMode}>
               <span class="lever brown lighten-3"></span>
-              添削モード (盤面入力可)
+              <span style="color: var(--nm-text-main); font-weight: 600;">添削モード (盤面入力可)</span>
             </label>
           </div>
 
           {#if reviewMode}
-            <div class="review-edit-panel animate-fade-in" style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 12px;">
-              <p class="grey-text text-darken-2" style="font-size: 0.85rem; margin: 0 0 10px 0;">
-                <i class="material-icons left" style="font-size: 1rem; vertical-align: middle;">info</i>
-                碁盤をクリックして石を置くと変化図を作成できます。この局面に対する指導コメントを入力してください。
+            <div class="review-edit-panel animate-fade-in" style="margin-top: 12px; border-top: 1px dashed rgba(163, 177, 198, 0.2); padding-top: 16px;">
+              <p style="font-size: 0.85rem; margin: 0 0 14px 0; color: var(--nm-text-muted); display: inline-flex; align-items: center; gap: 6px;">
+                <i class="material-icons" style="font-size: 1.05rem;">info</i>
+                碁盤をクリックして石を置くと変化図を作成できます。解説コメントを入力してください。
               </p>
               
-              <div class="row" style="margin-bottom: 0;">
-                <div class="input-field col s12 m4" style="margin-top: 0; margin-bottom: 10px;">
-                  <input id="reviewer_name" type="text" bind:value={reviewerName} placeholder="指導者名" style="margin-bottom: 0; height: 2.5rem;" />
-                  <label for="reviewer_name" class="active">添削者</label>
+              <div class="row" style="margin-bottom: 0; display: flex; flex-direction: column; gap: 10px;">
+                <div class="input-field col s12" style="margin-top: 0; margin-bottom: 0;">
+                  <input id="reviewer_name" type="text" class="nm-input" bind:value={reviewerName} placeholder="添削者名" style="margin-bottom: 0;" />
+                  <label for="reviewer_name" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">添削者</label>
                 </div>
-                <div class="input-field col s12 m8" style="margin-top: 0; margin-bottom: 10px;">
-                  <input id="review_comment" type="text" bind:value={reviewComment} placeholder="指導・変化図の解説を入力してください" style="margin-bottom: 0; height: 2.5rem;" />
-                  <label for="review_comment" class="active">コメント</label>
+                <div class="input-field col s12" style="margin-top: 4px; margin-bottom: 0;">
+                  <input id="review_comment" type="text" class="nm-input" bind:value={reviewComment} placeholder="指導・変化図の解説を入力してください" style="margin-bottom: 0;" />
+                  <label for="review_comment" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">コメント</label>
                 </div>
-                <div class="col s12 right-align" style="display: flex; justify-content: flex-end; gap: 8px;">
+                <div class="col s12 right-align" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                   {#if editingReviewId}
-                    <button class="btn waves-effect waves-light grey darken-1" on:click={handleCancelEdit} disabled={isAddingReview}>
+                    <button class="nm-btn-flat" on:click={handleCancelEdit} disabled={isAddingReview}>
                       キャンセル
                     </button>
-                    <button class="btn waves-effect waves-light brown" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
-                      <i class="material-icons left">save</i>添削を更新
+                    <button class="nm-btn-primary" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
+                      <i class="material-icons" style="font-size: 1.2rem;">save</i>添削を更新
                     </button>
                   {:else}
-                    <button class="btn waves-effect waves-light brown" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
-                      <i class="material-icons left">save</i>添削を保存
+                    <button class="nm-btn-primary" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
+                      <i class="material-icons" style="font-size: 1.2rem;">save</i>添削を保存
                     </button>
                   {/if}
                 </div>

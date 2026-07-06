@@ -54,33 +54,33 @@
 </script>
 
 <div class="modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
-  <div class="modal-content card" onclick={(e) => e.stopPropagation()} aria-hidden="true">
+  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
     <form onsubmit={handleSave}>
-      <div class="card-content">
-        <span class="card-title brown-text text-darken-3 d-flex align-center" style="display: flex; align-items: center; gap: 8px; font-weight: 500;">
+      <div>
+        <span class="card-title d-flex align-center" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--nm-accent); font-size: 1.2rem; margin-bottom: 12px;">
           <i class="material-icons">edit</i>
           ユーザー名の変更
         </span>
-        <p class="grey-text text-darken-1" style="margin-bottom: 20px;">
+        <p style="margin-bottom: 24px; font-size: 0.9rem; color: var(--nm-text-muted);">
           指導碁や添削コメントの投稿時に表示される名前を変更できます。
         </p>
 
         {#if error}
-          <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper" style="padding: 10px; margin-bottom: 15px;">
+          <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper" style="padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(239,83,80,0.35);">
             <i class="material-icons left">error</i>
             <span>{error}</span>
           </div>
         {/if}
 
-        <div class="input-field">
-          <input id="new-username" type="text" bind:value={newUsername} required class="validate" />
-          <label for="new-username" class="active">新しいユーザー名</label>
+        <div class="input-field" style="margin-top: 0;">
+          <input id="new-username" type="text" bind:value={newUsername} required class="nm-input" style="margin-bottom: 0;" />
+          <label for="new-username" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">新しいユーザー名</label>
         </div>
       </div>
 
-      <div class="card-action right-align" style="background-color: #fafafa; padding: 15px 24px;">
-        <button type="button" class="btn-flat waves-effect" onclick={onClose} disabled={loading}>キャンセル</button>
-        <button type="submit" class="btn waves-effect waves-light brown" disabled={!newUsername.trim() || loading}>
+      <div style="padding: 20px 0 0 0; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid rgba(163, 177, 198, 0.2); margin-top: 20px;">
+        <button type="button" class="nm-btn-flat" onclick={onClose} disabled={loading}>キャンセル</button>
+        <button type="submit" class="nm-btn-primary" disabled={!newUsername.trim() || loading}>
           {#if loading}
             保存中...
           {:else}
@@ -99,33 +99,24 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+    background: rgba(163, 177, 198, 0.4);
+    backdrop-filter: blur(5px);
     z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
   }
-  .modal-content {
-    width: 92%;
-    max-width: 400px;
-    border-radius: 12px;
-    overflow: hidden;
-    margin: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  }
   
   /* Mobile responsive adjustments */
   @media only screen and (max-width: 400px) {
-    :global(.card-action) {
+    div[style*="justify-content: flex-end"] {
       display: flex;
       flex-direction: column-reverse;
       gap: 10px;
     }
-    :global(.card-action) button {
+    div[style*="justify-content: flex-end"] button {
       width: 100%;
       margin: 0 !important;
-      height: 40px !important;
     }
   }
 

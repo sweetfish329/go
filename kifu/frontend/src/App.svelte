@@ -181,14 +181,14 @@
 
 <div>
   <!-- Navigation Header -->
-  <nav class="z-depth-1" style="background-color: var(--theme-color, #4e342e);">
+  <nav class="nm-nav">
     <div class="nav-wrapper container">
       <!-- svelte-ignore a11y-missing-attribute -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <a class="brand-logo d-flex align-center cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1.4rem;">
-        <i class="material-icons">grid_on</i>
-        <span>{siteSettings.title}</span>
+        <i class="material-icons" style="color: var(--nm-accent);">grid_on</i>
+        <span style="color: var(--nm-accent);">{siteSettings.title}</span>
       </a>
       <ul id="nav-mobile" class="right">
         <!-- svelte-ignore a11y-missing-attribute -->
@@ -196,13 +196,13 @@
         {#if auth.isLoggedIn}
           <!-- svelte-ignore a11y-missing-attribute -->
           <li>
-            <a onclick={() => showUsernameDialog = true} class="cursor-pointer" style="display: flex; align-items: center; gap: 4px; color: #efebe9; font-weight: 500; font-size: 0.95rem;">
-              <i class="material-icons tiny" style="font-size: 1rem; margin-right: 4px;">edit</i>
-              <span>{auth.username} さん</span>
+            <a onclick={() => showUsernameDialog = true} class="cursor-pointer" style="display: flex; align-items: center; gap: 4px; font-weight: 500; font-size: 0.95rem;">
+              <i class="material-icons tiny" style="font-size: 1rem; margin-right: 4px; color: var(--nm-text-main);">edit</i>
+              <span style="color: var(--nm-text-main);">{auth.username} さん</span>
             </a>
           </li>
           <!-- svelte-ignore a11y-missing-attribute -->
-          <li><a onclick={handleLogout} class="cursor-pointer"><i class="material-icons left">exit_to_app</i>ログアウト</a></li>
+          <li><a onclick={handleLogout} class="cursor-pointer"><i class="material-icons left" style="color: var(--nm-text-main);">exit_to_app</i>ログアウト</a></li>
         {/if}
       </ul>
     </div>

@@ -102,7 +102,7 @@
   }
 </script>
 
-<div class="board-container z-depth-2">
+<div class="board-container">
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <svg
@@ -115,7 +115,7 @@
   >
     <!-- Board wood background -->
     <rect width={boardSize} height={boardSize} fill="url(#boardWood)" rx="8" />
-    <rect width={boardSize} height={boardSize} fill="none" stroke="#8d6e63" stroke-width="3" rx="8" />
+    <rect width={boardSize} height={boardSize} fill="none" stroke="#8d6e63" stroke-width="2" rx="8" />
 
     <!-- Grid lines -->
     <!-- Horizontal lines -->
@@ -248,10 +248,13 @@
     width: 100%;
     max-width: 550px;
     margin: 0 auto;
-    border-radius: 8px;
-    background-color: #8d6e63;
-    padding: 6px;
+    border-radius: var(--nm-radius-lg);
+    background-color: var(--nm-bg);
+    border: var(--nm-border-light);
+    box-shadow: var(--nm-shadow-outset);
+    padding: 10px;
     box-sizing: border-box;
+    transition: var(--nm-transition);
   }
 
   .go-board {

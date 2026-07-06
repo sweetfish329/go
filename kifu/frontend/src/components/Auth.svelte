@@ -32,16 +32,16 @@
 <div class="auth-container animate-fade-in">
   <div class="row">
     <div class="col s12 m8 offset-m2 l6 offset-l3">
-      <div class="card glass-card">
-        <div class="card-content" style="padding: 2.5rem 2rem;">
-          <div class="center-align" style="margin-bottom: 2rem;">
-            <i class="material-icons large brown-text text-darken-2" style="font-size: 5rem;">grid_on</i>
-            <h4 class="brown-text text-darken-3 font-weight-500" style="margin-top: 15px; margin-bottom: 8px; font-size: 1.8rem;">ログイン</h4>
-            <p class="grey-text text-darken-1" style="font-size: 0.95rem;">ソーシャルアカウントを使用してログインまたは新規登録を行います</p>
+      <div class="nm-card" style="margin-top: 2rem;">
+        <div class="card-content" style="padding: 3rem 2.5rem;">
+          <div class="center-align" style="margin-bottom: 2.5rem;">
+            <i class="material-icons large" style="font-size: 5rem; color: var(--nm-accent);">grid_on</i>
+            <h4 class="font-weight-500" style="margin-top: 15px; margin-bottom: 12px; font-size: 1.8rem; color: var(--nm-accent); font-weight: 600;">ログイン</h4>
+            <p style="font-size: 0.95rem; color: var(--nm-text-muted);">ソーシャルアカウントを使用してログインまたは新規登録を行います</p>
           </div>
 
           {#if error}
-            <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper" style="padding: 10px 15px; border-radius: 6px; margin-bottom: 20px;">
+            <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper" style="padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(239, 83, 80, 0.3);">
               <i class="material-icons left" style="margin-right: 8px;">error</i>
               <span>{error}</span>
             </div>
@@ -60,29 +60,29 @@
             </div>
           {:else}
             {#if !providers.google && !providers.line && !providers.meta}
-              <div class="card-panel orange lighten-5 orange-text text-darken-4 center-align" style="border-radius: 8px; padding: 1.5rem; border: 1px solid #ffe0b2; margin-top: 15px;">
-                <i class="material-icons" style="font-size: 2.5rem; margin-bottom: 8px;">warning</i>
-                <p style="margin: 0; font-weight: 500; font-size: 1.05rem;">現在、ソーシャルログインは一時的に無効化されています。</p>
-                <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #757575;">恐れ入りますが、しばらく時間をおいてから再度お試しいただくか、管理者へお問い合わせください。</p>
+              <div class="nm-panel-inset center-align" style="border-radius: 8px; padding: 1.5rem; margin-top: 15px;">
+                <i class="material-icons orange-text" style="font-size: 2.5rem; margin-bottom: 8px;">warning</i>
+                <p style="margin: 0; font-weight: 600; font-size: 1.05rem; color: var(--nm-text-main);">現在、ソーシャルログインは一時的に無効化されています。</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--nm-text-muted);">恐れ入りますが、しばらく時間をおいてから再度お試しいただくか、管理者へお問い合わせください。</p>
               </div>
             {:else}
-              <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 16px;">
                 <!-- Google Button -->
                 {#if providers.google}
-                  <button class="btn social-btn google-btn waves-effect w-100" onclick={() => handleOAuth('google')}>
-                    <i class="material-icons left">g_mobiledata</i> Googleでログイン / 新規登録
+                  <button class="nm-btn google-btn waves-effect w-100" onclick={() => handleOAuth('google')}>
+                    <i class="material-icons">g_mobiledata</i> Googleでログイン / 新規登録
                   </button>
                 {/if}
                 <!-- LINE Button -->
                 {#if providers.line}
-                  <button class="btn social-btn line-btn waves-effect w-100" onclick={() => handleOAuth('line')}>
-                    <i class="material-icons left">chat</i> LINEでログイン / 新規登録
+                  <button class="nm-btn line-btn waves-effect w-100" onclick={() => handleOAuth('line')}>
+                    <i class="material-icons">chat</i> LINEでログイン / 新規登録
                   </button>
                 {/if}
                 <!-- Meta Button -->
                 {#if providers.meta}
-                  <button class="btn social-btn meta-btn waves-effect w-100" onclick={() => handleOAuth('meta')}>
-                    <i class="material-icons left">facebook</i> Metaでログイン / 新規登録
+                  <button class="nm-btn meta-btn waves-effect w-100" onclick={() => handleOAuth('meta')}>
+                    <i class="material-icons">facebook</i> Metaでログイン / 新規登録
                   </button>
                 {/if}
               </div>
@@ -98,12 +98,6 @@
   .auth-container {
     margin-top: 4rem;
   }
-  .glass-card {
-    background: rgba(255, 255, 255, 0.96);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.04);
-  }
   .font-weight-500 {
     font-weight: 500;
   }
@@ -116,55 +110,59 @@
   }
   
   /* Social buttons styling */
-  .social-btn {
-    text-transform: none;
-    border-radius: 6px;
-    box-shadow: none;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 48px;
-    line-height: 48px;
-    font-size: 1rem;
-    transition: background-color 0.2s, box-shadow 0.2s;
-  }
-  .social-btn i {
-    margin-right: 10px;
-  }
   .google-btn {
-    background-color: #f8f9fa !important;
+    background-color: var(--nm-bg-element) !important;
     color: #3c4043 !important;
-    border: 1px solid #dadce0;
+    border: var(--nm-border-light) !important;
+    box-shadow: var(--nm-shadow-outset-sm) !important;
   }
   .google-btn:hover {
-    background-color: #f1f3f4 !important;
-    box-shadow: 0 1px 3px rgba(60,64,67,0.15);
+    box-shadow: var(--nm-shadow-outset-sm-hover) !important;
+  }
+  .google-btn:active {
+    box-shadow: var(--nm-shadow-inset) !important;
   }
   .google-btn i {
     color: #ea4335 !important;
     font-size: 2.5rem !important;
+    margin-right: -4px;
+    margin-left: -6px;
   }
+  
   .line-btn {
     background-color: #06c755 !important;
     color: #ffffff !important;
+    border: 1px solid rgba(6, 199, 85, 0.2) !important;
+    box-shadow: 3px 3px 6px rgba(6, 199, 85, 0.2), -3px -3px 6px rgba(255, 255, 255, 0.7) !important;
   }
   .line-btn:hover {
     background-color: #05b34c !important;
-    box-shadow: 0 1px 3px rgba(6,199,85,0.25);
+    box-shadow: 4px 4px 8px rgba(6, 199, 85, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.8) !important;
+  }
+  .line-btn:active {
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.2) !important;
   }
   .line-btn i {
-    font-size: 1.4rem !important;
+    font-size: 1.3rem !important;
   }
+  
   .meta-btn {
     background-color: #1877f2 !important;
     color: #ffffff !important;
+    border: 1px solid rgba(24, 119, 242, 0.2) !important;
+    box-shadow: 3px 3px 6px rgba(24, 119, 242, 0.2), -3px -3px 6px rgba(255, 255, 255, 0.7) !important;
   }
   .meta-btn:hover {
     background-color: #166fe5 !important;
-    box-shadow: 0 1px 3px rgba(24,119,242,0.25);
+    box-shadow: 4px 4px 8px rgba(24, 119, 242, 0.3), -4px -4px 8px rgba(255, 255, 255, 0.8) !important;
+  }
+  .meta-btn:active {
+    box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.2) !important;
   }
   .meta-btn i {
-    font-size: 1.4rem !important;
+    font-size: 1.3rem !important;
+  }
+  .w-100 {
+    width: 100% !important;
   }
 </style>
