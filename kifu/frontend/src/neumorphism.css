@@ -41,9 +41,14 @@
   --nm-bg-element: #262b35;
   --nm-text-main: #e8edf5;   /* Bright near-white for readability on dark */
   --nm-text-muted: #9aabbd;
-  /* Dark mode accent: soft teal-cyan (ダークモードでの視認性を確保) */
-  --nm-accent: var(--theme-color, #5eadd2);
-  --nm-accent-light: #82c7e8;
+  /*
+   * ダークモードのアクセントカラー:
+   * color-mix() で白を55%混ぜることで、管理者が設定した暗いテーマカラーでも
+   * ダーク背景 (#262b35) 上で十分なコントラストを確保する。
+   * デフォルト値は明るいスカイブルー (#60c5f1)。
+   */
+  --nm-accent: color-mix(in srgb, var(--theme-color, #60c5f1) 45%, white 55%);
+  --nm-accent-light: color-mix(in srgb, var(--theme-color, #60c5f1) 30%, white 70%);
   --nm-accent-text: #1a2435;
   
   --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
@@ -65,8 +70,8 @@
     --nm-bg-element: #262b35;
     --nm-text-main: #e8edf5;
     --nm-text-muted: #9aabbd;
-    --nm-accent: var(--theme-color, #5eadd2);
-    --nm-accent-light: #82c7e8;
+    --nm-accent: color-mix(in srgb, var(--theme-color, #60c5f1) 45%, white 55%);
+    --nm-accent-light: color-mix(in srgb, var(--theme-color, #60c5f1) 30%, white 70%);
     --nm-accent-text: #1a2435;
     
     --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
