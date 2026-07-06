@@ -302,7 +302,11 @@
     <div class="col s12 center-align" style="margin-top: 4rem; padding: 2rem;">
       <i class="material-icons grey-text" style="font-size: 5rem;">layers_clear</i>
       <h5 class="grey-text text-darken-1">登録されている棋譜がありません</h5>
-      <p class="grey-text">「新規登録」ボタンからSGFファイルをアップロードして開始してください。</p>
+      {#if !publicMode}
+        <p class="grey-text">「SGFアップロード」または「自分で棋譜を作成」ボタンから登録を行ってください。</p>
+      {:else}
+        <p class="grey-text">このユーザーが一般公開している棋譜はまだありません。</p>
+      {/if}
     </div>
   {:else if filteredKifus.length === 0}
     <div class="col s12 center-align" style="margin-top: 4rem; padding: 2rem;">
