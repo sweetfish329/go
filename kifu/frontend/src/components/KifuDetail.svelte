@@ -54,6 +54,7 @@
   interface BranchItem {
     label: string;
     node: SgfNode;
+    originalIndex: number;
   }
 
   let kifu = $state<KifuDetailData | null>(null);
@@ -273,9 +274,16 @@
       let moveLabel = "変化図";
       if (node.properties.B) moveLabel = `黒 ${node.properties.B[0]}`;
       else if (node.properties.W) moveLabel = `白 ${node.properties.W[0]}`;
+      
+      let originalIndex = -1;
+      if (node.parent) {
+        originalIndex = node.parent.children.indexOf(node);
+      }
+      
       return {
         label: moveLabel,
-        node: node
+        node: node,
+        originalIndex: originalIndex
       };
     });
   }
@@ -625,8 +633,8 @@
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
               <!-- Main branch return button if not on primary branch -->
               <!-- Display other branch buttons -->
-              {#each alternativeBranches as branch, idx}
-                <button class="btn-small waves-effect waves-light brown lighten-1" on:click={() => selectBranch(idx)}>
+              {#each alternativeBranches as branch}
+                <button class="btn-small waves-effect waves-light brown lighten-1" on:click={() => selectBranch(branch.originalIndex)}>
                   {branch.label} に切り替え
                 </button>
               {/each}
