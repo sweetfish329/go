@@ -641,6 +641,43 @@
     }
   }
 
+  function handleReturnToMainPath() {
+    if (!player) return;
+
+    const state = player.getCurrentState();
+    let current = state.node;
+    let targetNode: SgfNode | null = null;
+
+    // Traverse up to find the first node that is not a variation (part of the primary path)
+    while (current) {
+      if (!(current as any).is_variation) {
+        targetNode = current;
+        break;
+      }
+      current = current.parent;
+    }
+
+    if (targetNode) {
+      let idx = player.history.findIndex(h => h.node === targetNode);
+      if (idx !== -1) {
+        player.goTo(idx);
+      } else {
+        // If the path was sliced out, rebuild the main path
+        player.initGame();
+        idx = player.history.findIndex(h => h.node === targetNode);
+        if (idx !== -1) {
+          player.goTo(idx);
+        }
+      }
+      updatePlayerState();
+
+      const M = getM();
+      if (M) {
+        M.toast({ html: '本線（オリジナルの棋譜）に戻りました', classes: 'grey darken-3' });
+      }
+    }
+  }
+
 
   // Clean up timers
   onDestroy(() => {
@@ -752,6 +789,16 @@
               <i class="material-icons">last_page</i>
             </button>
           </div>
+
+          {#if isViewingVariation}
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <div class="animate-fade-in" style="margin-top: 10px; display: flex; justify-content: center;">
+              <button class="btn waves-effect waves-light grey darken-3 btn-small" on:click={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; font-weight: 500;">
+                <i class="material-icons left" style="font-size: 1.15rem; margin: 0 4px 0 0;">assignment_return</i>
+                本線（元の棋譜）に戻る
+              </button>
+            </div>
+          {/if}
         </div>
       </div>
     </div>
@@ -827,6 +874,13 @@
             </span>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
               <!-- Main branch return button if not on primary branch -->
+              {#if isViewingVariation}
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <button class="btn-small waves-effect waves-light grey darken-3" on:click={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; font-weight: 500;">
+                  <i class="material-icons left" style="font-size: 1.1rem; margin-right: 4px; margin-left: 0;">assignment_return</i>
+                  本線に戻る
+                </button>
+              {/if}
               <!-- Display other branch buttons -->
               {#each alternativeBranches as branch}
                 <button class="btn-small waves-effect waves-light brown lighten-1" on:click={() => selectBranch(branch.originalIndex)}>
