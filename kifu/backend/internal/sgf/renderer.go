@@ -255,9 +255,9 @@ func drawNumber(img *image.RGBA, cx, cy int, num int, col color.Color) {
 	}
 }
 
-// GenerateBoardImage creates a 630x630 square OGP image of the final board state with move numbers
+// GenerateBoardImage creates a 1200x630 OGP image of the final board state with move numbers
 func GenerateBoardImage(grid [][]int, moveNumbers [][]int, size int) image.Image {
-	width, height := 630, 630
+	width, height := 1200, 630
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	// 1. Draw overall dark background
