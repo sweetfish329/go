@@ -82,6 +82,8 @@
   let reviewComment = $state("");
   let isAddingReview = $state(false);
   let reviewList = $state<ReviewItem[]>([]); // Review items fetched from database
+  let isViewingVariation = $state(false);
+  let activeReviewer = $state("");
 
   // For board config
   let boardSize = $state(19);
@@ -144,6 +146,15 @@
     }
   }
 
+  // Recursively marks SGF nodes as variation branch
+  function markAsVariation(node: SgfNode, reviewerName: string) {
+    (node as any).is_variation = true;
+    (node as any).reviewer_name = reviewerName;
+    for (const child of node.children) {
+      markAsVariation(child, reviewerName);
+    }
+  }
+
   // Merges comments and variation subtrees from Database into the active SgfPlayer tree
   function mergeReviewsIntoPlayer() {
     if (!player || !reviewList || reviewList.length === 0) return;
@@ -184,6 +195,7 @@
                   return JSON.stringify(child.properties) === targetProps;
                 });
                 if (!alreadyExists) {
+                  markAsVariation(varPlayer.root, rev.reviewer_name);
                   varPlayer.root.parent = node.parent;
                   node.parent.children.push(varPlayer.root);
                 }
@@ -211,6 +223,7 @@
                     }
                     varPlayer.root.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
                   }
+                  markAsVariation(varPlayer.root, rev.reviewer_name);
                   varPlayer.root.parent = node;
                   node.children.push(varPlayer.root);
                 }
@@ -269,11 +282,33 @@
       currentTurn = currentIndex % 2 === 0 ? 2 : 1; // White on even index (0 is AB, 1 is White first move)
     }
 
+    // Check if currently on a variation branch
+    const currentNode = state.node;
+    let variationFound = false;
+    let reviewer = "";
+
+    if (currentNode) {
+      let temp: SgfNode | null = currentNode;
+      while (temp) {
+        if ((temp as any).is_variation) {
+          variationFound = true;
+          reviewer = (temp as any).reviewer_name || "";
+          break;
+        }
+        temp = temp.parent;
+      }
+    }
+    isViewingVariation = variationFound;
+    activeReviewer = reviewer;
+
     // Get alternative branches (siblings)
     alternativeBranches = player.getAlternativeBranches().map((node) => {
       let moveLabel = "変化図";
       if (node.properties.B) moveLabel = `黒 ${node.properties.B[0]}`;
       else if (node.properties.W) moveLabel = `白 ${node.properties.W[0]}`;
+      
+      const nodeReviewer = (node as any).reviewer_name || "";
+      const label = nodeReviewer ? `${nodeReviewer} さんの指導 (${moveLabel})` : `変化図 (${moveLabel})`;
       
       let originalIndex = -1;
       if (node.parent) {
@@ -281,7 +316,7 @@
       }
       
       return {
-        label: moveLabel,
+        label: label,
         node: node,
         originalIndex: originalIndex
       };
@@ -367,6 +402,10 @@
     // Add move to player
     const res = player.addMove(x, y, currentTurn);
     if (res.success) {
+      if (res.isNew && res.node) {
+        const reviewer = reviewerName.trim() || auth.username || "あなた";
+        markAsVariation(res.node, reviewer);
+      }
       updatePlayerState();
       
       // If it created a new branch/variation, notify the user
@@ -541,14 +580,22 @@
     <!-- Main UI Grid -->
     <!-- Left Column: Go Board & Controls -->
     <div class="col s12 l6 center-align">
-      <Board
-        board={boardState}
-        size={boardSize}
-        lastMove={lastMove}
-        interactive={reviewMode}
-        turnColor={currentTurn}
-        on:intersectionClick={handleIntersectionClick}
-      />
+      <div class="board-wrapper {isViewingVariation ? 'viewing-variation' : ''}" style="position: relative; display: inline-block;">
+        {#if isViewingVariation}
+          <div class="variation-badge animate-fade-in" style="position: absolute; top: 10px; left: 10px; z-index: 10; background: linear-gradient(135deg, #ff9800, #f57c00); color: #fff; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2);">
+            <i class="material-icons" style="font-size: 1rem; vertical-align: middle;">call_split</i>
+            <span>指導手順: {activeReviewer ? `${activeReviewer} さん` : 'あなた'}</span>
+          </div>
+        {/if}
+        <Board
+          board={boardState}
+          size={boardSize}
+          lastMove={lastMove}
+          interactive={reviewMode}
+          turnColor={currentTurn}
+          on:intersectionClick={handleIntersectionClick}
+        />
+      </div>
 
       <!-- Playback Controls -->
       <div class="controls-panel card white" style="margin-top: 1rem; border-radius: 8px;">
@@ -812,5 +859,20 @@
     h5 {
       font-size: 1.25rem !important;
     }
+  }
+
+  /* Board wrapper variation border and shading */
+  .board-wrapper {
+    border: 4px solid transparent;
+    border-radius: 12px;
+    padding: 4px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: inline-block;
+  }
+
+  .board-wrapper.viewing-variation {
+    border-color: #ffb74d !important;
+    background-color: #ffe0b2;
+    box-shadow: 0 10px 30px rgba(255, 152, 0, 0.18) !important;
   }
 </style>
