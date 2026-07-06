@@ -4,10 +4,11 @@
   /* Colors */
   --nm-bg: #e6ebf2;          /* Soft warm gray-blue background */
   --nm-bg-element: #e6ebf2;
-  --nm-text-main: #3e4a5b;
-  --nm-text-muted: #7a8a9e;
-  --nm-accent: var(--theme-color, #5d4037);
-  --nm-accent-light: #8d6e63;
+  --nm-text-main: #2d3748;   /* Rich dark slate for readability */
+  --nm-text-muted: #64748b;
+  /* Default accent: indigo-slate (視認性の高い落ち着いたインディゴ) */
+  --nm-accent: var(--theme-color, #4a6fa5);
+  --nm-accent-light: #6b8fca;
   --nm-accent-text: #ffffff;
   
   /* Light theme shadows (Default) */
@@ -38,11 +39,12 @@
 :root.dark {
   --nm-bg: #262b35;          /* Deep Slate gray background */
   --nm-bg-element: #262b35;
-  --nm-text-main: #e2e8f0;
-  --nm-text-muted: #8a99ad;
-  --nm-accent: #a1887f;
-  --nm-accent-light: #bcaaa4;
-  --nm-accent-text: #262b35;
+  --nm-text-main: #e8edf5;   /* Bright near-white for readability on dark */
+  --nm-text-muted: #9aabbd;
+  /* Dark mode accent: soft teal-cyan (ダークモードでの視認性を確保) */
+  --nm-accent: var(--theme-color, #5eadd2);
+  --nm-accent-light: #82c7e8;
+  --nm-accent-text: #1a2435;
   
   --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
   --nm-shadow-outset-hover: 8px 8px 16px #16191f, -8px -8px 16px #373f4d;
@@ -61,11 +63,11 @@
   :root:not(.light) {
     --nm-bg: #262b35;          /* Deep Slate gray background */
     --nm-bg-element: #262b35;
-    --nm-text-main: #e2e8f0;
-    --nm-text-muted: #8a99ad;
-    --nm-accent: #a1887f;
-    --nm-accent-light: #bcaaa4;
-    --nm-accent-text: #262b35;
+    --nm-text-main: #e8edf5;
+    --nm-text-muted: #9aabbd;
+    --nm-accent: var(--theme-color, #5eadd2);
+    --nm-accent-light: #82c7e8;
+    --nm-accent-text: #1a2435;
     
     --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
     --nm-shadow-outset-hover: 8px 8px 16px #16191f, -8px -8px 16px #373f4d;
@@ -418,10 +420,20 @@ textarea.nm-textarea:focus {
 
 /* Y2K & Pixelart (8-bit) Aesthetic Enhancements */
 
-/* Pixel Fonts */
+/* Pixel / Retro Fonts
+   - font-pixel: 日本語OK ピクセル風（DotGothic16 + M PLUS Rounded 1c フォールバック）
+   - font-pixel-en: 英数字専用 8-bit アーケード風（Press Start 2P + VT323）
+*/
 .font-pixel {
-  font-family: 'DotGothic16', 'Press Start 2P', 'Courier New', monospace !important;
+  /* DotGothic16 covers JP pixel look; M PLUS Rounded 1c handles JP readability fallback */
+  font-family: 'DotGothic16', 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif !important;
   letter-spacing: 0.5px;
+}
+
+/* English-only decorative pixel font for logos, badges, ASCII labels */
+.font-pixel-en {
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+  letter-spacing: 1px;
 }
 
 /* Y2K Cyber Neon Gradients */
