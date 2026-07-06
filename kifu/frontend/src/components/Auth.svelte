@@ -1,8 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { auth } from '../lib/auth.svelte';
-
-  let { onLoginSuccess } = $props<{ onLoginSuccess: () => void }>();
 
   let error = $state<string | null>(null);
   let loading = $state(true);
@@ -11,8 +8,6 @@
     line: false,
     meta: false
   });
-
-  const getM = () => (window as any).M;
 
   onMount(async () => {
     try {
@@ -27,49 +22,10 @@
     }
   });
 
-  async function handleOAuth(provider: string) {
+  function handleOAuth(provider: string) {
     loading = true;
     error = null;
-
-    // In a real application, this would redirect to provider's auth endpoint,
-    // but we simulate it by sending a post request with mock provider credentials.
-    const providerUserId = `${provider}-mock-${Math.floor(Math.random() * 900000 + 100000)}`;
-    const defaultName = `${provider.charAt(0).toUpperCase() + provider.slice(1)}ユーザー`;
-
-    try {
-      const res = await fetch('/api/auth/oauth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          provider: provider,
-          provider_user_id: providerUserId,
-          default_username: defaultName
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "外部アカウント認証に失敗しました。");
-      }
-
-      auth.setLogin(data.token, data.user.username, data.user.id);
-      
-      const M = getM();
-      if (M) {
-        M.toast({ 
-          html: `${provider.toUpperCase()}アカウントでログインしました！`, 
-          classes: 'green darken-1' 
-        });
-      }
-
-      onLoginSuccess();
-    } catch (err: any) {
-      error = err.message;
-    } finally {
-      loading = false;
-    }
+    window.location.href = `/api/auth/oauth/redirect/${provider}`;
   }
 </script>
 

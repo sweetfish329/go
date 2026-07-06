@@ -28,6 +28,21 @@
     const params = new URLSearchParams(window.location.search);
     const admin = params.has('admin');
 
+    // Handle OAuth2 callback redirect parameters
+    const oauthToken = params.get('oauth_token');
+    const oauthUsername = params.get('oauth_username');
+    const oauthId = params.get('oauth_id');
+
+    if (oauthToken && oauthUsername && oauthId) {
+      auth.setLogin(oauthToken, oauthUsername, oauthId);
+      // Clean query parameters from URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete('oauth_token');
+      url.searchParams.delete('oauth_username');
+      url.searchParams.delete('oauth_id');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+
     // Pattern: /u/:userId/:kifuId
     const kifuDetailMatch = path.match(/^\/u\/([^/]+)\/([^/]+)\/?$/);
     // Pattern: /u/:userId
@@ -196,7 +211,7 @@
   <!-- Main Container -->
   <main class="container" style="padding-bottom: 4rem;">
     {#if currentView === "auth"}
-      <Auth onLoginSuccess={handleLoginSuccess} />
+      <Auth />
     {:else if currentView === "list"}
       <KifuList on:selectKifu={handleSelectKifu} on:createKifu={() => currentView = "create"} />
     {:else if currentView === "public_list"}
