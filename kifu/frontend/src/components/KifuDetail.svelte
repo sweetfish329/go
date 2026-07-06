@@ -84,6 +84,7 @@
   let reviewList = $state<ReviewItem[]>([]); // Review items fetched from database
   let isViewingVariation = $state(false);
   let activeReviewer = $state("");
+  let isGameInfoExpanded = $state(false);
 
   // For board config
   let boardSize = $state(19);
@@ -643,30 +644,63 @@
 
     <!-- Right Column: Game Info, Comments & Variations -->
     <div class="col s12 l6 text-left" style="text-align: left;">
-      <!-- Game Info Card -->
+      <!-- Game Info Card (Collapsible) -->
       {#if kifu}
-      <div class="card white" style="border-radius: 8px; margin-top: 0;">
-        <div class="card-content" style="padding: 16px 20px;">
-          <span class="card-title brown-text text-darken-3" style="font-size: 1.15rem; font-weight: 500; margin-bottom: 8px;">
-            対局情報
-          </span>
-          <div class="row" style="margin-bottom: 0;">
-            <div class="col s6 font-weight-500">
-              <span class="black-text">● 黒番:</span> {kifu.black_player || '不明'} {kifu.black_rank ? `(${kifu.black_rank})` : ''}
-              <div class="grey-text text-darken-1" style="font-size: 0.85rem; margin-top: 4px;">アゲハマ: {captives.W}</div>
-            </div>
-            <div class="col s6 font-weight-500">
-              <span class="black-text">○ 白番:</span> {kifu.white_player || '不明'} {kifu.white_rank ? `(${kifu.white_rank})` : ''}
-              <div class="grey-text text-darken-1" style="font-size: 0.85rem; margin-top: 4px;">アゲハマ: {captives.B}</div>
-            </div>
-            <div class="col s12" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 15px;">
-              <span><strong>コミ:</strong> {kifu.komi}目</span>
-              <span><strong>置き石:</strong> {kifu.handicap}子</span>
-              <span><strong>結果:</strong> {kifu.result || 'なし'}</span>
-              <span><strong>対局日:</strong> {kifu.game_date}</span>
+      <div class="card white game-info-card hoverable" style="border-radius: 8px; margin-top: 0; border: 1px solid #efebe9; transition: all 0.25s ease;">
+        <!-- Card Header Toggle (Click to Toggle) -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="card-header-toggle cursor-pointer" on:click={() => isGameInfoExpanded = !isGameInfoExpanded} style="padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span class="brown-text text-darken-3" style="font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 6px; margin-right: 4px;">
+              <i class="material-icons" style="font-size: 1.15rem;">info_outline</i>
+              対局情報
+            </span>
+            <span class="grey-text text-darken-3" style="font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <span class="font-weight-500">● {kifu.black_player || '不明'}</span>
+              <span class="grey-text text-darken-1" style="font-size: 0.8rem;">(石 {captives.W})</span>
+              <span class="grey-text" style="font-size: 0.75rem;">vs</span>
+              <span class="font-weight-500">○ {kifu.white_player || '不明'}</span>
+              <span class="grey-text text-darken-1" style="font-size: 0.8rem;">(石 {captives.B})</span>
+              {#if kifu.result}
+                <span class="brown-text lighten-1-text" style="margin-left: 6px; font-size: 0.8rem; padding: 1px 8px; background: #efebe9; border-radius: 12px; font-weight: 600;">{kifu.result}</span>
+              {/if}
+            </span>
+          </div>
+          <button class="btn-flat btn-floating waves-effect waves-circle" style="width: 32px; height: 32px; line-height: 32px; display: flex; align-items: center; justify-content: center; margin: 0; background: transparent;">
+            <i class="material-icons" style="font-size: 1.4rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: #5d4037;">keyboard_arrow_down</i>
+          </button>
+        </div>
+
+        <!-- Expanded details -->
+        {#if isGameInfoExpanded}
+          <div class="card-content" style="padding: 0 20px 20px 20px; border-top: 1px dashed #efebe9; transition: all 0.3s ease;">
+            <div class="row" style="margin-bottom: 0; margin-top: 12px;">
+              <div class="col s6 font-weight-500">
+                <span class="black-text" style="font-size: 0.9rem; font-weight: 600;">● 黒番:</span> 
+                <span class="brown-text text-darken-2">{kifu.black_player || '不明'}</span> {kifu.black_rank ? `(${kifu.black_rank})` : ''}
+                <div class="grey-text text-darken-1" style="font-size: 0.8rem; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                  <i class="material-icons" style="font-size: 0.9rem;">toll</i>
+                  取得した白石: <strong style="color: #3e2723; font-size: 0.9rem;">{captives.W}</strong>
+                </div>
+              </div>
+              <div class="col s6 font-weight-500">
+                <span class="black-text" style="font-size: 0.9rem; font-weight: 600;">○ 白番:</span> 
+                <span class="brown-text text-darken-2">{kifu.white_player || '不明'}</span> {kifu.white_rank ? `(${kifu.white_rank})` : ''}
+                <div class="grey-text text-darken-1" style="font-size: 0.8rem; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                  <i class="material-icons" style="font-size: 0.9rem;">toll</i>
+                  取得した黒石: <strong style="color: #3e2723; font-size: 0.9rem;">{captives.B}</strong>
+                </div>
+              </div>
+              <div class="col s12" style="margin-top: 14px; border-top: 1px solid #efebe9; padding-top: 10px; font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 20px; color: #4e342e;">
+                <span><strong>コミ:</strong> {kifu.komi}目</span>
+                <span><strong>置き石:</strong> {kifu.handicap}子</span>
+                <span><strong>結果:</strong> {kifu.result || 'なし'}</span>
+                <span><strong>対局日:</strong> {kifu.game_date || '未登録'}</span>
+              </div>
             </div>
           </div>
-        </div>
+        {/if}
       </div>
       {/if}
 
