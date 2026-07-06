@@ -168,11 +168,12 @@
     align-items: center;
   }
   .share-modal-content {
-    width: 90%;
-    max-width: 500px;
+    width: 92%;
+    max-width: 480px;
     border-radius: 12px;
     overflow: hidden;
-    margin: 0;
+    margin: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   }
   .qr-container {
     display: inline-block;
@@ -196,6 +197,31 @@
     margin: 0 !important;
     background-color: #f5f5f5;
   }
+  
+  /* Mobile responsive adjustments */
+  @media only screen and (max-width: 480px) {
+    .share-url-container {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .share-url-input {
+      width: 100% !important;
+    }
+    .share-url-container button {
+      width: 100% !important;
+      margin-left: 0 !important;
+      height: 40px !important;
+    }
+    .privacy-toggle-container label {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 8px !important;
+    }
+    .privacy-toggle-container .lever {
+      margin-left: 0 !important;
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.25s ease-out;
   }

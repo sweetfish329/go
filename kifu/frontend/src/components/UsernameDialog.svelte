@@ -107,12 +107,28 @@
     align-items: center;
   }
   .modal-content {
-    width: 90%;
+    width: 92%;
     max-width: 400px;
     border-radius: 12px;
     overflow: hidden;
-    margin: 0;
+    margin: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   }
+  
+  /* Mobile responsive adjustments */
+  @media only screen and (max-width: 400px) {
+    :global(.card-action) {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 10px;
+    }
+    :global(.card-action) button {
+      width: 100%;
+      margin: 0 !important;
+      height: 40px !important;
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.25s ease-out;
   }

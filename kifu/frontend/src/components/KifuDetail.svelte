@@ -705,6 +705,44 @@
     scrollbar-width: thin;
   }
 
+  /* Playback controls buttons styling */
+  .buttons-row button {
+    background-color: #efebe9 !important;
+    color: #4e342e !important;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    border: 1px solid #d7ccc8 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Hover micro-animations */
+  .buttons-row button:hover {
+    background-color: #d7ccc8 !important;
+    transform: scale(1.15) translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  .buttons-row button:active {
+    transform: scale(0.95) translateY(0) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Emphasize the main play/pause button */
+  .buttons-row button.btn.brown {
+    background-color: #4e342e !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.12) !important;
+  }
+
+  .buttons-row button.btn.brown:hover {
+    background-color: #5d4037 !important;
+    transform: scale(1.18) translateY(-2px) !important;
+    box-shadow: 0 5px 12px rgba(0,0,0,0.18) !important;
+  }
+
   /* Mobile responsive adjustments */
   @media only screen and (max-width: 600px) {
     .buttons-row button {
