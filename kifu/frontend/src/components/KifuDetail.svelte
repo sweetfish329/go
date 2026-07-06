@@ -658,16 +658,13 @@
     }
 
     if (targetNode) {
-      let idx = player.history.findIndex(h => h.node === targetNode);
+      // Rebuild the primary path history completely
+      player.initGame();
+      
+      // Find the target node inside the rebuilt primary path history
+      const idx = player.history.findIndex(h => h.node === targetNode);
       if (idx !== -1) {
         player.goTo(idx);
-      } else {
-        // If the path was sliced out, rebuild the main path
-        player.initGame();
-        idx = player.history.findIndex(h => h.node === targetNode);
-        if (idx !== -1) {
-          player.goTo(idx);
-        }
       }
       updatePlayerState();
 
