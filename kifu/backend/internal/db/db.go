@@ -200,7 +200,8 @@ func runMigrations(db *sql.DB) error {
 	('title', 'kifu_store'),
 	('tab_name', 'kifu_store'),
 	('favicon', ''),
-	('theme_color', '#4e342e')
+	('theme_color', '#4e342e'),
+	('external_url', '')
 	ON CONFLICT (key) DO NOTHING;`
 
 	_, err = db.Exec(insertDefaultSettingsQuery)

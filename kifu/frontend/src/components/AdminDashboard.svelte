@@ -21,7 +21,14 @@
     title: 'kifu_store',
     tab_name: 'kifu_store',
     favicon: '',
-    theme_color: '#4e342e'
+    theme_color: '#4e342e',
+    external_url: ''
+  });
+
+  const computedRedirectUrl = $derived.by(() => {
+    const base = siteSettingsForm.external_url || window.location.origin;
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    return (provider: string) => `${cleanBase}/api/auth/oauth/callback/${provider}`;
   });
 
   let activeTab = $state('site');
@@ -71,6 +78,8 @@
   async function handleSave(provider: string) {
     saving = true;
     const token = localStorage.getItem("admin_token");
+    // Populate computed redirect_url before saving
+    settings[provider].redirect_url = computedRedirectUrl(provider);
     const data = settings[provider];
 
     try {
@@ -111,6 +120,7 @@
         siteSettingsForm.tab_name = data.tab_name || 'kifu_store';
         siteSettingsForm.favicon = data.favicon || '';
         siteSettingsForm.theme_color = data.theme_color || '#4e342e';
+        siteSettingsForm.external_url = data.external_url || '';
       }
     } catch (err: any) {
       console.error("サイト設定の取得に失敗しました", err);
@@ -265,6 +275,11 @@
                 </div>
               </div>
 
+              <div class="input-field col s12" style="margin-bottom: 2rem;">
+                <input id="site_external_url" type="text" bind:value={siteSettingsForm.external_url} placeholder="https://my.domain/subpass" />
+                <label for="site_external_url" class="active">外部URL (本番サブパス運用時などに設定。空欄時は自動取得)</label>
+              </div>
+
               <div class="col s12 right-align">
                 <button class="btn waves-effect waves-light brown darken-2" onclick={handleSaveSiteSettings} disabled={saving}>
                   <i class="material-icons left">save</i>設定を保存
@@ -306,8 +321,11 @@
                 </div>
 
                 <div class="input-field col s12" style="margin-bottom: 2rem;">
-                  <input id="{provider}_redirect_url" type="text" bind:value={settings[provider].redirect_url} placeholder="https://yourdomain.com/api/auth/callback" />
-                  <label for="{provider}_redirect_url" class="active">リダイレクト URL (Callback URL)</label>
+                  <input id="{provider}_redirect_url" type="text" readonly value={computedRedirectUrl(provider)} style="background-color: #f5f5f5; color: #777;" />
+                  <label for="{provider}_redirect_url" class="active">リダイレクト URL (コピペ用・読み取り専用)</label>
+                  <span class="helper-text" style="color: #888;">
+                    このURLをGoogleやLINE等のデベロッパーコンソールに「リダイレクトURI」として登録してください。
+                  </span>
                 </div>
 
                 <div class="col s12 right-align">

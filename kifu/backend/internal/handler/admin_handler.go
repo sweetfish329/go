@@ -88,9 +88,13 @@ func (h *AdminHandler) SaveOAuthSettings(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if req.Provider == "" || req.ClientID == "" || req.ClientSecret == "" || req.RedirectURL == "" {
+	if req.Provider == "" || req.ClientID == "" || req.ClientSecret == "" {
 		respondWithError(w, http.StatusBadRequest, "All oauth setting fields are required")
 		return
+	}
+
+	if req.RedirectURL == "" {
+		req.RedirectURL = "http://dummy" // Fallback to satisfy DB NOT NULL constraint
 	}
 
 	if err := h.oauthRepo.Save(&req); err != nil {
@@ -118,7 +122,7 @@ func (h *AdminHandler) SaveSiteSettings(w http.ResponseWriter, r *http.Request) 
 	}
 
 	for k, v := range req {
-		if k == "title" || k == "tab_name" || k == "favicon" || k == "theme_color" {
+		if k == "title" || k == "tab_name" || k == "favicon" || k == "theme_color" || k == "external_url" {
 			if err := h.siteSettingRepo.Save(k, v); err != nil {
 				respondWithError(w, http.StatusInternalServerError, err.Error())
 				return

@@ -27,6 +27,7 @@ func (r *SiteSettingRepository) FindAll() (map[string]string, error) {
 	settings["tab_name"] = "kifu_store"
 	settings["favicon"] = ""
 	settings["theme_color"] = "#4e342e"
+	settings["external_url"] = ""
 
 	for rows.Next() {
 		var key, value string

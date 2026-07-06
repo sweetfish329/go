@@ -13,12 +13,13 @@ import (
 )
 
 type AuthHandler struct {
-	repo      *repository.UserRepository
-	oauthRepo *repository.OAuthRepository
+	repo            *repository.UserRepository
+	oauthRepo       *repository.OAuthRepository
+	siteSettingRepo *repository.SiteSettingRepository
 }
 
-func NewAuthHandler(repo *repository.UserRepository, oauthRepo *repository.OAuthRepository) *AuthHandler {
-	return &AuthHandler{repo: repo, oauthRepo: oauthRepo}
+func NewAuthHandler(repo *repository.UserRepository, oauthRepo *repository.OAuthRepository, siteSettingRepo *repository.SiteSettingRepository) *AuthHandler {
+	return &AuthHandler{repo: repo, oauthRepo: oauthRepo, siteSettingRepo: siteSettingRepo}
 }
 
 type AuthRequest struct {
@@ -233,7 +234,7 @@ func (h *AuthHandler) OAuth2Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config := h.getOAuthConfig(provider, setting)
+	config := h.getOAuthConfig(provider, setting, r)
 	if config == nil {
 		respondWithError(w, http.StatusBadRequest, "Unsupported provider")
 		return
@@ -287,7 +288,7 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config := h.getOAuthConfig(provider, setting)
+	config := h.getOAuthConfig(provider, setting, r)
 	if config == nil {
 		respondWithError(w, http.StatusBadRequest, "Unsupported provider")
 		return
@@ -379,7 +380,7 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (h *AuthHandler) getOAuthConfig(provider string, setting *model.OAuthSetting) *oauth2.Config {
+func (h *AuthHandler) getOAuthConfig(provider string, setting *model.OAuthSetting, r *http.Request) *oauth2.Config {
 	var endpoint oauth2.Endpoint
 	var scopes []string
 
@@ -406,13 +407,42 @@ func (h *AuthHandler) getOAuthConfig(provider string, setting *model.OAuthSettin
 		return nil
 	}
 
+	redirectURL := h.getRedirectURL(provider, r)
+
 	return &oauth2.Config{
 		ClientID:     setting.ClientID,
 		ClientSecret: setting.ClientSecret,
-		RedirectURL:  setting.RedirectURL,
+		RedirectURL:  redirectURL,
 		Endpoint:     endpoint,
 		Scopes:       scopes,
 	}
+}
+
+func (h *AuthHandler) getRedirectURL(provider string, r *http.Request) string {
+	settings, err := h.siteSettingRepo.FindAll()
+	var externalURL string
+	if err == nil {
+		externalURL = settings["external_url"]
+	}
+
+	if externalURL != "" {
+		if externalURL[len(externalURL)-1] == '/' {
+			externalURL = externalURL[:len(externalURL)-1]
+		}
+	} else {
+		// Auto-resolve base URL from request
+		scheme := "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			scheme = proto
+		}
+		host := r.Host
+		externalURL = fmt.Sprintf("%s://%s", scheme, host)
+	}
+
+	return fmt.Sprintf("%s/api/auth/oauth/callback/%s", externalURL, provider)
 }
 
 func getUserInfoURL(provider string) string {
