@@ -54,10 +54,10 @@
 </script>
 
 <div class="modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
-  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
+  <div class="modal-content nm-modal pixel-border-sm" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
     <form onsubmit={handleSave}>
       <div>
-        <span class="card-title d-flex align-center" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--nm-accent); font-size: 1.2rem; margin-bottom: 12px;">
+        <span class="card-title d-flex align-center font-pixel" style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--nm-accent); font-size: 1.2rem; margin-bottom: 12px;">
           <i class="material-icons">edit</i>
           ユーザー名の変更
         </span>
@@ -66,21 +66,21 @@
         </p>
 
         {#if error}
-          <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper" style="padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(239,83,80,0.35);">
+          <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper font-pixel" style="padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(239,83,80,0.35);">
             <i class="material-icons left">error</i>
             <span>{error}</span>
           </div>
         {/if}
 
         <div class="input-field" style="margin-top: 0;">
-          <input id="new-username" type="text" bind:value={newUsername} required class="nm-input" style="margin-bottom: 0;" />
+          <input id="new-username" type="text" bind:value={newUsername} required class="nm-input font-pixel" style="margin-bottom: 0;" />
           <label for="new-username" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">新しいユーザー名</label>
         </div>
       </div>
 
       <div style="padding: 20px 0 0 0; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid rgba(163, 177, 198, 0.2); margin-top: 20px;">
-        <button type="button" class="nm-btn-flat" onclick={onClose} disabled={loading}>キャンセル</button>
-        <button type="submit" class="nm-btn-primary" disabled={!newUsername.trim() || loading}>
+        <button type="button" class="nm-btn-flat font-pixel" onclick={onClose} disabled={loading}>キャンセル</button>
+        <button type="submit" class="nm-btn-primary y2k-glow-blue y2k-grad-blue font-pixel" style="color: #1a1e24 !important;" disabled={!newUsername.trim() || loading}>
           {#if loading}
             保存中...
           {:else}

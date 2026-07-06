@@ -696,15 +696,15 @@
   <!-- Header Navigation -->
   <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
     <div style="display: flex; align-items: center;">
-      <button class="nm-btn-flat" on:click={onBack} style="padding-left: 0; display: inline-flex; align-items: center; gap: 6px;">
+      <button class="nm-btn-flat font-pixel" on:click={onBack} style="padding-left: 0; display: inline-flex; align-items: center; gap: 6px;">
         <i class="material-icons">arrow_back</i>戻る
       </button>
       {#if kifu}
-        <h5 style="margin: 0; font-weight: 600; margin-left: 1.5rem; color: var(--nm-accent);">{kifu.title}</h5>
+        <h5 style="margin: 0; font-weight: 700; margin-left: 1.5rem; color: var(--nm-accent);" class="font-pixel">{kifu.title}</h5>
       {/if}
     </div>
     {#if kifu && isOwner}
-      <button class="nm-btn" on:click={() => showShareDialog = true}>
+      <button class="nm-btn font-pixel" on:click={() => showShareDialog = true}>
         <i class="material-icons" style="font-size: 1.2rem;">share</i>共有設定
       </button>
     {/if}
@@ -734,8 +734,8 @@
     <div class="col s12 l6 center-align">
       <div class="board-wrapper {isViewingVariation ? 'viewing-variation' : ''}" style="position: relative; display: inline-block;">
         {#if isViewingVariation}
-          <div class="variation-badge animate-fade-in" style="position: absolute; top: 10px; left: 10px; z-index: 10; background: linear-gradient(135deg, #ff9800, #f57c00); color: #fff; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2);">
-            <i class="material-icons" style="font-size: 1rem; vertical-align: middle;">call_split</i>
+          <div class="y2k-sticker yellow font-pixel animate-fade-in" style="position: absolute; top: 15px; left: 15px; z-index: 10;">
+            <i class="material-icons" style="font-size: 1rem; color: #1a1e24; vertical-align: middle;">call_split</i>
             <span>指導手順: {activeReviewer ? `${activeReviewer} さん` : 'あなた'}</span>
           </div>
         {/if}
@@ -754,7 +754,7 @@
         <div class="card-content" style="padding: 16px 24px;">
           <!-- Slider -->
           <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-            <span style="font-weight: 600; min-width: 60px; color: var(--nm-accent); font-size: 0.95rem;">{currentIndex} / {maxIndex}手</span>
+            <span style="font-weight: 700; min-width: 70px; color: var(--nm-accent); font-size: 0.9rem;" class="font-pixel">{currentIndex} / {maxIndex}手</span>
             <input
               type="range"
               min="0"
@@ -895,7 +895,7 @@
       <!-- Comments / Review Card -->
       <div class="nm-card" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 1.5rem;">
         <div class="card-content" style="padding: 20px; flex-grow: 1;">
-          <span class="card-title" style="font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: var(--nm-accent);">
+          <span class="card-title font-pixel" style="font-size: 1.15rem; font-weight: 700; margin-bottom: 12px; color: var(--nm-accent);">
             検討・指導コメント (第 {currentIndex} 手)
           </span>
 
@@ -909,7 +909,7 @@
               {#each comments as comment}
                 <div class="comment-item" style="border-bottom: 1px solid rgba(163, 177, 198, 0.15); padding: 12px 0; display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="flex-grow: 1; text-align: left;">
-                    <span class="nm-badge" style="font-weight: 600; margin-bottom: 6px; padding: 2px 10px; font-size: 0.8rem; color: var(--nm-accent);">
+                    <span class="nm-badge font-pixel" style="font-weight: 600; margin-bottom: 6px; padding: 2px 10px; font-size: 0.75rem; color: var(--nm-accent);">
                       {comment.author}
                     </span>
                     <p style="margin: 0; padding-left: 4px; font-size: 0.95rem; white-space: pre-wrap; color: var(--nm-text-main); line-height: 1.5;">{comment.text}</p>
@@ -952,24 +952,24 @@
               
               <div class="row" style="margin-bottom: 0; display: flex; flex-direction: column; gap: 10px;">
                 <div class="input-field col s12" style="margin-top: 0; margin-bottom: 0;">
-                  <input id="reviewer_name" type="text" class="nm-input" bind:value={reviewerName} placeholder="添削者名" style="margin-bottom: 0;" />
+                  <input id="reviewer_name" type="text" class="nm-input font-pixel" bind:value={reviewerName} placeholder="添削者名" style="margin-bottom: 0;" />
                   <label for="reviewer_name" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">添削者</label>
                 </div>
                 <div class="input-field col s12" style="margin-top: 4px; margin-bottom: 0;">
-                  <input id="review_comment" type="text" class="nm-input" bind:value={reviewComment} placeholder="指導・変化図の解説を入力してください" style="margin-bottom: 0;" />
+                  <input id="review_comment" type="text" class="nm-input font-pixel" bind:value={reviewComment} placeholder="指導・変化図の解説を入力してください" style="margin-bottom: 0;" />
                   <label for="review_comment" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">コメント</label>
                 </div>
                 <div class="col s12 right-align" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                   {#if editingReviewId}
-                    <button class="nm-btn-flat" on:click={handleCancelEdit} disabled={isAddingReview}>
+                    <button class="nm-btn-flat font-pixel" on:click={handleCancelEdit} disabled={isAddingReview}>
                       キャンセル
                     </button>
-                    <button class="nm-btn-primary" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
-                      <i class="material-icons" style="font-size: 1.2rem;">save</i>添削を更新
+                    <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue font-pixel" style="color: #1a1e24 !important;" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
+                      <i class="material-icons" style="font-size: 1.2rem; color: #1a1e24;">save</i>添削を更新
                     </button>
                   {:else}
-                    <button class="nm-btn-primary" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
-                      <i class="material-icons" style="font-size: 1.2rem;">save</i>添削を保存
+                    <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue font-pixel" style="color: #1a1e24 !important;" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
+                      <i class="material-icons" style="font-size: 1.2rem; color: #1a1e24;">save</i>添削を保存
                     </button>
                   {/if}
                 </div>

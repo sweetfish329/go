@@ -98,9 +98,9 @@
 </script>
 
 <div class="share-modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
-  <div class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
+  <div class="share-modal-content nm-modal pixel-border-sm" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
     <div>
-      <span class="card-title d-flex align-center" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--nm-accent); font-size: 1.2rem; margin-bottom: 12px;">
+      <span class="card-title d-flex align-center font-pixel" style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--nm-accent); font-size: 1.2rem; margin-bottom: 12px;">
         <i class="material-icons">share</i>
         棋譜を共有する
       </span>
@@ -115,22 +115,22 @@
             {@html qrCodeSvg}
           {:else}
             <div class="valign-wrapper justify-center" style="height: 200px; display: flex; align-items: center;">
-              <p class="grey-text">QRコード生成中...</p>
+              <p class="grey-text font-pixel">QRコード生成中...</p>
             </div>
           {/if}
         </div>
  
         <div class="share-url-container valign-wrapper" style="margin-top: 20px; display: flex; align-items: center; gap: 10px;">
-          <input type="text" readonly value={shareUrl} class="nm-input share-url-input" style="margin-bottom: 0;" />
-          <button class="nm-btn-primary" onclick={handleCopy} style="height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; padding: 0; min-width: 42px; border-radius: var(--nm-radius-sm);">
-            <i class="material-icons" style="font-size: 1.2rem;">{copySuccess ? 'check' : 'content_copy'}</i>
+          <input type="text" readonly value={shareUrl} class="nm-input share-url-input font-pixel" style="margin-bottom: 0;" />
+          <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue" onclick={handleCopy} style="height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; padding: 0; min-width: 42px; border-radius: var(--nm-radius-sm); color: #1a1e24 !important;">
+            <i class="material-icons" style="font-size: 1.2rem; color: #1a1e24;">{copySuccess ? 'check' : 'content_copy'}</i>
           </button>
         </div>
-
+ 
         <!-- Privacy Toggle -->
         <div class="privacy-toggle-container nm-panel-inset left-align" style="margin-top: 20px; padding: 16px;">
           <div class="switch">
-            <label class="black-text" style="font-weight: 500; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 8px; width: 100%;">
+            <label class="black-text font-pixel" style="font-weight: 500; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 8px; width: 100%;">
               <span style="font-size: 0.85rem; color: var(--nm-text-main); font-weight: 600; text-align: left;">一般公開（ライブラリや検索に掲載）</span>
               <input type="checkbox" checked={!isPrivate} onchange={(e) => handleTogglePrivacy(e.currentTarget.checked)} disabled={loading}>
               <span class="lever brown lighten-3"></span>
@@ -148,7 +148,7 @@
     </div>
  
     <div style="padding: 16px 0 0 0; display: flex; justify-content: flex-end; border-top: 1px solid rgba(163, 177, 198, 0.2); margin-top: 20px;">
-      <button class="nm-btn-flat" onclick={onClose}>閉じる</button>
+      <button class="nm-btn-flat font-pixel" onclick={onClose}>閉じる</button>
     </div>
   </div>
 </div>

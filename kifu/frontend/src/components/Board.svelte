@@ -115,7 +115,7 @@
   >
     <!-- Board wood background -->
     <rect width={boardSize} height={boardSize} fill="url(#boardWood)" rx="8" />
-    <rect width={boardSize} height={boardSize} fill="none" stroke="#8d6e63" stroke-width="2" rx="8" />
+    <rect width={boardSize} height={boardSize} fill="none" stroke="#4e342e" stroke-width="3.5" rx="8" />
 
     <!-- Grid lines -->
     <!-- Horizontal lines -->
@@ -250,8 +250,8 @@
     margin: 0 auto;
     border-radius: var(--nm-radius-lg);
     background-color: var(--nm-bg);
-    border: var(--nm-border-light);
-    box-shadow: var(--nm-shadow-outset);
+    border: 3px solid var(--nm-text-main);
+    box-shadow: 4px 4px 0 var(--nm-text-main), var(--nm-shadow-outset) !important;
     padding: 10px;
     box-sizing: border-box;
     transition: var(--nm-transition);

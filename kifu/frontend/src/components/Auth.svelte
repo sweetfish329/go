@@ -32,16 +32,16 @@
 <div class="auth-container animate-fade-in">
   <div class="row">
     <div class="col s12 m8 offset-m2 l6 offset-l3">
-      <div class="nm-card" style="margin-top: 2rem;">
+      <div class="nm-card pixel-border-sm" style="margin-top: 2rem;">
         <div class="card-content" style="padding: 3rem 2.5rem;">
           <div class="center-align" style="margin-bottom: 2.5rem;">
-            <i class="material-icons large" style="font-size: 5rem; color: var(--nm-accent);">grid_on</i>
-            <h4 class="font-weight-500" style="margin-top: 15px; margin-bottom: 12px; font-size: 1.8rem; color: var(--nm-accent); font-weight: 600;">ログイン</h4>
+            <i class="material-icons large animate-pop-in" style="font-size: 5rem; color: var(--nm-accent);">grid_on</i>
+            <h4 class="font-pixel" style="margin-top: 15px; margin-bottom: 12px; font-size: 1.8rem; color: var(--nm-accent); font-weight: 700;">ログイン</h4>
             <p style="font-size: 0.95rem; color: var(--nm-text-muted);">ソーシャルアカウントを使用してログインまたは新規登録を行います</p>
           </div>
 
           {#if error}
-            <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper" style="padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(239, 83, 80, 0.3);">
+            <div class="card-panel red lighten-4 red-text text-darken-4 valign-wrapper font-pixel" style="padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(239, 83, 80, 0.3);">
               <i class="material-icons left" style="margin-right: 8px;">error</i>
               <span>{error}</span>
             </div>
@@ -62,11 +62,11 @@
             {#if !providers.google && !providers.line && !providers.meta}
               <div class="nm-panel-inset center-align" style="border-radius: 8px; padding: 1.5rem; margin-top: 15px;">
                 <i class="material-icons orange-text" style="font-size: 2.5rem; margin-bottom: 8px;">warning</i>
-                <p style="margin: 0; font-weight: 600; font-size: 1.05rem; color: var(--nm-text-main);">現在、ソーシャルログインは一時的に無効化されています。</p>
+                <p class="font-pixel" style="margin: 0; font-weight: 600; font-size: 1.05rem; color: var(--nm-text-main);">現在、ソーシャルログインは一時的に無効化されています。</p>
                 <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--nm-text-muted);">恐れ入りますが、しばらく時間をおいてから再度お試しいただくか、管理者へお問い合わせください。</p>
               </div>
             {:else}
-              <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="social-login-grid font-pixel" style="display: flex; flex-direction: column; gap: 16px;">
                 <!-- Google Button -->
                 {#if providers.google}
                   <button class="nm-btn google-btn waves-effect w-100" onclick={() => handleOAuth('google')}>

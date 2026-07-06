@@ -244,7 +244,7 @@
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <a class="brand-logo d-flex align-center cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1.4rem;">
         <i class="material-icons" style="color: var(--nm-accent);">grid_on</i>
-        <span style="color: var(--nm-accent);">{siteSettings.title}</span>
+        <span style="color: var(--nm-accent);" class="font-pixel y2k-chrome-text">{siteSettings.title}</span>
       </a>
       <ul id="nav-mobile" class="right" style="display: flex; align-items: center;">
         <!-- svelte-ignore a11y-missing-attribute -->
@@ -274,7 +274,7 @@
   </nav>
 
   <!-- Main Container -->
-  <main class="container" style="padding-bottom: 4rem;">
+  <main class="container y2k-cyber-grid" style="padding-bottom: 4rem; padding-top: 1.5rem;">
     {#if currentView === "auth"}
       <Auth />
     {:else if currentView === "list"}

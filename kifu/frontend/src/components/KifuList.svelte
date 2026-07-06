@@ -179,13 +179,13 @@
 
 <div class="row">
   <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-    <h4 style="margin: 0; font-weight: 600; color: var(--nm-accent);">{publicMode ? '公開棋譜ライブラリ' : '棋譜ライブラリ'}</h4>
+    <h4 style="margin: 0; font-weight: 700; color: var(--nm-accent);" class="font-pixel">{publicMode ? '公開棋譜ライブラリ' : '棋譜ライブラリ'}</h4>
     {#if !publicMode}
       <div style="display: flex; gap: 12px;">
-        <button class="nm-btn-primary" onclick={() => dispatch('createKifu')}>
-          <i class="material-icons" style="font-size: 1.2rem;">edit</i>自分で棋譜を作成
+        <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue font-pixel" onclick={() => dispatch('createKifu')} style="color: #1a1e24 !important;">
+          <i class="material-icons" style="font-size: 1.2rem; color: #1a1e24;">edit</i>自分で棋譜を作成
         </button>
-        <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm}>
+        <button class="nm-btn font-pixel" onclick={() => showUploadForm = !showUploadForm}>
           <i class="material-icons" style="font-size: 1.2rem;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
           {showUploadForm ? '閉じる' : 'SGFアップロード'}
         </button>
@@ -198,31 +198,31 @@
     <div class="col s12" style="margin-bottom: 1.5rem;">
       <div class="nm-card filter-card animate-fade-in" style="margin: 0;">
         <div class="card-content" style="padding: 20px 24px;">
-          <span class="card-title" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--nm-accent);">
+          <span class="card-title font-pixel" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--nm-accent);">
             <i class="material-icons" style="font-size: 1.25rem;">filter_list</i> フィルター検索
           </span>
           <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 0; align-items: flex-end;">
             <!-- Text Search -->
             <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
               <i class="material-icons prefix" style="font-size: 1.3rem; margin-top: 10px; color: var(--nm-text-muted);">search</i>
-              <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="対局名、対局者名（黒/白）" style="margin-bottom: 0; padding-left: 3rem !important;" />
+              <input id="search-query" type="text" class="nm-input font-pixel" bind:value={searchQuery} placeholder="対局名、対局者名（黒/白）" style="margin-bottom: 0; padding-left: 3rem !important;" />
               <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">キーワード</label>
             </div>
             <!-- Date Start -->
             <div class="input-field col s6 m3" style="margin-top: 0; margin-bottom: 0;">
-              <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0;" />
+              <input id="start-date" type="date" class="nm-input font-pixel" bind:value={startDate} style="margin-bottom: 0;" />
               <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">対局日 (開始)</label>
             </div>
             <!-- Date End -->
             <div class="input-field col s6 m3" style="margin-top: 0; margin-bottom: 0;">
-              <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0;" />
+              <input id="end-date" type="date" class="nm-input font-pixel" bind:value={endDate} style="margin-bottom: 0;" />
               <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">対局日 (終了)</label>
             </div>
           </div>
           {#if searchQuery || startDate || endDate}
             <!-- svelte-ignore a11y-missing-attribute -->
             <div class="right-align" style="margin-top: 12px;">
-              <a class="cursor-pointer" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; color: var(--nm-accent);">
+              <a class="cursor-pointer font-pixel" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; color: var(--nm-accent);">
                 <i class="material-icons" style="font-size: 1.1rem;">clear_all</i>検索条件をクリア
               </a>
             </div>
@@ -320,38 +320,42 @@
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="col s12 m6 l4" style="margin-bottom: 1.5rem;">
-        <div class="nm-card hoverable kifu-card waves-effect waves-block animate-pop-in stagger-{(i % 5) + 1}" style="width: 100%; display: block; text-align: left;" onclick={() => dispatch('selectKifu', k.id)}>
-          <div class="card-content" style="padding: 20px 24px;">
-            <span class="card-title truncate" style="font-weight: 600; font-size: 1.2rem; margin-bottom: 0.8rem; color: var(--nm-accent);" title={k.title}>
+        <div class="nm-card hoverable kifu-card pixel-border-sm waves-effect waves-block animate-pop-in stagger-{(i % 5) + 1}" style="width: 100%; display: block; text-align: left;" onclick={() => dispatch('selectKifu', k.id)}>
+          <div class="card-content" style="padding: 20px 24px; position: relative;">
+            {#if k.result}
+              <div class="y2k-sticker pink font-pixel" style="position: absolute; top: 12px; right: -5px; z-index: 5; font-size: 0.7rem; padding: 2px 8px;">
+                {k.result}
+              </div>
+            {/if}
+            <span class="card-title truncate font-pixel" style="font-weight: 700; font-size: 1.15rem; margin-bottom: 0.8rem; color: var(--nm-accent); max-width: calc(100% - 80px);" title={k.title}>
               {k.title}
             </span>
             
             <div class="players-info" style="margin: 0.8rem 0; display: flex; flex-direction: column; gap: 8px;">
               <div class="player black-player d-flex align-center" style="display: flex; align-items: center;">
                 <span class="stone-badge black-stone" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #555, #111); margin-right: 10px; border: 1px solid #000; box-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></span>
-                <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; color: var(--nm-text-main);">{k.black_player || 'Unknown'}</span>
+                <span class="font-pixel" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; color: var(--nm-text-main);">{k.black_player || 'Unknown'}</span>
                 {#if k.black_rank}
-                  <span class="nm-badge-inset" style="font-size: 0.75rem; margin-left: 8px; padding: 2px 6px;">{k.black_rank}</span>
+                  <span class="nm-badge-inset font-pixel" style="font-size: 0.7rem; margin-left: 8px; padding: 1px 6px;">{k.black_rank}</span>
                 {/if}
               </div>
               <div class="player white-player d-flex align-center" style="display: flex; align-items: center;">
                 <span class="stone-badge white-stone" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #ddd); margin-right: 10px; border: 1px solid #bbb; box-shadow: 1px 1px 3px rgba(0,0,0,0.15), -1px -1px 2px rgba(255,255,255,0.8);"></span>
-                <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; color: var(--nm-text-main);">{k.white_player || 'Unknown'}</span>
+                <span class="font-pixel" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; color: var(--nm-text-main);">{k.white_player || 'Unknown'}</span>
                 {#if k.white_rank}
-                  <span class="nm-badge-inset" style="font-size: 0.75rem; margin-left: 8px; padding: 2px 6px;">{k.white_rank}</span>
+                  <span class="nm-badge-inset font-pixel" style="font-size: 0.7rem; margin-left: 8px; padding: 1px 6px;">{k.white_rank}</span>
                 {/if}
               </div>
             </div>
 
-            <div class="game-meta" style="font-size: 0.85rem; line-height: 1.5; color: var(--nm-text-muted); margin-top: 12px; border-top: 1px dashed rgba(163, 177, 198, 0.2); padding-top: 8px;">
-              <div>結果: <span style="font-weight: 600; color: var(--nm-accent);">{k.result || 'なし'}</span></div>
+            <div class="game-meta font-pixel" style="font-size: 0.8rem; line-height: 1.5; color: var(--nm-text-muted); margin-top: 12px; border-top: 1px dashed rgba(163, 177, 198, 0.3); padding-top: 8px;">
               <div>対局日: {k.game_date || '不明'}</div>
-              <div style="font-size: 0.75rem; margin-top: 4px;">登録日: {new Date(k.created_at).toLocaleDateString('ja-JP')}</div>
+              <div style="font-size: 0.7rem; margin-top: 4px;">登録日: {new Date(k.created_at).toLocaleDateString('ja-JP')}</div>
             </div>
           </div>
           
           <div class="card-action d-flex justify-between" style="display: flex; justify-content: space-between; align-items: center; background-color: transparent; border-top: 1px solid rgba(163, 177, 198, 0.2); padding: 12px 20px;">
-            <span style="font-weight: 600; color: var(--nm-accent); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px;">
+            <span class="font-pixel" style="font-weight: 700; color: var(--nm-accent); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
               開く <i class="material-icons" style="font-size: 1.1rem;">arrow_forward</i>
             </span>
             {#if !publicMode}

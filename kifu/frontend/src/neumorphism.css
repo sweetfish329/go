@@ -415,3 +415,152 @@ textarea.nm-textarea:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: #a3b1c6;
 }
+
+/* Y2K & Pixelart (8-bit) Aesthetic Enhancements */
+
+/* Pixel Fonts */
+.font-pixel {
+  font-family: 'DotGothic16', 'Press Start 2P', 'Courier New', monospace !important;
+  letter-spacing: 0.5px;
+}
+
+/* Y2K Cyber Neon Gradients */
+.y2k-grad-blue {
+  background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+}
+
+.y2k-grad-pink {
+  background: linear-gradient(135deg, #ff0844, #ffb199) !important;
+}
+
+.y2k-grad-cyber {
+  background: linear-gradient(135deg, #0575e6, #00f260) !important;
+}
+
+.y2k-grad-metal {
+  background: linear-gradient(135deg, #e0e0e0, #f5f5f5, #bdbdbd) !important;
+}
+
+/* Cyber Neon Glows */
+.y2k-glow-blue {
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.45), var(--nm-shadow-outset-sm) !important;
+}
+
+.y2k-glow-pink {
+  box-shadow: 0 0 12px rgba(255, 8, 68, 0.45), var(--nm-shadow-outset-sm) !important;
+}
+
+.y2k-glow-green {
+  box-shadow: 0 0 12px rgba(0, 242, 96, 0.45), var(--nm-shadow-outset-sm) !important;
+}
+
+/* Retro Pixel Borders (8-bit style) */
+.pixel-border-sm {
+  border: 2px solid var(--nm-text-main) !important;
+}
+
+.pixel-border-md {
+  border: 3px solid var(--nm-text-main) !important;
+}
+
+/* Y2K Sticker Style Badges (Angled badges with shadows) */
+.y2k-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DotGothic16', monospace;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 2px solid var(--nm-text-main) !important;
+  background: #00f2fe;
+  color: #1a1e24 !important;
+  transform: rotate(-2.5deg);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  box-shadow: 3px 3px 0 var(--nm-text-main) !important;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.85rem;
+}
+
+.y2k-sticker:hover {
+  transform: rotate(1.5deg) scale(1.08);
+  box-shadow: 4px 4px 0 var(--nm-text-main) !important;
+}
+
+.y2k-sticker:active {
+  transform: translateY(2px) rotate(0deg);
+  box-shadow: 1px 1px 0 var(--nm-text-main) !important;
+}
+
+.y2k-sticker.pink {
+  background: #ff0844;
+  color: #ffffff !important;
+}
+
+.y2k-sticker.lime {
+  background: #00f260;
+  color: #1a1e24 !important;
+}
+
+.y2k-sticker.yellow {
+  background: #f5af19;
+  color: #1a1e24 !important;
+}
+
+.y2k-sticker.purple {
+  background: #b152e2;
+  color: #ffffff !important;
+}
+
+/* Cyber grid background layer (Optional overlay) */
+.y2k-cyber-grid {
+  background-image: 
+    linear-gradient(rgba(0, 242, 254, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 254, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Dark mode overrides for Y2K stickers to make them pop */
+:root.dark .y2k-sticker {
+  border-color: #e2e8f0 !important;
+  box-shadow: 3px 3px 0 #e2e8f0 !important;
+}
+:root.dark .y2k-sticker:hover {
+  box-shadow: 4px 4px 0 #e2e8f0 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .y2k-sticker {
+    border-color: #e2e8f0 !important;
+    box-shadow: 3px 3px 0 #e2e8f0 !important;
+  }
+  :root:not(.light) .y2k-sticker:hover {
+    box-shadow: 4px 4px 0 #e2e8f0 !important;
+  }
+}
+
+/* Pixel art blinking cursor anim */
+.pixel-blink {
+  animation: pixelBlink 1s steps(2, start) infinite;
+}
+
+@keyframes pixelBlink {
+  to { visibility: hidden; }
+}
+
+/* Animated shiny chrome effect for futuristic Y2K labels */
+.y2k-chrome-text {
+  background: linear-gradient(
+    to bottom,
+    #4facfe 0%,
+    #00f2fe 30%,
+    #ffffff 50%,
+    #4facfe 70%,
+    #00f2fe 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.5));
+}
+
