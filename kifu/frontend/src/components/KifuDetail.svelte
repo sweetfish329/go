@@ -49,6 +49,8 @@
   interface CommentItem {
     author: string;
     text: string;
+    reviewId?: string;
+    reviewerName?: string;
   }
 
   interface BranchItem {
@@ -85,6 +87,7 @@
   let isViewingVariation = $state(false);
   let activeReviewer = $state("");
   let isGameInfoExpanded = $state(false);
+  let editingReviewId = $state<string | null>(null);
 
   // For board config
   let boardSize = $state(19);
@@ -161,84 +164,71 @@
     if (!player || !reviewList || reviewList.length === 0) return;
 
     for (const rev of reviewList) {
-      // Find the target node in SGF based on move_number
-      let node: SgfNode | null = player.root;
+      // Find the parent node in SGF based on move_number
+      let parentNode: SgfNode | null = player.root;
       let count = 0;
       
       // Traverse to the targeted move_number
-      while (node && count < rev.move_number) {
-        if (node.children.length > 0) {
-          node = node.children[0];
+      while (parentNode && count < rev.move_number) {
+        if (parentNode.children.length > 0) {
+          parentNode = parentNode.children[0];
           count++;
         } else {
           break;
         }
       }
 
-      if (node) {
-        if (count === rev.move_number) {
-          // Case 1: Target move is within the existing primary path
-          // Add comment
-          if (!node.properties["C"]) {
-            node.properties["C"] = [];
-          }
-          node.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
+      if (parentNode && count === rev.move_number) {
+        // Add variation if present
+        if (rev.variations && rev.variations.trim() !== "") {
+          try {
+            const varPlayer = new SgfPlayer(rev.variations, boardSize);
+            if (varPlayer.root) {
+              // Ensure it's not already added
+              const targetProps = JSON.stringify(varPlayer.root.properties);
+              const alreadyExists = parentNode.children.some(child => {
+                return JSON.stringify(child.properties) === targetProps;
+              });
 
-          // Add variation if present
-          if (rev.variations && rev.variations.trim() !== "") {
-            try {
-              // Variations is stored as an SGF node/tree
-              const varPlayer = new SgfPlayer(rev.variations, boardSize);
-              if (varPlayer.root && node.parent) {
-                // Ensure it's not already added
-                const targetProps = JSON.stringify(varPlayer.root.properties);
-                const alreadyExists = node.parent.children.some(child => {
-                  return JSON.stringify(child.properties) === targetProps;
-                });
-                if (!alreadyExists) {
-                  markAsVariation(varPlayer.root, rev.reviewer_name);
-                  varPlayer.root.parent = node.parent;
-                  node.parent.children.push(varPlayer.root);
-                }
-              }
-            } catch (e) {
-              console.error("Failed to parse variation SGF:", e);
-            }
-          }
-        } else if (count === rev.move_number - 1) {
-          // Case 2: Target move is directly after the last move of the primary path
-          // Attach the variation root as a child of the last node
-          if (rev.variations && rev.variations.trim() !== "") {
-            try {
-              const varPlayer = new SgfPlayer(rev.variations, boardSize);
-              if (varPlayer.root) {
-                const targetProps = JSON.stringify(varPlayer.root.properties);
-                const alreadyExists = node.children.some(child => {
-                  return JSON.stringify(child.properties) === targetProps;
-                });
-                if (!alreadyExists) {
-                  // Append comment directly onto the variation root node since no primary node exists at this index
-                  if (rev.comment && rev.comment.trim() !== "") {
-                    if (!varPlayer.root.properties["C"]) {
-                      varPlayer.root.properties["C"] = [];
-                    }
-                    varPlayer.root.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
+              // Store the DB Review ID on the variation node for edit tracking
+              (varPlayer.root as any).review_id = rev.id;
+
+              if (!alreadyExists) {
+                // Attach comment directly onto the variation root node
+                if (rev.comment && rev.comment.trim() !== "") {
+                  if (!varPlayer.root.properties["C"]) {
+                    varPlayer.root.properties["C"] = [];
                   }
-                  markAsVariation(varPlayer.root, rev.reviewer_name);
-                  varPlayer.root.parent = node;
-                  node.children.push(varPlayer.root);
+                  varPlayer.root.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
+                }
+
+                markAsVariation(varPlayer.root, rev.reviewer_name);
+                varPlayer.root.parent = parentNode;
+                parentNode.children.push(varPlayer.root);
+              } else {
+                // If already exists, find existing and update attributes
+                const existingChild = parentNode.children.find(child => JSON.stringify(child.properties) === targetProps);
+                if (existingChild) {
+                  (existingChild as any).review_id = rev.id;
+                  if (rev.comment && rev.comment.trim() !== "") {
+                    existingChild.properties["C"] = [`${rev.reviewer_name}: ${rev.comment}`];
+                  }
                 }
               }
-            } catch (e) {
-              console.error("Failed to parse variation SGF:", e);
             }
-          } else {
-            // No variation, just comment on the subsequent empty slot. Attach to the last node.
-            if (!node.properties["C"]) {
-              node.properties["C"] = [];
-            }
-            node.properties["C"].push(`${rev.reviewer_name}: ${rev.comment}`);
+          } catch (e) {
+            console.error("Failed to parse variation SGF:", e);
           }
+        } else {
+          // No variation, just comment on the main path node itself
+          if (!parentNode.properties["C"]) {
+            parentNode.properties["C"] = [];
+          }
+          const commentText = `${rev.reviewer_name}: ${rev.comment}`;
+          if (!parentNode.properties["C"].includes(commentText)) {
+            parentNode.properties["C"].push(commentText);
+          }
+          (parentNode as any).review_id = rev.id;
         }
       }
     }
@@ -259,19 +249,38 @@
     // Get current comment from node
     comments = [];
     if (state.node && state.node.properties["C"]) {
+      // Find review ID associated with this node or parent (if we are in a variation, the review ID is on the variation root)
+      let associatedReviewId = (state.node as any).review_id || "";
+      let associatedReviewer = (state.node as any).reviewer_name || "";
+      
+      // If we don't have review_id on current node, traverse up to find it in the variation path
+      if (!associatedReviewId && isViewingVariation) {
+        let temp: SgfNode | null = state.node;
+        while (temp) {
+          if ((temp as any).review_id) {
+            associatedReviewId = (temp as any).review_id;
+            associatedReviewer = (temp as any).reviewer_name || "";
+            break;
+          }
+          temp = temp.parent;
+        }
+      }
+
       for (const rawComment of state.node.properties["C"]) {
         const colonIndex = rawComment.indexOf(":");
+        let author = "コメント";
+        let text = rawComment;
         if (colonIndex !== -1) {
-          comments.push({
-            author: rawComment.substring(0, colonIndex).trim(),
-            text: rawComment.substring(colonIndex + 1).trim()
-          });
-        } else {
-          comments.push({
-            author: "コメント",
-            text: rawComment
-          });
+          author = rawComment.substring(0, colonIndex).trim();
+          text = rawComment.substring(colonIndex + 1).trim();
         }
+        
+        comments.push({
+          author: author,
+          text: text,
+          reviewId: associatedReviewId,
+          reviewerName: associatedReviewer
+        });
       }
     }
 
@@ -424,7 +433,7 @@
     }
   }
 
-  // Save Review Comment
+  // Save or Update Review Comment
   async function handleSaveReview() {
     if (!reviewerName.trim() || !reviewComment.trim()) {
       const M = getM();
@@ -440,78 +449,107 @@
     try {
       const state = player.getCurrentState();
       
-      // If we are on a variation branch, we want to extract the variation SGF sub-tree
+      // Extract the variation SGF sub-tree from the branch start point
       let variationsSgf = "";
+      let targetMoveNumber = currentIndex;
       const currentNode = state.node;
       
-      // If this node is not part of the main path, it's a variation.
-      // Generate standard SGF representation for this variation branch.
       if (currentNode && currentNode.parent) {
-        const siblings = currentNode.parent.children;
-        // If there is more than 1 child, or the child is not the primary child (index 0)
-        // we serialise the current branch.
-        const isMainBranch = siblings[0] === currentNode;
-        if (!isMainBranch) {
-          // Serialize the subtree starting from this node
-          // Basic serialization:
-          variationsSgf = serializeSubtree(currentNode);
+        // Find the root of this variation branch (whose parent is on the primary path)
+        let variationRoot = currentNode;
+        let temp = currentNode;
+        while (temp && temp.parent) {
+          if (!(temp.parent as any).is_variation) {
+            variationRoot = temp;
+            break;
+          }
+          temp = temp.parent;
+        }
+
+        if ((variationRoot as any).is_variation) {
+          // Calculate the move number of the parent (primary path node)
+          let count = 0;
+          let p: SgfNode | null = player.root;
+          while (p && p !== variationRoot.parent) {
+            if (p.children.length > 0) {
+              p = p.children[0];
+              count++;
+            } else {
+              break;
+            }
+          }
+          targetMoveNumber = count;
+          variationsSgf = stringifySgf(variationRoot);
         }
       }
 
       let res: Response;
-      if (isPublicProfileMode) {
-        res = await fetch(`/api/u/${userId}/kifus/${kifuId}/reviews`, {
-          method: 'POST',
+      const payload = {
+        move_number: targetMoveNumber,
+        node_path: String(targetMoveNumber),
+        reviewer_name: reviewerName.trim(),
+        comment: reviewComment.trim(),
+        variations: variationsSgf
+      };
+
+      if (editingReviewId) {
+        // Update existing review
+        res = await fetch(`/api/kifus/${kifuId}/reviews/${editingReviewId}`, {
+          method: 'PUT',
           headers: auth.getHeaders(),
-          body: JSON.stringify({
-            move_number: currentIndex,
-            node_path: String(currentIndex),
-            reviewer_name: reviewerName.trim(),
-            comment: reviewComment.trim(),
-            variations: variationsSgf
-          })
-        });
-      } else if (shareToken) {
-        res = await fetch(`/api/share/${shareToken}/reviews`, {
-          method: 'POST',
-          headers: auth.getHeaders(),
-          body: JSON.stringify({
-            move_number: currentIndex,
-            node_path: String(currentIndex),
-            reviewer_name: reviewerName.trim(),
-            comment: reviewComment.trim(),
-            variations: variationsSgf
-          })
+          body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch(`/api/kifus/${kifuId}/reviews`, {
-          method: 'POST',
-          headers: auth.getHeaders(),
-          body: JSON.stringify({
-            move_number: currentIndex,
-            node_path: String(currentIndex),
-            reviewer_name: reviewerName.trim(),
-            comment: reviewComment.trim(),
-            variations: variationsSgf
-          })
-        });
+        // Create new review
+        if (isPublicProfileMode) {
+          res = await fetch(`/api/u/${userId}/kifus/${kifuId}/reviews`, {
+            method: 'POST',
+            headers: auth.getHeaders(),
+            body: JSON.stringify(payload)
+          });
+        } else if (shareToken) {
+          res = await fetch(`/api/share/${shareToken}/reviews`, {
+            method: 'POST',
+            headers: auth.getHeaders(),
+            body: JSON.stringify(payload)
+          });
+        } else {
+          res = await fetch(`/api/kifus/${kifuId}/reviews`, {
+            method: 'POST',
+            headers: auth.getHeaders(),
+            body: JSON.stringify(payload)
+          });
+        }
       }
 
-      if (!res.ok) throw new Error("Failed to save review comment");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save review");
+      }
 
       const savedReview = await res.json();
       
-      // Add local review list and merge
-      reviewList = [...reviewList, savedReview];
-      mergeReviewsIntoPlayer();
-      updatePlayerState();
+      if (editingReviewId) {
+        // Replace in reviewList
+        reviewList = reviewList.map(r => r.id === editingReviewId ? savedReview : r);
+        editingReviewId = null;
+      } else {
+        reviewList = [...reviewList, savedReview];
+      }
 
-      // Reset comment text (keep reviewer name for convenience)
+      // Re-initialize player with original SGF and re-merge all reviews to ensure clean state
+      if (kifu) {
+        player = new SgfPlayer(kifu.sgf_data, boardSize);
+        mergeReviewsIntoPlayer();
+        updatePlayerState();
+      }
+
+      // Reset comment text
       reviewComment = "";
       
       const M = getM();
       if (M) {
-        M.toast({ html: '添削コメントを保存しました！', classes: 'green darken-1' });
+        M.toast({ html: '添削内容を保存しました！', classes: 'green darken-1' });
       }
     } catch (err: any) {
       const M = getM();
@@ -523,10 +561,86 @@
     }
   }
 
-  // Simple serialization helper for a variation branch node
-  function serializeSubtree(node: SgfNode) {
-    return stringifySgf(node);
+  function handleEditReview(reviewId: string, reviewerNameVal: string, commentVal: string) {
+    editingReviewId = reviewId;
+    reviewMode = true;
+    reviewerName = reviewerNameVal;
+    reviewComment = commentVal;
+
+    // Navigate to the branch point
+    const rev = reviewList.find(r => r.id === reviewId);
+    if (rev && player) {
+      player.goTo(rev.move_number);
+      // Select the branch with the correct review_id
+      const state = player.getCurrentState();
+      if (state.node) {
+        const branchIdx = state.node.children.findIndex(child => (child as any).review_id === reviewId);
+        if (branchIdx !== -1) {
+          player.selectBranch(branchIdx);
+        }
+      }
+      updatePlayerState();
+    }
+
+    const M = getM();
+    if (M) {
+      M.toast({ html: '添削の編集を開始しました。内容や変化手順を修正して「更新」を押してください。', classes: 'amber darken-2' });
+    }
   }
+
+  function handleCancelEdit() {
+    editingReviewId = null;
+    reviewComment = "";
+    
+    // Re-initialize player to reset unsaved scratch changes
+    if (kifu) {
+      player = new SgfPlayer(kifu.sgf_data, boardSize);
+      mergeReviewsIntoPlayer();
+      updatePlayerState();
+    }
+
+    const M = getM();
+    if (M) {
+      M.toast({ html: '編集をキャンセルしました', classes: 'grey darken-1' });
+    }
+  }
+
+  async function handleDeleteReview(reviewId: string) {
+    if (!confirm("この指導コメントと変化図のまとまりを削除してもよろしいですか？")) return;
+
+    try {
+      const res = await fetch(`/api/kifus/${kifuId}/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: auth.getHeaders()
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete review");
+      }
+
+      // Filter out from local list
+      reviewList = reviewList.filter(r => r.id !== reviewId);
+      
+      // Reload game tree
+      if (kifu) {
+        player = new SgfPlayer(kifu.sgf_data, boardSize);
+        mergeReviewsIntoPlayer();
+        updatePlayerState();
+      }
+
+      const M = getM();
+      if (M) {
+        M.toast({ html: '添削を削除しました', classes: 'green darken-1' });
+      }
+    } catch (err: any) {
+      const M = getM();
+      if (M) {
+        M.toast({ html: 'エラー: ' + err.message, classes: 'red' });
+      }
+    }
+  }
+
 
   // Clean up timers
   onDestroy(() => {
@@ -739,11 +853,25 @@
           {:else}
             <div class="comments-list" style="max-height: 250px; overflow-y: auto;">
               {#each comments as comment}
-                <div class="comment-item" style="border-bottom: 1px solid #f0f0f0; padding: 8px 0;">
-                  <span class="chip brown lighten-4 brown-text text-darken-4" style="font-weight: 500; height: 24px; line-height: 24px; margin-bottom: 4px;">
-                    {comment.author}
-                  </span>
-                  <p style="margin: 0; padding-left: 4px; font-size: 0.95rem; white-space: pre-wrap;" class="grey-text text-darken-3">{comment.text}</p>
+                <div class="comment-item" style="border-bottom: 1px solid #f0f0f0; padding: 8px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div style="flex-grow: 1; text-align: left;">
+                    <span class="chip brown lighten-4 brown-text text-darken-4" style="font-weight: 500; height: 24px; line-height: 24px; margin-bottom: 4px;">
+                      {comment.author}
+                    </span>
+                    <p style="margin: 0; padding-left: 4px; font-size: 0.95rem; white-space: pre-wrap;" class="grey-text text-darken-3">{comment.text}</p>
+                  </div>
+                  {#if comment.reviewId && (isOwner || auth.username === comment.reviewerName)}
+                    <div style="display: flex; gap: 4px; margin-left: 8px;">
+                      <!-- svelte-ignore a11y-missing-attribute -->
+                      <button class="btn-flat btn-floating waves-effect waves-circle" on:click={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; line-height: 28px; display: flex; align-items: center; justify-content: center; background: transparent;">
+                        <i class="material-icons" style="font-size: 1.1rem; color: #5d4037; line-height: 28px; margin: 0;">edit</i>
+                      </button>
+                      <!-- svelte-ignore a11y-missing-attribute -->
+                      <button class="btn-flat btn-floating waves-effect waves-circle" on:click={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" style="width: 28px; height: 28px; line-height: 28px; display: flex; align-items: center; justify-content: center; background: transparent;">
+                        <i class="material-icons" style="font-size: 1.1rem; color: #e53935; line-height: 28px; margin: 0;">delete</i>
+                      </button>
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -777,10 +905,19 @@
                   <input id="review_comment" type="text" bind:value={reviewComment} placeholder="指導・変化図の解説を入力してください" style="margin-bottom: 0; height: 2.5rem;" />
                   <label for="review_comment" class="active">コメント</label>
                 </div>
-                <div class="col s12 right-align">
-                  <button class="btn waves-effect waves-light brown" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
-                    <i class="material-icons left">save</i>添削を保存
-                  </button>
+                <div class="col s12 right-align" style="display: flex; justify-content: flex-end; gap: 8px;">
+                  {#if editingReviewId}
+                    <button class="btn waves-effect waves-light grey darken-1" on:click={handleCancelEdit} disabled={isAddingReview}>
+                      キャンセル
+                    </button>
+                    <button class="btn waves-effect waves-light brown" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
+                      <i class="material-icons left">save</i>添削を更新
+                    </button>
+                  {:else}
+                    <button class="btn waves-effect waves-light brown" disabled={!reviewerName || !reviewComment || isAddingReview} on:click={handleSaveReview}>
+                      <i class="material-icons left">save</i>添削を保存
+                    </button>
+                  {/if}
                 </div>
               </div>
             </div>

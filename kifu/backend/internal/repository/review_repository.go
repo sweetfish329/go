@@ -111,3 +111,25 @@ func (r *ReviewRepository) Delete(id string) error {
 	}
 	return nil
 }
+
+func (r *ReviewRepository) FindByID(id string) (*model.Review, error) {
+	query := `
+	SELECT id, kifu_id, move_number, node_path, reviewer_name, comment, variations, created_at, updated_at
+	FROM reviews
+	WHERE id = $1`
+
+	rev := &model.Review{}
+	err := r.db.QueryRow(query, id).Scan(
+		&rev.ID, &rev.KifuID, &rev.MoveNumber, &rev.NodePath,
+		&rev.ReviewerName, &rev.Comment, &rev.Variations,
+		&rev.CreatedAt, &rev.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to find review by id: %w", err)
+	}
+
+	return rev, nil
+}

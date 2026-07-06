@@ -257,7 +257,18 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify kifu ownership
+	username, _ := r.Context().Value(UsernameKey).(string)
+
+	review, err := h.repo.FindByID(reviewID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if review == nil {
+		respondWithError(w, http.StatusNotFound, "Review not found")
+		return
+	}
+
 	kifu, err := h.kifuRepo.FindByID(kifuID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -267,7 +278,11 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusNotFound, "Kifu not found")
 		return
 	}
-	if kifu.UploadedBy == nil || *kifu.UploadedBy != userID {
+
+	isKifuOwner := kifu.UploadedBy != nil && *kifu.UploadedBy == userID
+	isReviewCreator := username != "" && review.ReviewerName == username
+
+	if !isKifuOwner && !isReviewCreator {
 		respondWithError(w, http.StatusForbidden, "Forbidden")
 		return
 	}
@@ -287,12 +302,9 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	review := &model.Review{
-		ID:           reviewID,
-		ReviewerName: req.ReviewerName,
-		Comment:      req.Comment,
-		Variations:   req.Variations,
-	}
+	review.ReviewerName = req.ReviewerName
+	review.Comment = req.Comment
+	review.Variations = req.Variations
 
 	if err := h.repo.Update(review); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -316,7 +328,18 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify kifu ownership
+	username, _ := r.Context().Value(UsernameKey).(string)
+
+	review, err := h.repo.FindByID(reviewID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if review == nil {
+		respondWithError(w, http.StatusNotFound, "Review not found")
+		return
+	}
+
 	kifu, err := h.kifuRepo.FindByID(kifuID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -326,7 +349,11 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusNotFound, "Kifu not found")
 		return
 	}
-	if kifu.UploadedBy == nil || *kifu.UploadedBy != userID {
+
+	isKifuOwner := kifu.UploadedBy != nil && *kifu.UploadedBy == userID
+	isReviewCreator := username != "" && review.ReviewerName == username
+
+	if !isKifuOwner && !isReviewCreator {
 		respondWithError(w, http.StatusForbidden, "Forbidden")
 		return
 	}
