@@ -2,8 +2,8 @@
 
 :root {
   /* Colors */
-  --nm-bg: #eef2f7;
-  --nm-bg-element: #eef2f7;
+  --nm-bg: #e6ebf2;          /* Soft warm gray-blue background */
+  --nm-bg-element: #e6ebf2;
   --nm-text-main: #3e4a5b;
   --nm-text-muted: #7a8a9e;
   --nm-accent: var(--theme-color, #5d4037);
@@ -11,17 +11,17 @@
   --nm-accent-text: #ffffff;
   
   /* Light theme shadows (Default) */
-  --nm-shadow-outset: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
-  --nm-shadow-outset-hover: 8px 8px 16px #c2cbd9, -8px -8px 16px #ffffff;
-  --nm-shadow-outset-sm: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff;
-  --nm-shadow-outset-sm-hover: 4px 4px 8px #c2cbd9, -4px -4px 8px #ffffff;
+  --nm-shadow-outset: 6px 6px 12px #cbd3de, -6px -6px 12px #ffffff;
+  --nm-shadow-outset-hover: 8px 8px 16px #c0c9d6, -8px -8px 16px #ffffff;
+  --nm-shadow-outset-sm: 3px 3px 6px #cbd3de, -3px -3px 6px #ffffff;
+  --nm-shadow-outset-sm-hover: 4px 4px 8px #c0c9d6, -4px -4px 8px #ffffff;
   
-  --nm-shadow-inset: inset 3px 3px 6px #b8c4d6, inset -3px -3px 6px #ffffff;
-  --nm-shadow-inset-focus: inset 2px 2px 4px #b8c4d6, inset -2px -2px 4px #ffffff;
+  --nm-shadow-inset: inset 3px 3px 6px #cbd3de, inset -3px -3px 6px #ffffff;
+  --nm-shadow-inset-focus: inset 2px 2px 4px #cbd3de, inset -2px -2px 4px #ffffff;
   
   /* Borders for accessibility */
   --nm-border-light: 1px solid rgba(255, 255, 255, 0.8);
-  --nm-border-dark: 1px solid rgba(163, 177, 198, 0.35);
+  --nm-border-dark: 1px solid rgba(163, 177, 198, 0.2);
   
   /* Border Radius */
   --nm-radius-sm: 8px;
@@ -36,21 +36,21 @@
 
 /* Explicit Dark Mode */
 :root.dark {
-  --nm-bg: #1a1e24;
-  --nm-bg-element: #1a1e24;
+  --nm-bg: #262b35;          /* Deep Slate gray background */
+  --nm-bg-element: #262b35;
   --nm-text-main: #e2e8f0;
   --nm-text-muted: #8a99ad;
   --nm-accent: #a1887f;
   --nm-accent-light: #bcaaa4;
-  --nm-accent-text: #1a1e24;
+  --nm-accent-text: #262b35;
   
-  --nm-shadow-outset: 6px 6px 12px #101216, -6px -6px 12px #242a32;
-  --nm-shadow-outset-hover: 8px 8px 16px #0c0d10, -8px -8px 16px #282f38;
-  --nm-shadow-outset-sm: 3px 3px 6px #101216, -3px -3px 6px #242a32;
-  --nm-shadow-outset-sm-hover: 4px 4px 8px #0c0d10, -4px -4px 8px #282f38;
+  --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
+  --nm-shadow-outset-hover: 8px 8px 16px #16191f, -8px -8px 16px #373f4d;
+  --nm-shadow-outset-sm: 3px 3px 6px #1b1e25, -3px -3px 6px #313845;
+  --nm-shadow-outset-sm-hover: 4px 4px 8px #16191f, -4px -4px 8px #373f4d;
   
-  --nm-shadow-inset: inset 3px 3px 6px #0f1115, inset -3px -3px 6px #252b33;
-  --nm-shadow-inset-focus: inset 2px 2px 4px #0f1115, inset -2px -2px 4px #252b33;
+  --nm-shadow-inset: inset 3px 3px 6px #1b1e25, inset -3px -3px 6px #313845;
+  --nm-shadow-inset-focus: inset 2px 2px 4px #1b1e25, inset -2px -2px 4px #313845;
   
   --nm-border-light: 1px solid rgba(255, 255, 255, 0.05);
   --nm-border-dark: 1px solid rgba(0, 0, 0, 0.3);
@@ -59,21 +59,21 @@
 /* Automatic System Dark Mode (Only if no explicit light class is set) */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --nm-bg: #1a1e24;
-    --nm-bg-element: #1a1e24;
+    --nm-bg: #262b35;          /* Deep Slate gray background */
+    --nm-bg-element: #262b35;
     --nm-text-main: #e2e8f0;
     --nm-text-muted: #8a99ad;
     --nm-accent: #a1887f;
     --nm-accent-light: #bcaaa4;
-    --nm-accent-text: #1a1e24;
+    --nm-accent-text: #262b35;
     
-    --nm-shadow-outset: 6px 6px 12px #101216, -6px -6px 12px #242a32;
-    --nm-shadow-outset-hover: 8px 8px 16px #0c0d10, -8px -8px 16px #282f38;
-    --nm-shadow-outset-sm: 3px 3px 6px #101216, -3px -3px 6px #242a32;
-    --nm-shadow-outset-sm-hover: 4px 4px 8px #0c0d10, -4px -4px 8px #282f38;
+    --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
+    --nm-shadow-outset-hover: 8px 8px 16px #16191f, -8px -8px 16px #373f4d;
+    --nm-shadow-outset-sm: 3px 3px 6px #1b1e25, -3px -3px 6px #313845;
+    --nm-shadow-outset-sm-hover: 4px 4px 8px #16191f, -4px -4px 8px #373f4d;
     
-    --nm-shadow-inset: inset 3px 3px 6px #0f1115, inset -3px -3px 6px #252b33;
-    --nm-shadow-inset-focus: inset 2px 2px 4px #0f1115, inset -2px -2px 4px #252b33;
+    --nm-shadow-inset: inset 3px 3px 6px #1b1e25, inset -3px -3px 6px #313845;
+    --nm-shadow-inset-focus: inset 2px 2px 4px #1b1e25, inset -2px -2px 4px #313845;
     
     --nm-border-light: 1px solid rgba(255, 255, 255, 0.05);
     --nm-border-dark: 1px solid rgba(0, 0, 0, 0.3);
@@ -426,15 +426,15 @@ textarea.nm-textarea:focus {
 
 /* Y2K Cyber Neon Gradients */
 .y2k-grad-blue {
-  background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+  background: linear-gradient(135deg, #74b9ff, #0984e3) !important;
 }
 
 .y2k-grad-pink {
-  background: linear-gradient(135deg, #ff0844, #ffb199) !important;
+  background: linear-gradient(135deg, #ff7675, #e84393) !important;
 }
 
 .y2k-grad-cyber {
-  background: linear-gradient(135deg, #0575e6, #00f260) !important;
+  background: linear-gradient(135deg, #34e89e, #00b894) !important;
 }
 
 .y2k-grad-metal {
@@ -443,15 +443,15 @@ textarea.nm-textarea:focus {
 
 /* Cyber Neon Glows */
 .y2k-glow-blue {
-  box-shadow: 0 0 12px rgba(0, 242, 254, 0.45), var(--nm-shadow-outset-sm) !important;
+  box-shadow: 0 0 12px rgba(116, 185, 255, 0.4), var(--nm-shadow-outset-sm) !important;
 }
 
 .y2k-glow-pink {
-  box-shadow: 0 0 12px rgba(255, 8, 68, 0.45), var(--nm-shadow-outset-sm) !important;
+  box-shadow: 0 0 12px rgba(255, 118, 117, 0.4), var(--nm-shadow-outset-sm) !important;
 }
 
 .y2k-glow-green {
-  box-shadow: 0 0 12px rgba(0, 242, 96, 0.45), var(--nm-shadow-outset-sm) !important;
+  box-shadow: 0 0 12px rgba(85, 239, 196, 0.4), var(--nm-shadow-outset-sm) !important;
 }
 
 /* Retro Pixel Borders (8-bit style) */
@@ -473,7 +473,7 @@ textarea.nm-textarea:focus {
   padding: 4px 12px;
   border-radius: 6px;
   border: 2px solid var(--nm-text-main) !important;
-  background: #00f2fe;
+  background: #81ecec;
   color: #1a1e24 !important;
   transform: rotate(-2.5deg);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
@@ -494,30 +494,30 @@ textarea.nm-textarea:focus {
 }
 
 .y2k-sticker.pink {
-  background: #ff0844;
+  background: #ff7675;
   color: #ffffff !important;
 }
 
 .y2k-sticker.lime {
-  background: #00f260;
+  background: #7bed9f;
   color: #1a1e24 !important;
 }
 
 .y2k-sticker.yellow {
-  background: #f5af19;
+  background: #ffd369;
   color: #1a1e24 !important;
 }
 
 .y2k-sticker.purple {
-  background: #b152e2;
+  background: #a55eea;
   color: #ffffff !important;
 }
 
 /* Cyber grid background layer (Optional overlay) */
 .y2k-cyber-grid {
   background-image: 
-    linear-gradient(rgba(0, 242, 254, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 242, 254, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(116, 185, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(116, 185, 255, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -554,10 +554,10 @@ textarea.nm-textarea:focus {
   background: linear-gradient(
     to bottom,
     #4facfe 0%,
-    #00f2fe 30%,
+    #81ecec 30%,
     #ffffff 50%,
     #4facfe 70%,
-    #00f2fe 100%
+    #81ecec 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
