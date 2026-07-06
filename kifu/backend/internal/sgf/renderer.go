@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"strconv"
 )
 
 type starPoint struct {
@@ -111,9 +112,152 @@ func drawStone(img *image.RGBA, cx, cy, r int, isBlack bool) {
 	}
 }
 
-// GenerateBoardImage creates a 1200x630 OGP image of the final board state
-func GenerateBoardImage(grid [][]int, size int) image.Image {
-	width, height := 1200, 630
+var fontData = [10][7]byte{
+	// 0:
+	{
+		0b01110,
+		0b10001,
+		0b10011,
+		0b10101,
+		0b11001,
+		0b10001,
+		0b01110,
+	},
+	// 1:
+	{
+		0b00100,
+		0b01100,
+		0b00100,
+		0b00100,
+		0b00100,
+		0b00100,
+		0b01110,
+	},
+	// 2:
+	{
+		0b01110,
+		0b10001,
+		0b00001,
+		0b00010,
+		0b00100,
+		0b01000,
+		0b11111,
+	},
+	// 3:
+	{
+		0b11111,
+		0b00010,
+		0b00100,
+		0b00010,
+		0b00001,
+		0b10001,
+		0b01110,
+	},
+	// 4:
+	{
+		0b00010,
+		0b00110,
+		0b01010,
+		0b10010,
+		0b11111,
+		0b00010,
+		0b00010,
+	},
+	// 5:
+	{
+		0b11111,
+		0b10000,
+		0b11110,
+		0b00001,
+		0b00001,
+		0b10001,
+		0b01110,
+	},
+	// 6:
+	{
+		0b00110,
+		0b01000,
+		0b10000,
+		0b11110,
+		0b10001,
+		0b10001,
+		0b01110,
+	},
+	// 7:
+	{
+		0b11111,
+		0b10001,
+		0b00010,
+		0b00100,
+		0b01000,
+		0b01000,
+		0b01000,
+	},
+	// 8:
+	{
+		0b01110,
+		0b10001,
+		0b10001,
+		0b01110,
+		0b10001,
+		0b10001,
+		0b01110,
+	},
+	// 9:
+	{
+		0b01110,
+		0b10001,
+		0b10001,
+		0b01101,
+		0b00001,
+		0b00010,
+		0b01100,
+	},
+}
+
+// drawDigit draws a single 5x7 digit at (x, y) with the specified scale and color
+func drawDigit(img *image.RGBA, x, y int, digit int, scale int, col color.Color) {
+	if digit < 0 || digit > 9 {
+		return
+	}
+	pattern := fontData[digit]
+	for row := 0; row < 7; row++ {
+		line := pattern[row]
+		for colIdx := 0; colIdx < 5; colIdx++ {
+			bit := (line >> (4 - colIdx)) & 1
+			if bit == 1 {
+				for dy := 0; dy < scale; dy++ {
+					for dx := 0; dx < scale; dx++ {
+						setPixel(img, x+colIdx*scale+dx, y+row*scale+dy, col)
+					}
+				}
+			}
+		}
+	}
+}
+
+// drawNumber draws a sequence of digits centered at (cx, cy)
+func drawNumber(img *image.RGBA, cx, cy int, num int, col color.Color) {
+	strNum := strconv.Itoa(num)
+	scale := 1
+
+	digitWidth := 5 * scale
+	digitHeight := 7 * scale
+	spacing := 1 * scale
+
+	totalWidth := len(strNum)*digitWidth + (len(strNum)-1)*spacing
+	startX := cx - totalWidth/2
+	startY := cy - digitHeight/2
+
+	for i, char := range strNum {
+		digit := int(char - '0')
+		drawDigit(img, startX+i*(digitWidth+spacing), startY, digit, scale, col)
+	}
+}
+
+// GenerateBoardImage creates a 630x630 square OGP image of the final board state with move numbers
+func GenerateBoardImage(grid [][]int, moveNumbers [][]int, size int) image.Image {
+	width, height := 630, 630
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	// 1. Draw overall dark background
@@ -121,7 +265,7 @@ func GenerateBoardImage(grid [][]int, size int) image.Image {
 	draw.Draw(img, img.Bounds(), &image.Uniform{bgCol}, image.Point{}, draw.Src)
 
 	// 2. Draw go board container
-	// Center the board horizontally. Size of board will be 580x580.
+	// Center the board. Size of board is 580x580.
 	boardSize := 580
 	boardX := (width - boardSize) / 2
 	boardY := (height - boardSize) / 2
@@ -183,6 +327,18 @@ func GenerateBoardImage(grid [][]int, size int) image.Image {
 			cx := boardX + margin + int(math.Round(float64(x)*step))
 			cy := boardY + margin + int(math.Round(float64(y)*step))
 			drawStone(img, cx, cy, stoneRadius, stoneVal == 1)
+
+			// Draw move sequence numbers if recorded
+			if moveNumbers != nil && moveNumbers[y][x] > 0 {
+				num := moveNumbers[y][x]
+				var textCol color.Color
+				if stoneVal == 1 {
+					textCol = color.RGBA{255, 255, 255, 255} // White text on black stone
+				} else {
+					textCol = color.RGBA{15, 10, 5, 255} // Dark brown/black text on white stone
+				}
+				drawNumber(img, cx, cy, num, textCol)
+			}
 		}
 	}
 

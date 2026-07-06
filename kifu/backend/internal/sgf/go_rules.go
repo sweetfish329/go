@@ -7,16 +7,19 @@ type Point struct {
 }
 
 type BoardState struct {
-	Size int
-	Grid [][]int // 0: empty, 1: black, 2: white
+	Size        int
+	Grid        [][]int // 0: empty, 1: black, 2: white
+	MoveNumbers [][]int // 0: none, otherwise the move number (1-indexed)
 }
 
 func NewBoard(size int) *BoardState {
 	grid := make([][]int, size)
+	moveNums := make([][]int, size)
 	for i := range grid {
 		grid[i] = make([]int, size)
+		moveNums[i] = make([]int, size)
 	}
-	return &BoardState{Size: size, Grid: grid}
+	return &BoardState{Size: size, Grid: grid, MoveNumbers: moveNums}
 }
 
 // Convert SGF coordinate (e.g. "pd") to (x, y)
@@ -63,12 +66,13 @@ func (b *BoardState) getGroup(startX, startY int, visited [][]bool) ([]Point, in
 	return group, len(liberties)
 }
 
-// PlaceStone places a stone and resolves captures and suicide rules.
-func (b *BoardState) PlaceStone(x, y int, color int) {
+// PlaceStoneWithNumber places a stone, records its move number, and resolves captures/suicide.
+func (b *BoardState) PlaceStoneWithNumber(x, y int, color int, moveNum int) {
 	if x < 0 || x >= b.Size || y < 0 || y >= b.Size {
 		return
 	}
 	b.Grid[y][x] = color
+	b.MoveNumbers[y][x] = moveNum
 
 	opponent := 1
 	if color == 1 {
@@ -98,6 +102,7 @@ func (b *BoardState) PlaceStone(x, y int, color int) {
 	// Remove captured stones
 	for _, p := range captured {
 		b.Grid[p.Y][p.X] = 0
+		b.MoveNumbers[p.Y][p.X] = 0
 	}
 
 	// 2. Suicide rule: check if our own group has 0 liberties
@@ -110,8 +115,14 @@ func (b *BoardState) PlaceStone(x, y int, color int) {
 		// Suicide, remove the group
 		for _, p := range selfGroup {
 			b.Grid[p.Y][p.X] = 0
+			b.MoveNumbers[p.Y][p.X] = 0
 		}
 	}
+}
+
+// PlaceStone places a stone and resolves captures and suicide rules.
+func (b *BoardState) PlaceStone(x, y int, color int) {
+	b.PlaceStoneWithNumber(x, y, color, 0)
 }
 
 // ReplicateGame traverses the SGF tree and populates final board state
@@ -122,6 +133,7 @@ func (b *BoardState) ReplicateGame(root *Node) {
 		for _, val := range ab {
 			if x, y, ok := parseCoords(val); ok {
 				b.Grid[y][x] = 1
+				b.MoveNumbers[y][x] = 0
 			}
 		}
 	}
@@ -129,23 +141,26 @@ func (b *BoardState) ReplicateGame(root *Node) {
 		for _, val := range aw {
 			if x, y, ok := parseCoords(val); ok {
 				b.Grid[y][x] = 2
+				b.MoveNumbers[y][x] = 0
 			}
 		}
 	}
 
 	// Traverse the primary path (first child)
 	curr := root
+	moveNum := 0
 	for len(curr.Children) > 0 {
 		curr = curr.Children[0]
+		moveNum++
 
 		// Check for moves (B / W)
 		if bVals, ok := curr.Properties["B"]; ok && len(bVals) > 0 {
 			if x, y, ok := parseCoords(bVals[0]); ok {
-				b.PlaceStone(x, y, 1)
+				b.PlaceStoneWithNumber(x, y, 1, moveNum)
 			}
 		} else if wVals, ok := curr.Properties["W"]; ok && len(wVals) > 0 {
 			if x, y, ok := parseCoords(wVals[0]); ok {
-				b.PlaceStone(x, y, 2)
+				b.PlaceStoneWithNumber(x, y, 2, moveNum)
 			}
 		}
 	}

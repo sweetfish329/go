@@ -431,7 +431,7 @@ func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
 	board.ReplicateGame(rootNode)
 
 	// Rendering board grid state to image
-	img := sgf.GenerateBoardImage(board.Grid, board.Size)
+	img := sgf.GenerateBoardImage(board.Grid, board.MoveNumbers, board.Size)
 
 	w.Header().Set("Content-Type", "image/png")
 	// Cache control for OGP images
