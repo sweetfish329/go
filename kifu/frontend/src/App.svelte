@@ -22,6 +22,46 @@
     theme_color: '#4e342e'
   });
 
+  // Dark mode state: "light" | "dark" | "system"
+  let themeMode = $state<"light" | "dark" | "system">("system");
+  let mediaQuery: MediaQueryList;
+
+  // Apply theme to document element
+  function applyTheme(mode: "light" | "dark" | "system") {
+    if (typeof window === 'undefined') return;
+    const root = document.documentElement;
+    if (mode === "light") {
+      root.classList.add("light");
+      root.classList.remove("dark");
+    } else if (mode === "dark") {
+      root.classList.add("dark");
+      root.classList.remove("light");
+    } else {
+      root.classList.remove("light");
+      root.classList.remove("dark");
+    }
+  }
+
+  // Toggle dark/light/system theme
+  function toggleTheme() {
+    if (themeMode === "light") {
+      themeMode = "dark";
+    } else if (themeMode === "dark") {
+      themeMode = "system";
+    } else {
+      themeMode = "light";
+    }
+    localStorage.setItem("theme", themeMode);
+    applyTheme(themeMode);
+  }
+
+  // System theme change handler
+  function handleSystemThemeChange() {
+    if (themeMode === "system") {
+      applyTheme("system");
+    }
+  }
+
   // Perform routing based on URL path
   function handleRouting() {
     const path = window.location.pathname;
@@ -88,6 +128,19 @@
 
   // Determine view on mount based on URL query params & auth state
   onMount(async () => {
+    // Load theme from localStorage
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "light" || savedTheme === "dark" || savedTheme === "system") {
+      themeMode = savedTheme;
+    }
+    applyTheme(themeMode);
+
+    // Setup OS theme change listener
+    if (typeof window !== 'undefined') {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+    }
+
     // Fetch site settings
     try {
       const res = await fetch('/api/site-settings');
@@ -109,6 +162,9 @@
   onDestroy(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('popstate', handleRouting);
+      if (mediaQuery) {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      }
     }
   });
 
@@ -190,7 +246,7 @@
         <i class="material-icons" style="color: var(--nm-accent);">grid_on</i>
         <span style="color: var(--nm-accent);">{siteSettings.title}</span>
       </a>
-      <ul id="nav-mobile" class="right">
+      <ul id="nav-mobile" class="right" style="display: flex; align-items: center;">
         <!-- svelte-ignore a11y-missing-attribute -->
         <li><a onclick={handleGoHome} class="cursor-pointer">ホーム</a></li>
         {#if auth.isLoggedIn}
@@ -204,6 +260,15 @@
           <!-- svelte-ignore a11y-missing-attribute -->
           <li><a onclick={handleLogout} class="cursor-pointer"><i class="material-icons left" style="color: var(--nm-text-main);">exit_to_app</i>ログアウト</a></li>
         {/if}
+        <!-- Theme Mode Toggle -->
+        <li>
+          <!-- svelte-ignore a11y-missing-attribute -->
+          <a onclick={toggleTheme} class="cursor-pointer" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0 !important; border-radius: 50%; margin-left: 8px;" title="テーマ切り替え ({themeMode === 'light' ? 'ライト固定' : themeMode === 'dark' ? 'ダーク固定' : 'システム連動'})">
+            <i class="material-icons" style="color: var(--nm-accent); font-size: 1.3rem;">
+              {themeMode === 'light' ? 'wb_sunny' : themeMode === 'dark' ? 'brightness_2' : 'brightness_auto'}
+            </i>
+          </a>
+        </li>
       </ul>
     </div>
   </nav>

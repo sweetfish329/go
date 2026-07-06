@@ -34,6 +34,52 @@
   --nm-transition-fast: all 0.15s ease-in-out;
 }
 
+/* Explicit Dark Mode */
+:root.dark {
+  --nm-bg: #1a1e24;
+  --nm-bg-element: #1a1e24;
+  --nm-text-main: #e2e8f0;
+  --nm-text-muted: #8a99ad;
+  --nm-accent: #a1887f;
+  --nm-accent-light: #bcaaa4;
+  --nm-accent-text: #1a1e24;
+  
+  --nm-shadow-outset: 6px 6px 12px #101216, -6px -6px 12px #242a32;
+  --nm-shadow-outset-hover: 8px 8px 16px #0c0d10, -8px -8px 16px #282f38;
+  --nm-shadow-outset-sm: 3px 3px 6px #101216, -3px -3px 6px #242a32;
+  --nm-shadow-outset-sm-hover: 4px 4px 8px #0c0d10, -4px -4px 8px #282f38;
+  
+  --nm-shadow-inset: inset 3px 3px 6px #0f1115, inset -3px -3px 6px #252b33;
+  --nm-shadow-inset-focus: inset 2px 2px 4px #0f1115, inset -2px -2px 4px #252b33;
+  
+  --nm-border-light: 1px solid rgba(255, 255, 255, 0.05);
+  --nm-border-dark: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+/* Automatic System Dark Mode (Only if no explicit light class is set) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --nm-bg: #1a1e24;
+    --nm-bg-element: #1a1e24;
+    --nm-text-main: #e2e8f0;
+    --nm-text-muted: #8a99ad;
+    --nm-accent: #a1887f;
+    --nm-accent-light: #bcaaa4;
+    --nm-accent-text: #1a1e24;
+    
+    --nm-shadow-outset: 6px 6px 12px #101216, -6px -6px 12px #242a32;
+    --nm-shadow-outset-hover: 8px 8px 16px #0c0d10, -8px -8px 16px #282f38;
+    --nm-shadow-outset-sm: 3px 3px 6px #101216, -3px -3px 6px #242a32;
+    --nm-shadow-outset-sm-hover: 4px 4px 8px #0c0d10, -4px -4px 8px #282f38;
+    
+    --nm-shadow-inset: inset 3px 3px 6px #0f1115, inset -3px -3px 6px #252b33;
+    --nm-shadow-inset-focus: inset 2px 2px 4px #0f1115, inset -2px -2px 4px #252b33;
+    
+    --nm-border-light: 1px solid rgba(255, 255, 255, 0.05);
+    --nm-border-dark: 1px solid rgba(0, 0, 0, 0.3);
+  }
+}
+
 /* Global Body Override */
 body.grey.lighten-4 {
   background-color: var(--nm-bg) !important;
