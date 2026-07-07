@@ -75,11 +75,18 @@
 
   async function fetchKifus(): Promise<void> {
     loading = true;
+    error = null; // 前回のエラーをクリア
     try {
       const url = publicMode ? `/api/u/${userId}/kifus` : '/api/kifus';
       const headers = publicMode ? {} : auth.getHeaders();
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error("Failed to fetch games");
+      if (!res.ok) {
+        if (res.status === 401) {
+          // トークンが無効・期限切れの場合は再ログイン促す
+          throw new Error("認証エラー: 再ログインしてください");
+        }
+        throw new Error(`棋譜の取得に失敗しました (${res.status})`);
+      }
       kifus = await res.json();
     } catch (err: any) {
       error = err.message;
@@ -193,58 +200,73 @@
 </script>
 
 <div class="row">
-  <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-    <h4 style="margin: 0; font-weight: 700; color: var(--nm-accent);" class="font-pixel">
-      {#if publicMode}
-        {ownerUsername ? `${ownerUsername}'s Kifu Store` : 'Public Kifu Store'}
-      {:else}
-        {auth.username ? `${auth.username}'s Kifu Store` : 'My Kifu Store'}
-      {/if}
-    </h4>
-    {#if !publicMode}
-      <div style="display: flex; gap: 12px;">
-        <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue font-pixel" onclick={() => dispatch('createKifu')} style="color: #1a1e24 !important;">
-          <i class="material-icons" style="font-size: 1.2rem; color: #1a1e24;">edit</i>自分で棋譜を作成
-        </button>
-        <button class="nm-btn font-pixel" onclick={() => showUploadForm = !showUploadForm}>
-          <i class="material-icons" style="font-size: 1.2rem;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-          {showUploadForm ? '閉じる' : 'SGFアップロード'}
-        </button>
+  <!-- Page Header -->
+  <div class="col s12" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="list-page-header">
+      <div class="list-page-title-wrap">
+        <h1 class="list-page-title font-outfit">
+          {#if publicMode}
+            {ownerUsername ? `✦ ${ownerUsername}'s Kifu` : '✦ Public Kifu'}
+          {:else}
+            {auth.username ? `✦ ${auth.username}'s Kifu` : '✦ My Kifu'}
+          {/if}
+        </h1>
+        <p class="list-page-subtitle text-muted">
+          {#if publicMode}
+            公開棋譜ライブラリ
+          {:else}
+            あなたの棋譜コレクション
+          {/if}
+        </p>
       </div>
-    {/if}
+      {#if !publicMode}
+        <div class="list-page-actions">
+          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')}>
+            <i class="material-icons" style="font-size: 1.1rem;">edit</i>棋譜を作成
+          </button>
+          <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm}>
+            <i class="material-icons" style="font-size: 1.1rem;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
+            {showUploadForm ? '閉じる' : 'SGF Upload'}
+          </button>
+        </div>
+      {/if}
+    </div>
   </div>
 
   <!-- Filter Panel -->
   {#if !loading && !error && kifus.length > 0}
     <div class="col s12" style="margin-bottom: 1.5rem;">
       <div class="nm-card filter-card animate-fade-in" style="margin: 0;">
-        <div class="card-content" style="padding: 20px 24px;">
-          <span class="card-title font-pixel" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--nm-accent);">
-            <i class="material-icons" style="font-size: 1.25rem;">filter_list</i> フィルター検索
-          </span>
-          <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 0; align-items: flex-end;">
+        <div class="card-content" style="padding: 18px 24px;">
+          <div class="filter-header">
+            <span class="filter-label font-outfit">
+              <i class="material-icons" style="font-size: 1rem; vertical-align: middle;">filter_list</i>
+              フィルター
+            </span>
+          </div>
+          <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end;">
             <!-- Text Search -->
-            <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
-              <i class="material-icons prefix" style="font-size: 1.3rem; margin-top: 10px; color: var(--nm-text-muted);">search</i>
-              <input id="search-query" type="text" class="nm-input font-pixel" bind:value={searchQuery} placeholder="対局名、対局者名（黒/白）" style="margin-bottom: 0; padding-left: 3rem !important;" />
-              <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">キーワード</label>
+            <div class="input-field col s12 m6" style="margin: 0;">
+              <i class="material-icons prefix" style="font-size: 1.2rem; margin-top: 10px; color: var(--wc-accent); opacity: 0.7;">search</i>
+              <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者名" style="margin-bottom: 0; padding-left: 3rem !important;" />
+              <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--nm-text-muted);">キーワード検索</label>
             </div>
             <!-- Date Start -->
-            <div class="input-field col s6 m3" style="margin-top: 0; margin-bottom: 0;">
-              <input id="start-date" type="date" class="nm-input font-pixel" bind:value={startDate} style="margin-bottom: 0;" />
-              <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">対局日 (開始)</label>
+            <div class="input-field col s6 m3" style="margin: 0;">
+              <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0;" />
+              <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--nm-text-muted);">開始日</label>
             </div>
             <!-- Date End -->
-            <div class="input-field col s6 m3" style="margin-top: 0; margin-bottom: 0;">
-              <input id="end-date" type="date" class="nm-input font-pixel" bind:value={endDate} style="margin-bottom: 0;" />
-              <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">対局日 (終了)</label>
+            <div class="input-field col s6 m3" style="margin: 0;">
+              <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0;" />
+              <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--nm-text-muted);">終了日</label>
             </div>
           </div>
           {#if searchQuery || startDate || endDate}
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <div class="right-align" style="margin-top: 12px;">
-              <a class="cursor-pointer font-pixel" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; color: var(--nm-accent);">
-                <i class="material-icons" style="font-size: 1.1rem;">clear_all</i>検索条件をクリア
+            <div class="right-align" style="margin-top: 10px;">
+              <!-- svelte-ignore a11y-missing-attribute -->
+              <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }}>
+                <i class="material-icons" style="font-size: 1rem;">clear_all</i>クリア
               </a>
             </div>
           {/if}
@@ -258,7 +280,7 @@
     <div class="col s12" style="margin-bottom: 1.5rem;">
       <div class="nm-card animate-fade-in">
         <div class="card-content" style="padding: 24px;">
-          <span class="card-title" style="font-weight: 600; color: var(--nm-accent); margin-bottom: 20px;">SGF棋譜のアップロード</span>
+          <span class="card-title" style="font-weight: 600; color: var(--wc-accent); margin-bottom: 20px; font-family: 'Shippori Mincho B1', serif;">SGF棋譜のアップロード</span>
           
           <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 0;">
             <div class="file-field input-field col s12 m6" style="margin-top: 0; margin-bottom: 0; display: flex; gap: 10px; align-items: center;">
@@ -299,18 +321,8 @@
   <!-- Loading State -->
   {#if loading}
     <div class="col s12 center-align" style="margin-top: 5rem;">
-      <div class="preloader-wrapper big active">
-        <div class="spinner-layer spinner-brown-only">
-          <div class="circle-clipper left">
-            <div class="circle"></div>
-          </div><div class="gap-patch">
-            <div class="circle"></div>
-          </div><div class="circle-clipper right">
-            <div class="circle"></div>
-          </div>
-        </div>
-      </div>
-      <p class="grey-text">棋譜データを読み込み中...</p>
+      <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto;"></div>
+      <p class="text-muted" style="margin-top: 16px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif;">棋譜データを読み込み中...</p>
     </div>
   {:else if error}
     <div class="col s12">
@@ -336,52 +348,68 @@
       <p class="grey-text">検索キーワードや日付の範囲を変更してお試しください。</p>
     </div>
   {:else}
-    <!-- Kifu Cards Grid -->
+      <!-- Kifu Cards Grid -->
     {#each filteredKifus as k, i (k.id)}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="col s12 m6 l4" style="margin-bottom: 1.5rem;">
-        <div class="nm-card hoverable kifu-card pixel-border-sm waves-effect waves-block animate-pop-in stagger-{(i % 5) + 1}" style="width: 100%; display: block; text-align: left;" onclick={() => dispatch('selectKifu', k.id)}>
-          <div class="card-content" style="padding: 20px 24px; position: relative;">
+        <div
+          class="nm-card hoverable kifu-card kifu-stone-hover animate-pop-in stagger-{(i % 5) + 1}"
+          style="width: 100%; display: block; text-align: left;"
+          onclick={() => dispatch('selectKifu', k.id)}
+        >
+          <div class="card-content" style="padding: 20px 22px; position: relative;">
+            <!-- Result Sticker -->
             {#if k.result}
-              <div class="y2k-sticker pink font-pixel" style="position: absolute; top: 12px; right: -5px; z-index: 5; font-size: 0.7rem; padding: 2px 8px;">
+              <div class="wc-result-badge" style="position: absolute; top: 14px; right: 14px; z-index: 5;">
                 {k.result}
               </div>
             {/if}
-            <span class="card-title truncate font-pixel" style="font-weight: 700; font-size: 1.15rem; margin-bottom: 0.8rem; color: var(--nm-accent); max-width: calc(100% - 80px);" title={k.title}>
+
+            <!-- Title -->
+            <div class="kifu-card-title" title={k.title}>
               {k.title}
-            </span>
-            
-            <div class="players-info" style="margin: 0.8rem 0; display: flex; flex-direction: column; gap: 8px;">
-              <div class="player black-player d-flex align-center" style="display: flex; align-items: center;">
-                <span class="stone-badge black-stone" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #555, #111); margin-right: 10px; border: 1px solid #000; box-shadow: 2px 2px 4px rgba(0,0,0,0.4);"></span>
-                <span class="font-pixel" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; color: var(--nm-text-main);">{k.black_player || 'Unknown'}</span>
+            </div>
+
+            <!-- Players -->
+            <div class="players-info">
+              <!-- Black Player -->
+              <div class="player-row">
+                <span class="stone-dot stone-black" aria-label="黒"></span>
+                <span class="player-name">{k.black_player || 'Unknown'}</span>
                 {#if k.black_rank}
-                  <span class="nm-badge-inset font-pixel" style="font-size: 0.7rem; margin-left: 8px; padding: 1px 6px;">{k.black_rank}</span>
+                  <span class="holo-tag">{k.black_rank}</span>
                 {/if}
               </div>
-              <div class="player white-player d-flex align-center" style="display: flex; align-items: center;">
-                <span class="stone-badge white-stone" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #ddd); margin-right: 10px; border: 1px solid #bbb; box-shadow: 1px 1px 3px rgba(0,0,0,0.15), -1px -1px 2px rgba(255,255,255,0.8);"></span>
-                <span class="font-pixel" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; color: var(--nm-text-main);">{k.white_player || 'Unknown'}</span>
+              <!-- White Player -->
+              <div class="player-row">
+                <span class="stone-dot stone-white" aria-label="白"></span>
+                <span class="player-name">{k.white_player || 'Unknown'}</span>
                 {#if k.white_rank}
-                  <span class="nm-badge-inset font-pixel" style="font-size: 0.7rem; margin-left: 8px; padding: 1px 6px;">{k.white_rank}</span>
+                  <span class="holo-tag">{k.white_rank}</span>
                 {/if}
               </div>
             </div>
 
-            <div class="game-meta font-pixel" style="font-size: 0.8rem; line-height: 1.5; color: var(--nm-text-muted); margin-top: 12px; border-top: 1px dashed rgba(163, 177, 198, 0.3); padding-top: 8px;">
-              <div>対局日: {k.game_date || '不明'}</div>
-              <div style="font-size: 0.7rem; margin-top: 4px;">登録日: {new Date(k.created_at).toLocaleDateString('ja-JP')}</div>
+            <!-- Meta Info -->
+            <div class="kifu-meta">
+              <span>📅 {k.game_date || '対局日不明'}</span>
+              <span style="opacity: 0.5; font-size: 0.7rem;">登録: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
             </div>
           </div>
-          
-          <div class="card-action d-flex justify-between" style="display: flex; justify-content: space-between; align-items: center; background-color: transparent; border-top: 1px solid rgba(163, 177, 198, 0.2); padding: 12px 20px;">
-            <span class="font-pixel" style="font-weight: 700; color: var(--nm-accent); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
-              開く <i class="material-icons" style="font-size: 1.1rem;">arrow_forward</i>
+
+          <div class="card-action-bar">
+            <span class="open-label">
+              開いて再生 <span style="font-size: 1rem;">→</span>
             </span>
             {#if !publicMode}
-              <button class="nm-btn-flat nm-btn-round" style="width: 32px; height: 32px; min-width: 32px; padding: 0;" onclick={(e) => handleDelete(k.id, e)} title="削除">
-                <i class="material-icons red-text text-lighten-1" style="font-size: 1.2rem;">delete</i>
+              <button
+                class="delete-btn"
+                onclick={(e) => handleDelete(k.id, e)}
+                title="削除"
+                aria-label="この棋譜を削除"
+              >
+                <i class="material-icons" style="font-size: 1.1rem;">delete_outline</i>
               </button>
             {/if}
           </div>
@@ -392,36 +420,238 @@
 </div>
 
 <style>
-  .kifu-card {
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .kifu-card:hover {
-    transform: translateY(-2px);
-  }
-  .spinner-brown-only {
-    border-color: #5d4037 !important;
-  }
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  /* ---- Page Header ---- */
+  .list-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
-  /* Mobile responsive adjustments */
+  .list-page-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .list-page-title {
+    margin: 0 !important;
+    font-size: 2rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em;
+    color: var(--wc-text);
+    font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif;
+    line-height: 1.3 !important;
+  }
+
+  .list-page-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    color: var(--wc-text-muted);
+  }
+
+  .list-page-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* ---- Filter ---- */
+  .filter-card {
+    border-left: 3px solid var(--wc-accent-warm) !important;
+  }
+
+  .filter-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .filter-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--wc-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .clear-filter-btn {
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--wc-accent);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .clear-filter-btn:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ---- Kifu Cards ---- */
+  .kifu-card {
+    cursor: pointer;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease;
+    border-radius: 20px !important;
+    overflow: hidden;
+  }
+
+  .kifu-card-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--wc-text);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: calc(100% - 80px);
+    letter-spacing: 0.01em;
+    font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif;
+  }
+
+  /* ---- Players ---- */
+  .players-info {
+    margin: 0.75rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Stone dots — washi clay style */
+  .stone-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .stone-black {
+    background: radial-gradient(circle at 32% 32%, #666, #0a0a0a);
+    border: 1.5px solid rgba(0,0,0,0.7);
+    box-shadow: 1px 1px 4px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.1);
+  }
+
+  .stone-white {
+    background: radial-gradient(circle at 32% 32%, #ffffff, #d4d4d4);
+    border: 1.5px solid rgba(180,180,180,0.8);
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.15), inset -1px -1px 2px rgba(255,255,255,0.9);
+  }
+
+  .player-name {
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+    color: var(--wc-text);
+  }
+
+  /* ---- Meta ---- */
+  .kifu-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.78rem;
+    color: var(--wc-text-muted);
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--wc-border);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ---- Card Action Bar ---- */
+  .card-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--wc-border);
+    padding: 10px 20px;
+  }
+
+  .open-label {
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--wc-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.04em;
+  }
+
+  .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--wc-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+
+  .delete-btn:hover {
+    background: rgba(180, 60, 60, 0.1);
+    color: #B03030;
+    transform: scale(1.1);
+  }
+
+  /* ---- Result Badge ---- */
+  .wc-result-badge {
+    background: var(--wc-surface);
+    border: 1px solid var(--wc-border);
+    box-shadow: var(--nm-shadow-outset-sm);
+    padding: 3px 10px;
+    border-radius: var(--wc-radius-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--wc-accent);
+    font-family: 'DM Sans', 'JetBrains Mono', sans-serif;
+    letter-spacing: 0.04em;
+  }
+
+  /* Mobile responsive */
   @media only screen and (max-width: 600px) {
     :global(.card-content) {
       padding: 14px !important;
     }
+    .list-page-title {
+      font-size: 1.5rem !important;
+    }
     .players-info {
       margin: 0.5rem 0 !important;
     }
-    h4 {
-      font-size: 1.8rem !important;
-    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>

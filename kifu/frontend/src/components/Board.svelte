@@ -214,30 +214,30 @@
 
     <!-- SVG Definitions (gradients, filters) -->
     <defs>
-      <!-- Wood pattern gradient -->
+      <!-- Wood pattern gradient (Kaya wood / 榧の木) -->
       <linearGradient id="boardWood" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#f5cc84" />
-        <stop offset="50%" stop-color="#eac075" />
-        <stop offset="100%" stop-color="#dfb466" />
+        <stop offset="0%" stop-color="#E8DFD0" />
+        <stop offset="50%" stop-color="#D4B896" />
+        <stop offset="100%" stop-color="#C5A882" />
       </linearGradient>
 
-      <!-- Black stone 3D gradient -->
+      <!-- Black stone 3D gradient (墨色) -->
       <radialGradient id="blackStoneGrad" cx="30%" cy="30%" r="70%">
         <stop offset="0%" stop-color="#555555" />
-        <stop offset="15%" stop-color="#2a2a2a" />
-        <stop offset="100%" stop-color="#111111" />
+        <stop offset="15%" stop-color="#2D2926" />
+        <stop offset="100%" stop-color="#1A1816" />
       </radialGradient>
 
-      <!-- White stone 3D gradient -->
+      <!-- White stone 3D gradient (和紙白) -->
       <radialGradient id="whiteStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#ffffff" />
-        <stop offset="60%" stop-color="#fdfdfd" />
-        <stop offset="100%" stop-color="#e0e0e0" />
+        <stop offset="0%" stop-color="#FFFFFF" />
+        <stop offset="60%" stop-color="#F9F7F4" />
+        <stop offset="100%" stop-color="#E5DEC9" />
       </radialGradient>
 
       <!-- Stone shadow drop -->
       <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-        <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.35" />
+        <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#2C2420" flood-opacity="0.18" />
       </filter>
     </defs>
   </svg>
@@ -248,13 +248,13 @@
     width: 100%;
     max-width: 550px;
     margin: 0 auto;
-    border-radius: var(--nm-radius-lg);
-    background-color: var(--nm-bg);
-    border: 3px solid var(--nm-text-main);
-    box-shadow: 4px 4px 0 var(--nm-text-main), var(--nm-shadow-outset) !important;
-    padding: 10px;
+    border-radius: var(--wc-radius-lg);
+    background-color: var(--wc-surface);
+    border: 1px solid var(--wc-border);
+    box-shadow: var(--nm-shadow-outset) !important;
+    padding: 12px;
     box-sizing: border-box;
-    transition: var(--nm-transition);
+    transition: var(--wc-transition);
   }
 
   .go-board {

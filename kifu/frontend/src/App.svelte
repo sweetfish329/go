@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { Toaster } from 'svelte-sonner';
   import KifuList from './components/KifuList.svelte';
   import KifuDetail from './components/KifuDetail.svelte';
   import Auth from './components/Auth.svelte';
@@ -81,6 +82,9 @@
       url.searchParams.delete('oauth_username');
       url.searchParams.delete('oauth_id');
       window.history.replaceState({}, '', url.pathname + url.search);
+      // ログイン成功 → 即座にリスト表示（以降のルーティング判定をスキップ）
+      currentView = "list";
+      return;
     }
 
     // Pattern: /u/:userId/:kifuId
@@ -235,36 +239,62 @@
   }
 </script>
 
-<div>
-  <!-- Navigation Header -->
+<!-- svelte-sonner Toast Container -->
+<Toaster
+  richColors
+  position="top-center"
+  toastOptions={{
+    style: 'font-family: Outfit, sans-serif; border-radius: 16px; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5);'
+  }}
+/>
+
+<div class="app-shell">
+  <!-- Navigation Header — Y2K Holographic Glass Nav -->
   <nav class="nm-nav">
     <div class="nav-wrapper container">
       <!-- svelte-ignore a11y-missing-attribute -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <a class="brand-logo d-flex align-center cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1.4rem;">
-        <i class="material-icons" style="color: var(--nm-accent);">grid_on</i>
-        <span style="color: var(--nm-accent);" class="font-pixel y2k-chrome-text">{siteSettings.title}</span>
+      <a class="brand-logo cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+        <!-- 碁石モチーフ ロゴマーク -->
+        <span class="nav-logo-icon" aria-hidden="true">◉</span>
+        <span class="nav-logo-text font-cormorant">{siteSettings.title}</span>
       </a>
-      <ul id="nav-mobile" class="right" style="display: flex; align-items: center;">
+
+      <ul id="nav-mobile" class="right" style="display: flex; align-items: center; gap: 4px;">
         <!-- svelte-ignore a11y-missing-attribute -->
-        <li><a onclick={handleGoHome} class="cursor-pointer">ホーム</a></li>
+        <li><a onclick={handleGoHome} class="cursor-pointer nav-link">ホーム</a></li>
+
         {#if auth.isLoggedIn}
           <!-- svelte-ignore a11y-missing-attribute -->
           <li>
-            <a onclick={() => showUsernameDialog = true} class="cursor-pointer" style="display: flex; align-items: center; gap: 4px; font-weight: 500; font-size: 0.95rem;">
-              <i class="material-icons tiny" style="font-size: 1rem; margin-right: 4px; color: var(--nm-text-main);">edit</i>
-              <span style="color: var(--nm-text-main);">{auth.username} さん</span>
+            <a
+              onclick={() => showUsernameDialog = true}
+              class="cursor-pointer nav-link nav-user-chip"
+              title="ニックネームを変更"
+            >
+              <span class="user-avatar" aria-hidden="true">◎</span>
+              <span>{auth.username}</span>
+              <i class="material-icons" style="font-size: 0.9rem; opacity: 0.6;">edit</i>
             </a>
           </li>
           <!-- svelte-ignore a11y-missing-attribute -->
-          <li><a onclick={handleLogout} class="cursor-pointer"><i class="material-icons left" style="color: var(--nm-text-main);">exit_to_app</i>ログアウト</a></li>
+          <li>
+            <a onclick={handleLogout} class="cursor-pointer nav-link" title="ログアウト">
+              <i class="material-icons" style="font-size: 1.1rem;">logout</i>
+            </a>
+          </li>
         {/if}
+
         <!-- Theme Mode Toggle -->
         <li>
           <!-- svelte-ignore a11y-missing-attribute -->
-          <a onclick={toggleTheme} class="cursor-pointer" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0 !important; border-radius: 50%; margin-left: 8px;" title="テーマ切り替え ({themeMode === 'light' ? 'ライト固定' : themeMode === 'dark' ? 'ダーク固定' : 'システム連動'})">
-            <i class="material-icons" style="color: var(--nm-accent); font-size: 1.3rem;">
+          <a
+            onclick={toggleTheme}
+            class="cursor-pointer nav-theme-btn"
+            title="テーマ切り替え ({themeMode === 'light' ? 'ライト固定' : themeMode === 'dark' ? 'ダーク固定' : 'システム連動'})"
+          >
+            <i class="material-icons" style="font-size: 1.2rem;">
               {themeMode === 'light' ? 'wb_sunny' : themeMode === 'dark' ? 'brightness_2' : 'brightness_auto'}
             </i>
           </a>
@@ -274,7 +304,7 @@
   </nav>
 
   <!-- Main Container -->
-  <main class="container y2k-cyber-grid" style="padding-bottom: 4rem; padding-top: 1.5rem;">
+  <main class="container" style="padding-bottom: 5rem; padding-top: 2rem;">
     {#if currentView === "auth"}
       <Auth />
     {:else if currentView === "list"}
@@ -303,10 +333,105 @@
 {/if}
 
 <style>
+  .app-shell {
+    min-height: 100vh;
+    position: relative;
+  }
+
   main {
     min-height: 80vh;
+    position: relative;
+    z-index: 1;
   }
+
   .cursor-pointer {
     cursor: pointer !important;
+  }
+
+  /* ---- Nav Logo ---- */
+  .nav-logo-icon {
+    font-size: 1.3rem;
+    color: var(--wc-accent);
+    display: inline-block;
+    line-height: 1;
+    transition: var(--wc-transition-fast);
+    opacity: 0.75;
+  }
+
+  .brand-logo:hover .nav-logo-icon {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .nav-logo-text {
+    font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif;
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--wc-text);
+    font-style: italic;
+  }
+
+  /* ---- Nav Links ---- */
+  .nav-link {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    height: 40px !important;
+    line-height: 40px !important;
+    border-radius: 999px !important;
+    padding: 0 14px !important;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    font-size: 0.93rem;
+    transition: all 0.2s ease;
+    color: var(--nm-text-main) !important;
+  }
+
+  .nav-link:hover {
+    background: var(--wc-accent-soft) !important;
+    color: var(--wc-accent) !important;
+  }
+
+  /* User chip */
+  .nav-user-chip {
+    border: 1px solid var(--wc-border) !important;
+    background: rgba(245, 240, 232, 0.45) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .nav-user-chip:hover {
+    background: var(--wc-accent-soft) !important;
+    border-color: rgba(124, 107, 82, 0.4) !important;
+  }
+
+  .user-avatar {
+    font-size: 0.95rem;
+    color: var(--wc-accent);
+    opacity: 0.7;
+  }
+
+  /* Theme toggle button */
+  .nav-theme-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    color: var(--wc-accent) !important;
+    border: 1px solid var(--wc-border) !important;
+    background: rgba(245, 240, 232, 0.45) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.25s ease;
+  }
+
+  .nav-theme-btn:hover {
+    background: var(--wc-accent-soft) !important;
+    border-color: rgba(124, 107, 82, 0.4) !important;
+    transform: rotate(15deg);
   }
 </style>

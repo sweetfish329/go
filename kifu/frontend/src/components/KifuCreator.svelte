@@ -235,19 +235,19 @@
 </script>
 
 <div class="row animate-fade-in" style="margin-top: 1.5rem;">
-  <div class="col s12 d-flex align-center justify-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h4 style="margin: 0; font-weight: 500;" class="brown-text text-darken-3">新規棋譜の作成</h4>
-    <div>
-      <button class="btn-flat waves-effect" onclick={onCancel} disabled={saving}>キャンセル</button>
-      <button class="btn waves-effect waves-light brown" onclick={handleSave} disabled={moves.length === 0 || saving}>
-        <i class="material-icons left">save</i>{saving ? '保存中...' : 'ライブラリに保存'}
+  <div class="col s12 d-flex align-center justify-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px;">
+    <h4 style="margin: 0; font-weight: 600; font-family: 'Shippori Mincho B1', serif; color: var(--wc-text); letter-spacing: 0.02em;">新規棋譜の作成</h4>
+    <div style="display: flex; gap: 10px;">
+      <button class="nm-btn-flat" onclick={onCancel} disabled={saving}>キャンセル</button>
+      <button class="nm-btn-primary" onclick={handleSave} disabled={moves.length === 0 || saving}>
+        <i class="material-icons" style="font-size: 1.15rem;">save</i>{saving ? '保存中...' : 'ライブラリに保存'}
       </button>
     </div>
   </div>
 
   <!-- Left: Interactive Board -->
   <div class="col s12 l7 center-align" style="margin-bottom: 1.5rem;">
-    <div class="card" style="padding: 10px; border-radius: 8px; background-color: #f7f5f0; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+    <div style="display: inline-block;">
       <Board 
         board={currentBoard} 
         {size} 
@@ -262,93 +262,93 @@
   <!-- Right: Control Panel & Metadata Form -->
   <div class="col s12 l5">
     <!-- Game Metadata Card -->
-    <div class="card white" style="border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.03);">
-      <div class="card-content">
-        <span class="card-title brown-text text-darken-3" style="font-size: 1.15rem; font-weight: 500; margin-bottom: 15px;">対局情報の入力</span>
+    <div class="nm-card" style="margin-bottom: 1.5rem;">
+      <div class="card-content" style="padding: 20px;">
+        <span class="card-title" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 18px; color: var(--wc-accent); font-family: 'Shippori Mincho B1', serif;">対局情報の入力</span>
         
         <div class="row" style="margin-bottom: 0;">
           <div class="input-field col s12" style="margin-top: 0; margin-bottom: 10px;">
-            <input id="game_title" type="text" bind:value={gameTitle} placeholder="例: 第1期 〇〇戦" />
-            <label for="game_title" class="active">対局名 / タイトル</label>
+            <input id="game_title" type="text" class="nm-input" bind:value={gameTitle} placeholder="例: 第1期 〇〇戦" style="margin-bottom: 0;" />
+            <label for="game_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">対局名 / タイトル</label>
           </div>
 
           <div class="input-field col s8" style="margin-top: 5px; margin-bottom: 10px;">
-            <input id="black_player" type="text" bind:value={blackPlayer} placeholder="黒番プレイヤー" />
-            <label for="black_player" class="active">黒番 (PB)</label>
+            <input id="black_player" type="text" class="nm-input" bind:value={blackPlayer} placeholder="黒番プレイヤー" style="margin-bottom: 0;" />
+            <label for="black_player" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">黒番 (PB)</label>
           </div>
           <div class="input-field col s4" style="margin-top: 5px; margin-bottom: 10px;">
-            <input id="black_rank" type="text" bind:value={blackRank} placeholder="例: 9段" />
-            <label for="black_rank" class="active">段位</label>
+            <input id="black_rank" type="text" class="nm-input" bind:value={blackRank} placeholder="例: 9段" style="margin-bottom: 0;" />
+            <label for="black_rank" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">段位</label>
           </div>
 
           <div class="input-field col s8" style="margin-top: 5px; margin-bottom: 10px;">
-            <input id="white_player" type="text" bind:value={whitePlayer} placeholder="白番プレイヤー" />
-            <label for="white_player" class="active">白番 (PW)</label>
+            <input id="white_player" type="text" class="nm-input" bind:value={whitePlayer} placeholder="白番プレイヤー" style="margin-bottom: 0;" />
+            <label for="white_player" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">白番 (PW)</label>
           </div>
           <div class="input-field col s4" style="margin-top: 5px; margin-bottom: 10px;">
-            <input id="white_rank" type="text" bind:value={whiteRank} placeholder="例: 8段" />
-            <label for="white_rank" class="active">段位</label>
+            <input id="white_rank" type="text" class="nm-input" bind:value={whiteRank} placeholder="例: 8段" style="margin-bottom: 0;" />
+            <label for="white_rank" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">段位</label>
           </div>
 
           <div class="input-field col s12" style="margin-top: 5px; margin-bottom: 5px;">
-            <input id="game_date" type="date" bind:value={gameDate} />
-            <label for="game_date" class="active">対局日 (DT)</label>
+            <input id="game_date" type="date" class="nm-input" bind:value={gameDate} style="margin-bottom: 0;" />
+            <label for="game_date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">対局日 (DT)</label>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Active Game State & Controls Card -->
-    <div class="card brown lighten-5" style="border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-      <div class="card-content">
-        <span class="card-title brown-text text-darken-3" style="font-size: 1.15rem; font-weight: 500; margin-bottom: 15px;">対局状況 & 操作</span>
+    <div class="nm-card" style="margin-bottom: 1.5rem;">
+      <div class="card-content" style="padding: 20px;">
+        <span class="card-title" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 18px; color: var(--wc-accent); font-family: 'Shippori Mincho B1', serif;">対局状況 & 操作</span>
 
         <!-- Hand & Captives Stats -->
-        <div class="stats-panel" style="display: flex; justify-content: space-around; background-color: #fff; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.04);">
+        <div class="stats-panel nm-panel-inset" style="display: flex; justify-content: space-around; padding: 12px; margin-bottom: 15px;">
           <div class="stat-item center-align">
-            <div style="font-size: 0.85rem; color: #777;">現在の手数</div>
-            <div style="font-size: 1.4rem; font-weight: bold; color: #5d4037;">{currentMoveIndex + 1} 手目</div>
+            <div style="font-size: 0.8rem; color: var(--wc-text-muted);">現在の手数</div>
+            <div style="font-size: 1.25rem; font-weight: 600; color: var(--wc-text); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">{currentMoveIndex + 1} 手目</div>
           </div>
           <div class="stat-item center-align">
-            <div style="font-size: 0.85rem; color: #777;">次の一手</div>
+            <div style="font-size: 0.8rem; color: var(--wc-text-muted);">次の一手</div>
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500; margin-top: 4px;">
-              <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {nextColor === 1 ? '#333' : '#fff'}; border: 1px solid {nextColor === 1 ? '#000' : '#ccc'};"></span>
-              <span>{nextColor === 1 ? '黒番' : '白番'}</span>
+              <span class="stone-dot" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {nextColor === 1 ? 'var(--wc-go-black)' : 'var(--wc-go-white)'}; border: 1px solid {nextColor === 1 ? 'var(--wc-go-black)' : 'var(--wc-border)'};"></span>
+              <span style="font-size: 0.9rem; color: var(--wc-text);">{nextColor === 1 ? '黒番' : '白番'}</span>
             </div>
           </div>
         </div>
 
-        <div class="captives-panel" style="display: flex; justify-content: space-around; background-color: #fff; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.04); font-size: 0.9rem;">
+        <div class="captives-panel nm-panel-inset" style="display: flex; justify-content: space-around; padding: 10px; margin-bottom: 20px; font-size: 0.85rem; color: var(--wc-text);">
           <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #333;"></span>
-            <span>黒のアゲハマ: <strong>{capturedByBlack}</strong></span>
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--wc-go-black);"></span>
+            <span>黒のアゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem;">{capturedByBlack}</strong></span>
           </div>
           <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #fff; border: 1px solid #ccc;"></span>
-            <span>白のアゲハマ: <strong>{capturedByWhite}</strong></span>
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--wc-go-white); border: 1px solid var(--wc-border);"></span>
+            <span>白のアゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem;">{capturedByWhite}</strong></span>
           </div>
         </div>
 
         <!-- Navigation Buttons -->
-        <div class="control-buttons center-align" style="margin-bottom: 15px; display: flex; justify-content: center; gap: 8px;">
-          <button class="btn-flat btn-floating waves-effect brown lighten-4" onclick={jumpToStart} disabled={currentMoveIndex === -1} title="最初へ">
-            <i class="material-icons brown-text text-darken-3">first_page</i>
+        <div class="control-buttons center-align" style="margin-bottom: 15px; display: flex; justify-content: center; gap: 12px;">
+          <button class="nm-btn-flat nm-btn-round" onclick={jumpToStart} disabled={currentMoveIndex === -1} title="最初へ">
+            <i class="material-icons">first_page</i>
           </button>
-          <button class="btn-flat btn-floating waves-effect brown lighten-4" onclick={undo} disabled={currentMoveIndex === -1} title="戻る">
-            <i class="material-icons brown-text text-darken-3">chevron_left</i>
+          <button class="nm-btn-flat nm-btn-round" onclick={undo} disabled={currentMoveIndex === -1} title="戻る">
+            <i class="material-icons">chevron_left</i>
           </button>
-          <button class="btn-flat btn-floating waves-effect brown lighten-4" onclick={redo} disabled={currentMoveIndex === moves.length - 1} title="進む">
-            <i class="material-icons brown-text text-darken-3">chevron_right</i>
+          <button class="nm-btn-flat nm-btn-round" onclick={redo} disabled={currentMoveIndex === moves.length - 1} title="進む">
+            <i class="material-icons">chevron_right</i>
           </button>
-          <button class="btn-flat btn-floating waves-effect brown lighten-4" onclick={jumpToEnd} disabled={currentMoveIndex === moves.length - 1} title="最後へ">
-            <i class="material-icons brown-text text-darken-3">last_page</i>
+          <button class="nm-btn-flat nm-btn-round" onclick={jumpToEnd} disabled={currentMoveIndex === moves.length - 1} title="最後へ">
+            <i class="material-icons">last_page</i>
           </button>
         </div>
 
         <!-- Action Buttons -->
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button class="btn waves-effect waves-light brown lighten-1 w-100" onclick={handlePass} disabled={saving} style="width: 100%;">
-            <i class="material-icons left">redo</i>パスする
+          <button class="nm-btn" onclick={handlePass} disabled={saving} style="width: 100%;">
+            <i class="material-icons" style="font-size: 1.15rem;">redo</i>パスする
           </button>
         </div>
       </div>

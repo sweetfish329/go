@@ -18,7 +18,11 @@
   let loading = $state(false);
   let qrCodeSvg = $state("");
   let copySuccess = $state(false);
-  let isPrivate = $state(kifu.is_private !== false);
+  let isPrivate = $state(false);
+
+  $effect(() => {
+    isPrivate = kifu.is_private !== false;
+  });
 
   const getM = () => (window as any).M;
 
@@ -98,13 +102,13 @@
 </script>
 
 <div class="share-modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
-  <div class="share-modal-content nm-modal pixel-border-sm" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
+  <div class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
     <div>
-      <span class="card-title d-flex align-center font-pixel" style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--nm-accent); font-size: 1.2rem; margin-bottom: 12px;">
+      <span class="card-title" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--wc-accent); font-size: 1.1rem; margin-bottom: 12px; font-family: 'Shippori Mincho B1', serif; letter-spacing: 0.04em;">
         <i class="material-icons">share</i>
         棋譜を共有する
       </span>
-      <p style="margin-bottom: 20px; font-size: 0.9rem; color: var(--nm-text-muted);">
+      <p style="margin-bottom: 20px; font-size: 0.88rem; color: var(--wc-text-muted); font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
         この棋譜にアクセスし、添削を受け取るための公開リンクとQRコードです。
       </p>
  
@@ -115,28 +119,28 @@
             {@html qrCodeSvg}
           {:else}
             <div class="valign-wrapper justify-center" style="height: 200px; display: flex; align-items: center;">
-              <p class="grey-text font-pixel">QRコード生成中...</p>
+              <p class="text-muted" style="font-family: 'DM Sans', sans-serif;">QRコード生成中...</p>
             </div>
           {/if}
         </div>
  
         <div class="share-url-container valign-wrapper" style="margin-top: 20px; display: flex; align-items: center; gap: 10px;">
-          <input type="text" readonly value={shareUrl} class="nm-input share-url-input font-pixel" style="margin-bottom: 0;" />
-          <button class="nm-btn-primary y2k-glow-blue y2k-grad-blue" onclick={handleCopy} style="height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; padding: 0; min-width: 42px; border-radius: var(--nm-radius-sm); color: #1a1e24 !important;">
-            <i class="material-icons" style="font-size: 1.2rem; color: #1a1e24;">{copySuccess ? 'check' : 'content_copy'}</i>
+          <input type="text" readonly value={shareUrl} class="nm-input share-url-input" style="margin-bottom: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" />
+          <button class="nm-btn-primary" onclick={handleCopy} style="height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; padding: 0; min-width: 42px; border-radius: var(--wc-radius-sm); flex-shrink: 0;">
+            <i class="material-icons" style="font-size: 1.2rem;">{copySuccess ? 'check' : 'content_copy'}</i>
           </button>
         </div>
  
         <!-- Privacy Toggle -->
         <div class="privacy-toggle-container nm-panel-inset left-align" style="margin-top: 20px; padding: 16px;">
           <div class="switch">
-            <label class="black-text font-pixel" style="font-weight: 500; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 8px; width: 100%;">
-              <span style="font-size: 0.85rem; color: var(--nm-text-main); font-weight: 600; text-align: left;">一般公開（ライブラリや検索に掲載）</span>
+            <label style="font-weight: 500; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 8px; width: 100%; color: var(--wc-text); font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
+              <span style="font-size: 0.85rem; color: var(--wc-text); font-weight: 600; text-align: left;">一般公開（ライブラリや検索に掲載）</span>
               <input type="checkbox" checked={!isPrivate} onchange={(e) => handleTogglePrivacy(e.currentTarget.checked)} disabled={loading}>
               <span class="lever brown lighten-3"></span>
             </label>
           </div>
-          <p style="margin: 8px 0 0 0; font-size: 0.8rem; line-height: 1.4; color: var(--nm-text-muted);">
+          <p style="margin: 8px 0 0 0; font-size: 0.8rem; line-height: 1.4; color: var(--wc-text-muted);">
             {#if isPrivate}
               現在: <strong>限定公開</strong><br>リンクを知っている人だけが閲覧可能です。あなたの公開プロフィールや検索エンジンには掲載されません。
             {:else}
@@ -147,8 +151,8 @@
       </div>
     </div>
  
-    <div style="padding: 16px 0 0 0; display: flex; justify-content: flex-end; border-top: 1px solid rgba(163, 177, 198, 0.2); margin-top: 20px;">
-      <button class="nm-btn-flat font-pixel" onclick={onClose}>閉じる</button>
+    <div style="padding: 16px 0 0 0; display: flex; justify-content: flex-end; border-top: 1px solid var(--wc-border); margin-top: 20px;">
+      <button class="nm-btn-flat" onclick={onClose}>閉じる</button>
     </div>
   </div>
 </div>

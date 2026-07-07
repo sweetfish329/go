@@ -1,232 +1,421 @@
-/* Neumorphism 2.0 (Soft UI) Design System for Kifu Store */
+/* ================================================================
+   Washi Clay — 和紙とクレイ
+   囲碁棋譜ストア デザインシステム v2.0
+   Concept: Wabi-sabi × Neumorphism 2.0 × Claymorphism
+   Target: Women in their late 20s to early 30s
+   Palette: Washi Earth — 和紙 / 煤竹 / 朱砂
+   ================================================================ */
+
+/* --- Google Fonts: 書物の美しさ Typography Stack --- */
+/* Cormorant Garamond: 英語表示フォント（エレガントなセリフ） */
+/* Shippori Mincho B1:  日本語表示フォント（品格ある明朝体） */
+/* DM Sans: 英語UIフォント（現代的で読みやすいサンセリフ）    */
+/* Noto Sans JP: 日本語UIフォント（読みやすいゴシック系）      */
+/* JetBrains Mono: 等幅フォント（棋譜データ・手数表示用）      */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Shippori+Mincho+B1:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Sans+JP:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Colors */
-  --nm-bg: #e6ebf2;          /* Soft warm gray-blue background */
-  --nm-bg-element: #e6ebf2;
-  --nm-text-main: #2d3748;   /* Rich dark slate for readability */
-  --nm-text-muted: #64748b;
-  /* Default accent: indigo-slate (視認性の高い落ち着いたインディゴ) */
-  --nm-accent: var(--theme-color, #4a6fa5);
-  --nm-accent-light: #6b8fca;
-  --nm-accent-text: #ffffff;
-  
-  /* Light theme shadows (Default) */
-  --nm-shadow-outset: 6px 6px 12px #cbd3de, -6px -6px 12px #ffffff;
-  --nm-shadow-outset-hover: 8px 8px 16px #c0c9d6, -8px -8px 16px #ffffff;
-  --nm-shadow-outset-sm: 3px 3px 6px #cbd3de, -3px -3px 6px #ffffff;
-  --nm-shadow-outset-sm-hover: 4px 4px 8px #c0c9d6, -4px -4px 8px #ffffff;
-  
-  --nm-shadow-inset: inset 3px 3px 6px #cbd3de, inset -3px -3px 6px #ffffff;
-  --nm-shadow-inset-focus: inset 2px 2px 4px #cbd3de, inset -2px -2px 4px #ffffff;
-  
-  /* Borders for accessibility */
-  --nm-border-light: 1px solid rgba(255, 255, 255, 0.8);
-  --nm-border-dark: 1px solid rgba(163, 177, 198, 0.2);
-  
-  /* Border Radius */
-  --nm-radius-sm: 8px;
-  --nm-radius-md: 16px;
-  --nm-radius-lg: 24px;
-  --nm-radius-round: 50%;
-  
-  /* Transitions */
-  --nm-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --nm-transition-fast: all 0.15s ease-in-out;
+  /* ================================================================
+     Washi Earth Color Palette — 和紙の縁側
+     ================================================================ */
+
+  /* --- Backgrounds --- */
+  --wc-bg:           #F5F0E8;   /* 和紙オフホワイト — ページ背景 */
+  --wc-surface:      #EDE5D8;   /* リネン — カード・ニューモーフィックの地 */
+  --wc-surface-alt:  #E8DFD0;   /* やや深いリネン — 入れ子カードなど */
+
+  /* --- Neumorphic Shadow Recipe --- */
+  --wc-shadow-dark:  #CFC4B2;   /* 右下 暗い影（暖かいタウプ） */
+  --wc-shadow-light: #FFFFFF;   /* 左上 明るいハイライト */
+
+  /* --- Tones & Mid --- */
+  --wc-border:       #D8CDBF;   /* ボーダー・ディバイダー */
+  --wc-mid:          #B8A899;   /* ナチュラルウッド — 中間トーン */
+
+  /* --- Text --- */
+  --wc-text:         #2C2420;   /* 炭黒 — メインテキスト */
+  --wc-text-muted:   #9D8E82;   /* 灰茶 — サブテキスト・補助情報 */
+  --wc-text-light:   #C5B8AE;   /* 薄茶 — プレースホルダー等 */
+
+  /* --- Accent Colors --- */
+  --wc-accent:       #7C6B52;   /* 煤竹（すすたけ） — プライマリアクセント */
+  --wc-accent-hover: #65573F;   /* 煤竹・深 — ホバー時 */
+  --wc-accent-warm:  #C8956C;   /* 朱砂（しゅしゃ） — CTA・強調 */
+  --wc-accent-warm-hover: #B07E57; /* 朱砂・深 — ホバー時 */
+  --wc-accent-soft:  rgba(124, 107, 82, 0.1);  /* 煤竹・淡 — 薄い背景 */
+
+  /* --- Go Stone Colors --- */
+  --wc-go-black:     #2D2926;   /* 碁石・黒（墨色） */
+  --wc-go-white:     #F9F7F4;   /* 碁石・白（和紙白） */
+  --wc-board:        #D4B896;   /* 碁盤色（榧の木） */
+
+  /* ================================================================
+     Neumorphism 2.0 Shadows — 暖色土系 / 統一光源: 左上
+     ================================================================ */
+
+  /* カード: 浮き（outset） */
+  --nm-shadow-outset:        6px 6px 14px var(--wc-shadow-dark), -6px -6px 14px var(--wc-shadow-light);
+  --nm-shadow-outset-hover: 10px 10px 22px #C5BAA8, -10px -10px 22px var(--wc-shadow-light);
+  --nm-shadow-outset-sm:     4px 4px 10px var(--wc-shadow-dark), -4px -4px 10px var(--wc-shadow-light);
+  --nm-shadow-outset-sm-hover: 6px 6px 14px #C5BAA8, -6px -6px 14px var(--wc-shadow-light);
+
+  /* インプット: 沈み（inset） */
+  --nm-shadow-inset:         inset 4px 4px 10px var(--wc-shadow-dark), inset -4px -4px 10px var(--wc-shadow-light);
+  --nm-shadow-inset-focus:   inset 3px 3px 7px #C5BAA8, inset -3px -3px 7px var(--wc-shadow-light);
+
+  /* Claymorphism ボタン（3層シャドウで立体感） */
+  --clay-shadow:
+    6px 6px 18px rgba(124, 107, 82, 0.28),
+    inset -4px -4px 12px rgba(100, 80, 60, 0.18),
+    inset 4px 4px 12px rgba(255, 255, 255, 0.72);
+  --clay-shadow-hover:
+    10px 10px 24px rgba(124, 107, 82, 0.35),
+    inset -5px -5px 14px rgba(100, 80, 60, 0.22),
+    inset 5px 5px 14px rgba(255, 255, 255, 0.80);
+  --clay-shadow-active:
+    3px 3px 8px rgba(124, 107, 82, 0.25),
+    inset 5px 5px 14px rgba(100, 80, 60, 0.28),
+    inset -3px -3px 8px rgba(255, 255, 255, 0.6);
+
+  /* ================================================================
+     Glass (warm frost) — 暖かいフロスト
+     ================================================================ */
+  --wc-glass-bg:      rgba(245, 240, 232, 0.72);
+  --wc-glass-border:  rgba(255, 255, 255, 0.65);
+  --wc-glass-blur:    blur(14px);
+
+  /* ================================================================
+     Border Radius — Claymorphic（大きめ・温かい）
+     ================================================================ */
+  --wc-radius-xs:   6px;
+  --wc-radius-sm:   12px;
+  --wc-radius-md:   18px;
+  --wc-radius-lg:   24px;
+  --wc-radius-xl:   32px;
+  --wc-radius-pill: 999px;
+  --wc-radius-round: 50%;
+
+  /* ================================================================
+     Transitions — 自然な動き（ease-out寄り）
+     ================================================================ */
+  --wc-transition:        all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --wc-transition-fast:   all 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --wc-transition-spring: all 0.45s cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  /* ================================================================
+     Legacy aliases — 旧クラス名との互換性
+     ================================================================ */
+  --nm-bg:           var(--wc-bg);
+  --nm-bg-element:   var(--wc-surface);
+  --nm-text-main:    var(--wc-text);
+  --nm-text-muted:   var(--wc-text-muted);
+  --nm-accent:       var(--wc-accent);
+  --nm-accent-light: var(--wc-accent-warm);
+  --nm-accent-text:  #FFFFFF;
+  --nm-border-light: 1px solid var(--wc-glass-border);
+  --nm-border-dark:  1px solid var(--wc-border);
+  --nm-glass-bg:     var(--wc-glass-bg);
+  --nm-glass-border: var(--wc-glass-border);
+  --nm-glass-blur:   var(--wc-glass-blur);
+  --nm-radius-sm:    var(--wc-radius-sm);
+  --nm-radius-md:    var(--wc-radius-md);
+  --nm-radius-lg:    var(--wc-radius-lg);
+  --nm-radius-pill:  var(--wc-radius-pill);
+  --nm-radius-round: var(--wc-radius-round);
+  --nm-transition:          var(--wc-transition);
+  --nm-transition-fast:     var(--wc-transition-fast);
+  --nm-transition-spring:   var(--wc-transition-spring);
 }
 
-/* Explicit Dark Mode */
+/* ================================================================
+   Dark Mode — 焦げ茶 Wabi-sabi Dark
+   ================================================================ */
 :root.dark {
-  --nm-bg: #262b35;          /* Deep Slate gray background */
-  --nm-bg-element: #262b35;
-  --nm-text-main: #e8edf5;   /* Bright near-white for readability on dark */
-  --nm-text-muted: #9aabbd;
-  /*
-   * ダークモードのアクセントカラー:
-   * color-mix() で白を55%混ぜることで、管理者が設定した暗いテーマカラーでも
-   * ダーク背景 (#262b35) 上で十分なコントラストを確保する。
-   * デフォルト値は明るいスカイブルー (#60c5f1)。
-   */
-  --nm-accent: color-mix(in srgb, var(--theme-color, #60c5f1) 45%, white 55%);
-  --nm-accent-light: color-mix(in srgb, var(--theme-color, #60c5f1) 30%, white 70%);
-  --nm-accent-text: #1a2435;
-  
-  --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
-  --nm-shadow-outset-hover: 8px 8px 16px #16191f, -8px -8px 16px #373f4d;
-  --nm-shadow-outset-sm: 3px 3px 6px #1b1e25, -3px -3px 6px #313845;
-  --nm-shadow-outset-sm-hover: 4px 4px 8px #16191f, -4px -4px 8px #373f4d;
-  
-  --nm-shadow-inset: inset 3px 3px 6px #1b1e25, inset -3px -3px 6px #313845;
-  --nm-shadow-inset-focus: inset 2px 2px 4px #1b1e25, inset -2px -2px 4px #313845;
-  
-  --nm-border-light: 1px solid rgba(255, 255, 255, 0.05);
-  --nm-border-dark: 1px solid rgba(0, 0, 0, 0.3);
+  --wc-bg:           #1C1714;   /* 焦げ茶 */
+  --wc-surface:      #252018;   /* やや明るい焦げ茶 */
+  --wc-surface-alt:  #2E2820;
+  --wc-shadow-dark:  #14120F;   /* ダーク影 */
+  --wc-shadow-light: #2E2921;   /* 微かなハイライト */
+  --wc-border:       #3A3028;
+  --wc-mid:          #5A4E44;
+  --wc-text:         #F0EAE0;   /* 温かいオフホワイト */
+  --wc-text-muted:   #9D8E82;
+  --wc-text-light:   #6A5E56;
+  --wc-accent:       #C8A87A;   /* ダークでは少し明るい煤竹 */
+  --wc-accent-hover: #DEC090;
+  --wc-accent-warm:  #E0A87A;
+  --wc-accent-warm-hover: #F0B888;
+  --wc-accent-soft:  rgba(200, 168, 122, 0.12);
+  --wc-glass-bg:     rgba(28, 23, 20, 0.78);
+  --wc-glass-border: rgba(200, 168, 122, 0.14);
+
+  --nm-bg:           var(--wc-bg);
+  --nm-bg-element:   var(--wc-surface);
+  --nm-text-main:    var(--wc-text);
+  --nm-text-muted:   var(--wc-text-muted);
+  --nm-accent:       var(--wc-accent);
+  --nm-glass-bg:     var(--wc-glass-bg);
+  --nm-glass-border: var(--wc-glass-border);
+
+  --clay-shadow:
+    6px 6px 18px rgba(10, 8, 6, 0.5),
+    inset -4px -4px 12px rgba(0, 0, 0, 0.4),
+    inset 4px 4px 12px rgba(50, 40, 30, 0.3);
+  --clay-shadow-hover:
+    10px 10px 24px rgba(10, 8, 6, 0.6),
+    inset -5px -5px 14px rgba(0, 0, 0, 0.45),
+    inset 5px 5px 14px rgba(50, 40, 30, 0.35);
 }
 
-/* Automatic System Dark Mode (Only if no explicit light class is set) */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --nm-bg: #262b35;          /* Deep Slate gray background */
-    --nm-bg-element: #262b35;
-    --nm-text-main: #e8edf5;
-    --nm-text-muted: #9aabbd;
-    --nm-accent: color-mix(in srgb, var(--theme-color, #60c5f1) 45%, white 55%);
-    --nm-accent-light: color-mix(in srgb, var(--theme-color, #60c5f1) 30%, white 70%);
-    --nm-accent-text: #1a2435;
-    
-    --nm-shadow-outset: 6px 6px 12px #1b1e25, -6px -6px 12px #313845;
-    --nm-shadow-outset-hover: 8px 8px 16px #16191f, -8px -8px 16px #373f4d;
-    --nm-shadow-outset-sm: 3px 3px 6px #1b1e25, -3px -3px 6px #313845;
-    --nm-shadow-outset-sm-hover: 4px 4px 8px #16191f, -4px -4px 8px #373f4d;
-    
-    --nm-shadow-inset: inset 3px 3px 6px #1b1e25, inset -3px -3px 6px #313845;
-    --nm-shadow-inset-focus: inset 2px 2px 4px #1b1e25, inset -2px -2px 4px #313845;
-    
-    --nm-border-light: 1px solid rgba(255, 255, 255, 0.05);
-    --nm-border-dark: 1px solid rgba(0, 0, 0, 0.3);
+    --wc-bg:           #1C1714;
+    --wc-surface:      #252018;
+    --wc-surface-alt:  #2E2820;
+    --wc-shadow-dark:  #14120F;
+    --wc-shadow-light: #2E2921;
+    --wc-border:       #3A3028;
+    --wc-mid:          #5A4E44;
+    --wc-text:         #F0EAE0;
+    --wc-text-muted:   #9D8E82;
+    --wc-text-light:   #6A5E56;
+    --wc-accent:       #C8A87A;
+    --wc-accent-hover: #DEC090;
+    --wc-accent-warm:  #E0A87A;
+    --wc-accent-warm-hover: #F0B888;
+    --wc-accent-soft:  rgba(200, 168, 122, 0.12);
+    --wc-glass-bg:     rgba(28, 23, 20, 0.78);
+    --wc-glass-border: rgba(200, 168, 122, 0.14);
+
+    --nm-bg:           var(--wc-bg);
+    --nm-bg-element:   var(--wc-surface);
+    --nm-text-main:    var(--wc-text);
+    --nm-text-muted:   var(--wc-text-muted);
+    --nm-accent:       var(--wc-accent);
+    --nm-glass-bg:     var(--wc-glass-bg);
+    --nm-glass-border: var(--wc-glass-border);
+
+    --clay-shadow:
+      6px 6px 18px rgba(10, 8, 6, 0.5),
+      inset -4px -4px 12px rgba(0, 0, 0, 0.4),
+      inset 4px 4px 12px rgba(50, 40, 30, 0.3);
+    --clay-shadow-hover:
+      10px 10px 24px rgba(10, 8, 6, 0.6),
+      inset -5px -5px 14px rgba(0, 0, 0, 0.45),
+      inset 5px 5px 14px rgba(50, 40, 30, 0.35);
   }
 }
 
-/* Global Body Override */
-body.grey.lighten-4 {
-  background-color: var(--nm-bg) !important;
-  color: var(--nm-text-main);
-  transition: var(--nm-transition);
+/* ================================================================
+   Global Base — 和紙の地
+   ================================================================ */
+body, body.grey.lighten-4 {
+  background-color: var(--wc-bg) !important;
+  color: var(--wc-text);
+  transition: background-color 0.4s ease, color 0.4s ease;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Neumorphic Container / Wrapper */
 .nm-container {
-  background-color: var(--nm-bg);
+  background-color: var(--wc-bg);
   min-height: 100vh;
+  position: relative;
 }
 
-/* Cards (Convex / Outset) */
+/* 和紙のノイズテクスチャオーバーレイ — 固定サイズ SVG repeat（パフォーマンス最適化済み） */
+.nm-container::before,
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* SVG feTurbulence による和紙グレイン（静的・140×140px repeat） */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='washi'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23washi)' opacity='0.4'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+/* ================================================================
+   Cards — Washi Clay（ニューモーフィック浮き）
+   ================================================================ */
 .nm-card {
-  background: var(--nm-bg-element) !important;
-  border-radius: var(--nm-radius-md) !important;
-  border: var(--nm-border-light) !important;
+  background: var(--wc-surface) !important;
+  border-radius: var(--wc-radius-lg) !important;
+  border: 1px solid var(--wc-glass-border) !important;
   box-shadow: var(--nm-shadow-outset) !important;
   box-sizing: border-box;
-  transition: var(--nm-transition);
+  transition: var(--wc-transition);
   position: relative;
   overflow: hidden;
+}
+
+/* 上部に細い朱砂ライン（控えめなアクセント） */
+.nm-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--wc-accent-warm), transparent);
+  opacity: 0.5;
+  transition: opacity 0.3s ease, left 0.3s ease, right 0.3s ease;
 }
 
 .nm-card.hoverable:hover {
   transform: translateY(-4px);
   box-shadow: var(--nm-shadow-outset-hover) !important;
-  border: 1px solid rgba(255, 255, 255, 1) !important;
+}
+
+.nm-card.hoverable:hover::before {
+  opacity: 0.85;
+  left: 10%;
+  right: 10%;
 }
 
 /* Small Cards */
 .nm-card-sm {
-  background: var(--nm-bg-element) !important;
-  border-radius: var(--nm-radius-sm) !important;
-  border: var(--nm-border-light) !important;
+  background: var(--wc-surface) !important;
+  border-radius: var(--wc-radius-md) !important;
+  border: 1px solid var(--wc-glass-border) !important;
   box-shadow: var(--nm-shadow-outset-sm) !important;
-  transition: var(--nm-transition);
+  transition: var(--wc-transition);
 }
 
-/* Inset Panel (Concave) */
+/* Inset Panel（凹んだ質感） */
 .nm-panel-inset {
-  background: var(--nm-bg-element) !important;
-  border-radius: var(--nm-radius-md) !important;
-  border: var(--nm-border-dark) !important;
+  background: rgba(245, 240, 232, 0.45) !important;
+  border-radius: var(--wc-radius-md) !important;
+  border: 1px solid var(--wc-border) !important;
   box-shadow: var(--nm-shadow-inset) !important;
   padding: 20px;
 }
 
-/* Custom Buttons */
+:root.dark .nm-panel-inset {
+  background: rgba(28, 23, 20, 0.55) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .nm-panel-inset {
+    background: rgba(28, 23, 20, 0.55) !important;
+  }
+}
+
+/* ================================================================
+   Buttons — Claymorphism + Washi Earth
+   ================================================================ */
+
+/* ベースボタン — Claymorphism 質感 */
 .nm-btn {
-  background: var(--nm-bg-element) !important;
-  color: var(--nm-text-main) !important;
-  border: var(--nm-border-light) !important;
-  border-radius: var(--nm-radius-sm) !important;
+  background: var(--wc-surface) !important;
+  color: var(--wc-text) !important;
+  border: 1px solid var(--wc-glass-border) !important;
+  border-radius: var(--wc-radius-pill) !important;
   box-shadow: var(--nm-shadow-outset-sm) !important;
-  padding: 8px 16px;
+  padding: 9px 22px;
   font-weight: 500;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  font-size: 0.93rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: var(--nm-transition-fast);
+  transition: var(--wc-transition-fast);
   text-transform: none !important;
   height: auto !important;
   line-height: 1.5 !important;
+  letter-spacing: 0.01em;
 }
 
 .nm-btn:hover {
   box-shadow: var(--nm-shadow-outset-sm-hover) !important;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  color: var(--wc-accent) !important;
 }
 
 .nm-btn:active {
   box-shadow: var(--nm-shadow-inset) !important;
-  transform: translateY(1px);
-  border: var(--nm-border-dark) !important;
+  transform: translateY(1px) scale(0.99);
 }
 
-/* Primary Button (Accent filled with outset shadow but distinct hover) */
+/* プライマリボタン — 朱砂 Clay */
 .nm-btn-primary {
-  background: var(--nm-accent) !important;
-  color: var(--nm-accent-text) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: var(--nm-radius-sm) !important;
-  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.15), -3px -3px 6px rgba(255, 255, 255, 0.7) !important;
-  padding: 10px 20px;
-  font-weight: 500;
+  background: linear-gradient(145deg, #D4A882, #C8956C) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: var(--wc-radius-pill) !important;
+  box-shadow: var(--clay-shadow) !important;
+  padding: 10px 26px;
+  font-weight: 600;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  font-size: 0.95rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: var(--nm-transition-fast);
+  transition: var(--wc-transition-spring);
   text-transform: none !important;
   height: auto !important;
   line-height: 1.5 !important;
+  letter-spacing: 0.02em;
 }
 
 .nm-btn-primary:hover {
-  background: var(--nm-accent-light) !important;
-  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.8) !important;
-  transform: translateY(-1px);
+  background: linear-gradient(145deg, #DDB890, #D4A070) !important;
+  box-shadow: var(--clay-shadow-hover) !important;
+  transform: translateY(-2px) scale(1.01);
 }
 
 .nm-btn-primary:active {
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.3) !important;
-  transform: translateY(1px);
+  box-shadow: var(--clay-shadow-active) !important;
+  transform: translateY(1px) scale(0.99);
 }
 
-/* Flat Button */
+.nm-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* フラットボタン */
 .nm-btn-flat {
   background: transparent !important;
-  color: var(--nm-text-main) !important;
+  color: var(--wc-text-muted) !important;
   border: none !important;
   box-shadow: none !important;
   cursor: pointer;
-  transition: var(--nm-transition-fast);
+  transition: var(--wc-transition-fast);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--nm-radius-sm) !important;
+  border-radius: var(--wc-radius-pill) !important;
   padding: 8px 16px;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  font-size: 0.9rem;
 }
 
 .nm-btn-flat:hover {
-  background: rgba(163, 177, 198, 0.15) !important;
+  background: var(--wc-accent-soft) !important;
+  color: var(--wc-accent) !important;
 }
 
 .nm-btn-flat:active {
-  background: rgba(163, 177, 198, 0.25) !important;
+  background: rgba(124, 107, 82, 0.15) !important;
   box-shadow: var(--nm-shadow-inset) !important;
 }
 
-/* Circular Floating Button */
+/* 丸ボタン */
 .nm-btn-round {
   width: 40px !important;
   height: 40px !important;
-  border-radius: var(--nm-radius-round) !important;
+  border-radius: var(--wc-radius-round) !important;
   padding: 0 !important;
   box-shadow: var(--nm-shadow-outset-sm) !important;
 }
@@ -239,345 +428,427 @@ body.grey.lighten-4 {
   box-shadow: var(--nm-shadow-inset) !important;
 }
 
-/* Form Inputs (Inset) */
-.nm-input, 
-input[type=text].nm-input, 
-input[type=password].nm-input, 
+/* ================================================================
+   Inputs — Warm Inset（温かいくぼみ）
+   ================================================================ */
+.nm-input,
+input[type=text].nm-input,
+input[type=password].nm-input,
 input[type=email].nm-input,
+input[type=date].nm-input,
 textarea.nm-textarea {
-  background: var(--nm-bg-element) !important;
-  border: var(--nm-border-dark) !important;
-  border-radius: var(--nm-radius-sm) !important;
+  background: rgba(245, 240, 232, 0.6) !important;
+  border: 1px solid var(--wc-border) !important;
+  border-radius: var(--wc-radius-sm) !important;
   box-shadow: var(--nm-shadow-inset) !important;
   padding: 10px 14px !important;
   box-sizing: border-box !important;
   height: auto !important;
   margin-bottom: 12px !important;
-  color: var(--nm-text-main) !important;
-  transition: var(--nm-transition-fast) !important;
+  color: var(--wc-text) !important;
+  transition: var(--wc-transition-fast) !important;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif !important;
+  font-size: 0.95rem !important;
 }
 
-.nm-input:focus, 
-input[type=text].nm-input:focus, 
-input[type=password].nm-input:focus, 
+:root.dark .nm-input,
+:root.dark input[type=text].nm-input,
+:root.dark input[type=password].nm-input,
+:root.dark input[type=email].nm-input,
+:root.dark input[type=date].nm-input,
+:root.dark textarea.nm-textarea {
+  background: rgba(28, 23, 20, 0.6) !important;
+  border-color: var(--wc-border) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .nm-input,
+  :root:not(.light) input[type=text].nm-input,
+  :root:not(.light) input[type=password].nm-input,
+  :root:not(.light) input[type=email].nm-input,
+  :root:not(.light) input[type=date].nm-input,
+  :root:not(.light) textarea.nm-textarea {
+    background: rgba(28, 23, 20, 0.6) !important;
+    border-color: var(--wc-border) !important;
+  }
+}
+
+.nm-input:focus,
+input[type=text].nm-input:focus,
+input[type=password].nm-input:focus,
 input[type=email].nm-input:focus,
+input[type=date].nm-input:focus,
 textarea.nm-textarea:focus {
-  border-color: var(--nm-accent) !important;
-  box-shadow: var(--nm-shadow-inset-focus), 0 0 4px rgba(93, 64, 55, 0.2) !important;
+  border-color: var(--wc-accent) !important;
+  box-shadow: var(--nm-shadow-inset-focus), 0 0 0 2px rgba(124, 107, 82, 0.12) !important;
+  outline: none !important;
 }
 
-/* Select element (if any) */
+/* Select */
 .nm-select {
-  background: var(--nm-bg-element) !important;
-  border: var(--nm-border-dark) !important;
-  border-radius: var(--nm-radius-sm) !important;
+  background: rgba(245, 240, 232, 0.6) !important;
+  border: 1px solid var(--wc-border) !important;
+  border-radius: var(--wc-radius-sm) !important;
   box-shadow: var(--nm-shadow-outset-sm) !important;
   padding: 10px 14px !important;
   outline: none;
   cursor: pointer;
-  transition: var(--nm-transition-fast);
+  transition: var(--wc-transition-fast);
+  color: var(--wc-text) !important;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif !important;
 }
 
 .nm-select:focus {
-  border-color: var(--nm-accent) !important;
+  border-color: var(--wc-accent) !important;
 }
 
-/* Custom Navigation Bar */
+/* ================================================================
+   Navigation Bar — Warm Frost Glass
+   ================================================================ */
 .nm-nav {
-  background-color: var(--nm-bg) !important;
-  box-shadow: var(--nm-shadow-outset) !important;
-  border-bottom: var(--nm-border-light);
+  background: rgba(245, 240, 232, 0.82) !important;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 1px 0 var(--wc-border), 0 4px 20px rgba(44, 36, 32, 0.06) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.65);
   height: 64px;
   line-height: 64px;
-  transition: var(--nm-transition);
+  transition: var(--wc-transition);
+}
+
+:root.dark .nm-nav {
+  background: rgba(28, 23, 20, 0.88) !important;
+  border-bottom: 1px solid var(--wc-border);
+  box-shadow: 0 1px 0 var(--wc-border), 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .nm-nav {
+    background: rgba(28, 23, 20, 0.88) !important;
+    border-bottom: 1px solid var(--wc-border);
+  }
 }
 
 .nm-nav .brand-logo {
-  color: var(--nm-accent) !important;
-  font-weight: 700 !important;
+  color: var(--wc-accent) !important;
+  font-weight: 600 !important;
+  font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif !important;
 }
 
 .nm-nav ul a {
-  color: var(--nm-text-main) !important;
+  color: var(--wc-text) !important;
   font-weight: 500;
-  transition: var(--nm-transition-fast);
-  border-radius: var(--nm-radius-sm);
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  transition: var(--wc-transition-fast);
+  border-radius: var(--wc-radius-pill);
   margin: 8px 4px;
-  height: 48px;
-  line-height: 48px;
+  height: 40px;
+  line-height: 40px;
   display: inline-flex;
   align-items: center;
   padding: 0 16px !important;
 }
 
 .nm-nav ul a:hover {
-  background-color: rgba(163, 177, 198, 0.15) !important;
-  box-shadow: var(--nm-shadow-outset-sm) !important;
+  background-color: var(--wc-accent-soft) !important;
+  color: var(--wc-accent) !important;
 }
 
-/* Badges & Tags */
+/* ================================================================
+   Badges & Tags — アーストーン系
+   ================================================================ */
 .nm-badge {
-  background: var(--nm-bg-element);
-  border: var(--nm-border-light);
+  background: rgba(245, 240, 232, 0.85);
+  border: 1px solid var(--wc-border);
   box-shadow: var(--nm-shadow-outset-sm);
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  padding: 3px 12px;
+  border-radius: var(--wc-radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--wc-text);
 }
 
 .nm-badge-inset {
-  background: var(--nm-bg-element);
-  border: var(--nm-border-dark);
+  background: var(--wc-accent-soft);
+  border: 1px solid rgba(124, 107, 82, 0.25);
   box-shadow: var(--nm-shadow-inset);
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--wc-radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--wc-accent);
+  font-family: 'DM Sans', sans-serif;
 }
 
-/* Animations */
-.animate-pop-in {
-  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+/* Washi Clay タグ（旧 holo-tag の置き換え） */
+.holo-tag,
+.wc-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--wc-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(124, 107, 82, 0.1);
+  border: 1px solid rgba(124, 107, 82, 0.22);
+  color: var(--wc-accent);
+  font-family: 'DM Sans', 'JetBrains Mono', sans-serif;
+  letter-spacing: 0.02em;
 }
 
-.animate-slide-up {
-  animation: slideUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-@keyframes popIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes slideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-/* Grid Item Entrance Delay for staggered effect */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-
-/* Custom Modal/Dialog Box override */
+/* ================================================================
+   Modal / Dialog — Warm Frosted
+   ================================================================ */
 .nm-modal {
-  background: var(--nm-bg-element) !important;
-  border-radius: var(--nm-radius-lg) !important;
-  border: var(--nm-border-light) !important;
-  box-shadow: 10px 10px 30px #b8c4d6, -10px -10px 30px #ffffff !important;
+  background: rgba(245, 240, 232, 0.92) !important;
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-radius: var(--wc-radius-xl) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 20px 60px rgba(44, 36, 32, 0.15), var(--nm-shadow-outset) !important;
   max-width: 500px;
   width: 90% !important;
-  padding: 24px !important;
+  padding: 28px !important;
   overflow: visible !important;
 }
 
-/* Scrollbar override for clean neumorphic look */
+:root.dark .nm-modal {
+  background: rgba(37, 32, 24, 0.94) !important;
+  border-color: var(--wc-border) !important;
+}
+
+/* ================================================================
+   Scrollbar — 暖色・控えめ
+   ================================================================ */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--nm-bg);
-  box-shadow: inset 1px 1px 3px #d1d9e6, inset -1px -1px 3px #ffffff;
+  background: var(--wc-bg);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c2cbd9;
-  border-radius: 5px;
-  border: 2px solid var(--nm-bg);
+  background: var(--wc-mid);
+  border-radius: 4px;
+  border: 1px solid var(--wc-bg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a3b1c6;
+  background: var(--wc-accent);
 }
 
-/* Y2K & Pixelart (8-bit) Aesthetic Enhancements */
+/* ================================================================
+   Typography — 書物の美しさ
+   ================================================================ */
 
-/* Pixel / Retro Fonts
-   - font-pixel: 日本語OK ピクセル風（DotGothic16 + M PLUS Rounded 1c フォールバック）
-   - font-pixel-en: 英数字専用 8-bit アーケード風（Press Start 2P + VT323）
-*/
-.font-pixel {
-  /* DotGothic16 covers JP pixel look; M PLUS Rounded 1c handles JP readability fallback */
-  font-family: 'DotGothic16', 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif !important;
-  letter-spacing: 0.5px;
+/* メイン表示フォント（日本語） — Shippori Mincho B1 */
+.font-display-jp,
+.font-mincho {
+  font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif !important;
+  letter-spacing: 0.06em;
+  line-height: 1.75;
 }
 
-/* English-only decorative pixel font for logos, badges, ASCII labels */
-.font-pixel-en {
-  font-family: 'Press Start 2P', 'VT323', monospace !important;
-  letter-spacing: 1px;
+/* メイン表示フォント（英語） — Cormorant Garamond */
+.font-display-en,
+.font-cormorant {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
 }
 
-/* Y2K Cyber Neon Gradients */
-.y2k-grad-blue {
-  background: linear-gradient(135deg, #74b9ff, #0984e3) !important;
+/* UIフォント（英語） — DM Sans */
+.font-ui,
+.font-dm,
+.font-outfit {  /* 旧 .font-outfit との互換 */
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif !important;
 }
 
-.y2k-grad-pink {
-  background: linear-gradient(135deg, #ff7675, #e84393) !important;
+/* UIフォント（日本語） — Noto Sans JP */
+.font-sans-jp {
+  font-family: 'Noto Sans JP', 'DM Sans', sans-serif !important;
 }
 
-.y2k-grad-cyber {
-  background: linear-gradient(135deg, #34e89e, #00b894) !important;
+/* 等幅フォント — JetBrains Mono（棋譜データ・手数） */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace !important;
+  letter-spacing: 0.02em;
 }
 
-.y2k-grad-metal {
-  background: linear-gradient(135deg, #e0e0e0, #f5f5f5, #bdbdbd) !important;
+
+
+/* ================================================================
+   Washi Clay Specific — シグネチャ要素
+   ================================================================ */
+
+/* 碁盤風インセット（木目質感） */
+.wc-board-surface {
+  background:
+    repeating-linear-gradient(rgba(154, 123, 90, 0.15) 0px, transparent 1px, transparent 100%),
+    repeating-linear-gradient(90deg, rgba(154, 123, 90, 0.15) 0px, transparent 1px, transparent 100%),
+    var(--wc-board);
+  box-shadow:
+    inset 2px 2px 8px rgba(0, 0, 0, 0.12),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.35);
+  border-radius: var(--wc-radius-sm);
 }
 
-/* Cyber Neon Glows */
-.y2k-glow-blue {
-  box-shadow: 0 0 12px rgba(116, 185, 255, 0.4), var(--nm-shadow-outset-sm) !important;
+/* 碁石ホバーdot — シグネチャ要素（棋譜カード用） */
+.kifu-stone-hover {
+  position: relative;
 }
 
-.y2k-glow-pink {
-  box-shadow: 0 0 12px rgba(255, 118, 117, 0.4), var(--nm-shadow-outset-sm) !important;
+.kifu-stone-hover::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.45) 0%, transparent 60%), var(--wc-go-black);
+  box-shadow:
+    3px 4px 8px rgba(0, 0, 0, 0.4),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transform: scale(0.7) translateY(4px);
+  transition: opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1);
+  pointer-events: none;
 }
 
-.y2k-glow-green {
-  box-shadow: 0 0 12px rgba(85, 239, 196, 0.4), var(--nm-shadow-outset-sm) !important;
+.kifu-stone-hover:hover::after {
+  opacity: 1;
+  transform: scale(1) translateY(0);
 }
 
-/* Retro Pixel Borders (8-bit style) */
-.pixel-border-sm {
-  border: 2px solid var(--nm-text-main) !important;
+/* 「間（Ma）」のある水平線 — セクション区切り */
+.wc-divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--wc-border), transparent);
+  margin: 2rem auto;
+  width: 60%;
 }
 
-.pixel-border-md {
-  border: 3px solid var(--nm-text-main) !important;
+/* 朱砂アクセントライン（見出し左ボーダー） */
+.wc-accent-left {
+  border-left: 3px solid var(--wc-accent-warm);
+  padding-left: 12px;
 }
 
-/* Y2K Sticker Style Badges (Angled badges with shadows) */
-.y2k-sticker {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'DotGothic16', monospace;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: 2px solid var(--nm-text-main) !important;
-  background: #81ecec;
-  color: #1a1e24 !important;
-  transform: rotate(-2.5deg);
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-  box-shadow: 3px 3px 0 var(--nm-text-main) !important;
-  cursor: pointer;
-  user-select: none;
-  font-size: 0.85rem;
+/* ================================================================
+   Animations — 自然な動き（Wabi-sabi philosophy）
+   ================================================================ */
+
+.animate-pop-in {
+  animation: wcPopIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
 }
 
-.y2k-sticker:hover {
-  transform: rotate(1.5deg) scale(1.08);
-  box-shadow: 4px 4px 0 var(--nm-text-main) !important;
+.animate-slide-up {
+  animation: wcSlideUp 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-.y2k-sticker:active {
-  transform: translateY(2px) rotate(0deg);
-  box-shadow: 1px 1px 0 var(--nm-text-main) !important;
+.animate-fade-in {
+  animation: wcFadeIn 0.4s ease-out forwards;
 }
 
-.y2k-sticker.pink {
-  background: #ff7675;
-  color: #ffffff !important;
+.animate-float {
+  animation: wcFloat 4s ease-in-out infinite;
 }
 
-.y2k-sticker.lime {
-  background: #7bed9f;
-  color: #1a1e24 !important;
+@keyframes wcPopIn {
+  0%   { opacity: 0; transform: scale(0.9) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.y2k-sticker.yellow {
-  background: #ffd369;
-  color: #1a1e24 !important;
+@keyframes wcSlideUp {
+  0%   { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-.y2k-sticker.purple {
-  background: #a55eea;
-  color: #ffffff !important;
+@keyframes wcFadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-/* Cyber grid background layer (Optional overlay) */
-.y2k-cyber-grid {
-  background-image: 
-    linear-gradient(rgba(116, 185, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(116, 185, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
+@keyframes wcFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
 }
 
-/* Dark mode overrides for Y2K stickers to make them pop */
-:root.dark .y2k-sticker {
-  border-color: #e2e8f0 !important;
-  box-shadow: 3px 3px 0 #e2e8f0 !important;
-}
-:root.dark .y2k-sticker:hover {
-  box-shadow: 4px 4px 0 #e2e8f0 !important;
+/* スタガーアニメーション（カードグリッド用） */
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.08s; }
+.stagger-3 { animation-delay: 0.12s; }
+.stagger-4 { animation-delay: 0.16s; }
+.stagger-5 { animation-delay: 0.20s; }
+
+/* ================================================================
+   Loading Spinner — 和風ローディング（一本線ぐるぐる）
+   ================================================================ */
+.nm-spinner {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--wc-border);
+  border-top-color: var(--wc-accent);
+  border-radius: 50%;
+  animation: wcSpin 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) .y2k-sticker {
-    border-color: #e2e8f0 !important;
-    box-shadow: 3px 3px 0 #e2e8f0 !important;
+@keyframes wcSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ================================================================
+   Utility Classes
+   ================================================================ */
+.text-accent  { color: var(--wc-accent) !important; }
+.text-warm    { color: var(--wc-accent-warm) !important; }
+.text-muted   { color: var(--wc-text-muted) !important; }
+.text-go-black { color: var(--wc-go-black) !important; }
+
+.bg-surface {
+  background: var(--wc-surface) !important;
+}
+
+.bg-glass {
+  background: var(--wc-glass-bg) !important;
+  backdrop-filter: var(--wc-glass-blur);
+  -webkit-backdrop-filter: var(--wc-glass-blur);
+  border: 1px solid var(--wc-glass-border) !important;
+}
+
+/* ================================================================
+   Responsive Adjustments
+   ================================================================ */
+@media only screen and (max-width: 600px) {
+  .nm-btn, .nm-btn-primary {
+    padding: 8px 18px;
+    font-size: 0.9rem;
   }
-  :root:not(.light) .y2k-sticker:hover {
-    box-shadow: 4px 4px 0 #e2e8f0 !important;
+
+  .nm-nav {
+    height: 56px;
+    line-height: 56px;
   }
 }
 
-/* Pixel art blinking cursor anim */
-.pixel-blink {
-  animation: pixelBlink 1s steps(2, start) infinite;
+/* ================================================================
+   prefers-reduced-motion
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
-
-@keyframes pixelBlink {
-  to { visibility: hidden; }
-}
-
-/* Animated shiny chrome effect for futuristic Y2K labels */
-.y2k-chrome-text {
-  background: linear-gradient(
-    to bottom,
-    #4facfe 0%,
-    #81ecec 30%,
-    #ffffff 50%,
-    #4facfe 70%,
-    #81ecec 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.5));
-}
-

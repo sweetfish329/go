@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@sabaki/sgf": "^3.4.7",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "svelte-sonner": "^1.1.1"
   }
 }
