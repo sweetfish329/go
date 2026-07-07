@@ -99,9 +99,9 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(44, 36, 32, 0.35);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: rgba(30, 24, 30, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     justify-content: center;

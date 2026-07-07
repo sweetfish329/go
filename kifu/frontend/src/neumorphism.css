@@ -153,7 +153,7 @@
   --wc-glass-bg:     rgba(53, 46, 53, 0.85);
   --wc-glass-border: rgba(232, 153, 196, 0.15);
 
-  --wc-board:        #2c252c;   /* モーブ調のくすみウッドパステル碁盤色 */
+  --wc-board:        #504150;   /* 明るさを引き上げたパステルモーブ碁盤色 */
   --wc-go-black:     #1c171c;
   --wc-go-white:     #ece5ec;
 
@@ -615,21 +615,20 @@ textarea.nm-textarea:focus {
    Modal / Dialog — Warm Frosted
    ================================================================ */
 .nm-modal {
-  background: rgba(245, 240, 232, 0.92) !important;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-radius: var(--wc-radius-xl) !important;
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
-  box-shadow: 0 20px 60px rgba(44, 36, 32, 0.15), var(--nm-shadow-outset) !important;
+  background: var(--wc-surface) !important;
+  border-radius: 0px !important;
+  border: 1.5px solid var(--wc-text) !important;
+  box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
   max-width: 500px;
   width: 90% !important;
-  padding: 28px !important;
+  padding: 32px 28px !important;
   overflow: visible !important;
+  animation: vogueModalPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-:root.dark .nm-modal {
-  background: rgba(37, 32, 24, 0.94) !important;
-  border-color: var(--wc-border) !important;
+@keyframes vogueModalPop {
+  from { transform: scale(0.93) translateY(15px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 /* ================================================================

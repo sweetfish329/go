@@ -164,8 +164,9 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(163, 177, 198, 0.4);
-    backdrop-filter: blur(5px);
+    background: rgba(30, 24, 30, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     justify-content: center;
@@ -173,11 +174,11 @@
   }
   .qr-container {
     display: inline-block;
-    padding: 12px;
-    background: white;
-    border-radius: var(--nm-radius-md);
-    box-shadow: var(--nm-shadow-inset);
-    border: var(--nm-border-dark);
+    padding: 16px;
+    background: var(--wc-surface-alt);
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-dark) !important;
   }
   .share-url-container {
     display: flex;

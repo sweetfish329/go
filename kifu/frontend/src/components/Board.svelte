@@ -170,22 +170,24 @@
     {#each board as row, y}
       {#each row as cell, x}
         {#if cell === 1}
-          <!-- Black stone with a subtle radial gradient for volume -->
+          <!-- Black stone with a radial gradient and outline -->
           <circle
             cx={getPos(x)}
             cy={getPos(y)}
             r={step * 0.46}
             fill="url(#blackStoneGrad)"
+            stroke="var(--wc-border)"
+            stroke-width="0.5"
             filter="url(#shadow)"
           />
         {:else if cell === 2}
-          <!-- White stone with a subtle radial gradient -->
+          <!-- White stone with a radial gradient and outline -->
           <circle
             cx={getPos(x)}
             cy={getPos(y)}
             r={step * 0.46}
             fill="url(#whiteStoneGrad)"
-            stroke="#ccc"
+            stroke="var(--wc-border)"
             stroke-width="0.5"
             filter="url(#shadow)"
           />
@@ -217,18 +219,18 @@
 
     <!-- SVG Definitions (gradients, filters) -->
     <defs>
-      <!-- Black stone gradient (Matte dark forest) -->
+      <!-- Black stone gradient (Matte dark pastel) -->
       <radialGradient id="blackStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#4d5f56" />
-        <stop offset="25%" stop-color="var(--wc-go-black)" />
-        <stop offset="100%" stop-color="#121815" />
+        <stop offset="0%" stop-color="var(--wc-text-light)" />
+        <stop offset="35%" stop-color="var(--wc-go-black)" />
+        <stop offset="100%" stop-color="var(--wc-shadow-dark)" />
       </radialGradient>
 
       <!-- White stone gradient (Matte pastel white) -->
       <radialGradient id="whiteStoneGrad" cx="30%" cy="30%" r="70%">
         <stop offset="0%" stop-color="#ffffff" />
-        <stop offset="70%" stop-color="#f0f3f2" />
-        <stop offset="100%" stop-color="#dce3e0" />
+        <stop offset="75%" stop-color="var(--wc-go-white)" />
+        <stop offset="100%" stop-color="var(--wc-border)" />
       </radialGradient>
 
       <!-- Stone shadow drop (solid crisp look) -->
