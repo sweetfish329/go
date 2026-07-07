@@ -251,45 +251,65 @@
 <div class="app-shell">
   <!-- Navigation Header — Y2K Holographic Glass Nav -->
   <!-- Newspaper Masthead Header -->
-  <header class="container" style="margin-top: 1.5rem; margin-bottom: 0;">
-    <div class="em-newspaper-masthead">
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--wc-border); padding-bottom: 8px; margin-bottom: 10px;">
-        <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; color: var(--wc-text-muted); font-weight: 500; letter-spacing: 0.05em;">EST. 2026</span>
+  <!-- Newspaper/Portfolio Masthead Header -->
+  <header class="container" style="margin-top: 2rem; margin-bottom: 1.5rem; position: relative;">
+    <!-- Huge background decoration text for extreme editorial contrast -->
+    <div class="em-huge-title" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); opacity: 0.06; font-size: 7.5rem; letter-spacing: 0.1em; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif;">
+      ARCHIVES
+    </div>
+
+    <div class="em-newspaper-masthead" style="position: relative; z-index: 2; padding: 20px 0 10px 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <!-- Left decoration: collage tag -->
+        <span class="em-collage-tag-pastel" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text);">
+          EDITION II // TOKYO
+        </span>
+
+        <!-- Center Title (Giant jump-rate) -->
         <!-- svelte-ignore a11y_missing_attribute -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <a onclick={handleGoHome} class="cursor-pointer" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
-          <span style="font-family: 'Cormorant Garamond', serif; font-size: 3.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: var(--wc-text); line-height: 0.9; text-align: center;">
+        <a onclick={handleGoHome} class="cursor-pointer" style="text-decoration: none; position: relative;">
+          <!-- Overlap ornament text -->
+          <span style="position: absolute; top: -14px; left: -10px; font-family: 'Cormorant Garamond', serif; font-size: 0.8rem; font-style: italic; color: var(--wc-accent); letter-spacing: 0.15em; font-weight: 500;">
+            the collection of
+          </span>
+          <span style="font-family: 'Cormorant Garamond', serif; font-size: 3.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--wc-text); line-height: 1;">
             {siteSettings.title}
           </span>
         </a>
-        <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; color: var(--wc-text-muted); font-weight: 500; letter-spacing: 0.05em;">GO ARCHIVE</span>
+
+        <!-- Right decoration: collage tag (slanted yellow) -->
+        <span class="em-collage-tag" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace;">
+          EST. 2026
+        </span>
       </div>
 
-      <!-- Meta Bar: Date, Edition, Actions -->
-      <div class="em-newspaper-meta-bar">
-        <span>No. {String(new Date().getDate()).padStart(2, '0')} / Vol. II</span>
-        <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-        <span>Tokyo / Paris Edition</span>
-        <div style="display: flex; align-items: center; gap: 16px;">
+      <!-- Meta Bar: Slanted/Collaged actions -->
+      <div class="em-newspaper-meta-bar" style="border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 3px 3px 0px var(--wc-text); padding: 8px 16px; margin-bottom: 15px;">
+        <span style="font-weight: 600;">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <span style="opacity: 0.5; font-family: 'JetBrains Mono', monospace;">●</span>
+        <span style="font-weight: 600; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">CHRONICLE SELECTOR</span>
+        
+        <div style="display: flex; align-items: center; gap: 18px;">
           <!-- Home Link -->
           <!-- svelte-ignore a11y_missing_attribute -->
-          <a onclick={handleGoHome} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Home</a>
+          <a onclick={handleGoHome} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; font-weight: bold;">Home</a>
           
           {#if auth.isLoggedIn}
             <!-- Username chip -->
             <!-- svelte-ignore a11y_missing_attribute -->
-            <a onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">
+            <a onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; background: var(--wc-surface-alt); border: 1px solid var(--wc-text); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-text);">
               @{auth.username}
             </a>
             <!-- Logout Link -->
             <!-- svelte-ignore a11y_missing_attribute -->
-            <a onclick={handleLogout} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Logout</a>
+            <a onclick={handleLogout} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Logout</a>
           {/if}
           
           <!-- Theme Toggle -->
           <!-- svelte-ignore a11y_missing_attribute -->
-          <a onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; display: flex; align-items: center; border: none; background: none;">
+          <a onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); display: flex; align-items: center; border: 1px solid var(--wc-text); background: var(--wc-surface); padding: 4px; box-shadow: 2px 2px 0px var(--wc-text);">
             <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm);">
               {themeMode === 'light' ? 'wb_sunny' : themeMode === 'dark' ? 'brightness_2' : 'brightness_auto'}
             </i>

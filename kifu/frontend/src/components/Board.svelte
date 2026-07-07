@@ -113,9 +113,9 @@
     on:mousemove={handleMouseMove}
     on:mouseleave={handleMouseLeave}
   >
-    <!-- Board wood background -->
-    <rect width={boardSize} height={boardSize} fill="url(#boardWood)" rx="8" />
-    <rect width={boardSize} height={boardSize} fill="none" stroke="#4e342e" stroke-width="3.5" rx="8" />
+    <!-- Board background (Nordic pastel flat style) -->
+    <rect width={boardSize} height={boardSize} fill="var(--wc-board)" />
+    <rect width={boardSize} height={boardSize} fill="none" stroke="var(--wc-text)" stroke-width="3" />
 
     <!-- Grid lines -->
     <!-- Horizontal lines -->
@@ -125,8 +125,9 @@
         y1={getPos(i)}
         x2={boardSize - padding}
         y2={getPos(i)}
-        stroke="#4e342e"
-        stroke-width="1.2"
+        stroke="var(--wc-text)"
+        stroke-width="1"
+        opacity="0.85"
       />
     {/each}
     <!-- Vertical lines -->
@@ -136,8 +137,9 @@
         y1={padding}
         x2={getPos(i)}
         y2={boardSize - padding}
-        stroke="#4e342e"
-        stroke-width="1.2"
+        stroke="var(--wc-text)"
+        stroke-width="1"
+        opacity="0.85"
       />
     {/each}
 
@@ -146,8 +148,8 @@
       <circle
         cx={getPos(pt.x)}
         cy={getPos(pt.y)}
-        r="4"
-        fill="#4e342e"
+        r="3.5"
+        fill="var(--wc-text)"
       />
     {/each}
 
@@ -214,30 +216,23 @@
 
     <!-- SVG Definitions (gradients, filters) -->
     <defs>
-      <!-- Wood pattern gradient (Kaya wood / 榧の木) -->
-      <linearGradient id="boardWood" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#E8DFD0" />
-        <stop offset="50%" stop-color="#D4B896" />
-        <stop offset="100%" stop-color="#C5A882" />
-      </linearGradient>
-
-      <!-- Black stone 3D gradient (墨色) -->
+      <!-- Black stone gradient (Matte dark forest) -->
       <radialGradient id="blackStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#555555" />
-        <stop offset="15%" stop-color="#2D2926" />
-        <stop offset="100%" stop-color="#1A1816" />
+        <stop offset="0%" stop-color="#4d5f56" />
+        <stop offset="25%" stop-color="var(--wc-go-black)" />
+        <stop offset="100%" stop-color="#121815" />
       </radialGradient>
 
-      <!-- White stone 3D gradient (和紙白) -->
+      <!-- White stone gradient (Matte pastel white) -->
       <radialGradient id="whiteStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#FFFFFF" />
-        <stop offset="60%" stop-color="#F9F7F4" />
-        <stop offset="100%" stop-color="#E5DEC9" />
+        <stop offset="0%" stop-color="#ffffff" />
+        <stop offset="70%" stop-color="#f0f3f2" />
+        <stop offset="100%" stop-color="#dce3e0" />
       </radialGradient>
 
-      <!-- Stone shadow drop -->
+      <!-- Stone shadow drop (solid crisp look) -->
       <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-        <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#2C2420" flood-opacity="0.18" />
+        <feDropShadow dx="1.5" dy="2.5" stdDeviation="0.5" flood-color="var(--wc-text)" flood-opacity="0.25" />
       </filter>
     </defs>
   </svg>
@@ -248,13 +243,18 @@
     width: 100%;
     max-width: 550px;
     margin: 0 auto;
-    border-radius: var(--wc-radius-lg);
+    border-radius: 0px !important;
     background-color: var(--wc-surface);
-    border: 1px solid var(--wc-border);
-    box-shadow: var(--nm-shadow-outset) !important;
+    border: 2px solid var(--wc-text) !important;
+    box-shadow: 6px 6px 0px var(--wc-text) !important; /* ソリッドなポップ影 */
     padding: 12px;
     box-sizing: border-box;
-    transition: var(--wc-transition);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .board-container:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 7px 7px 0px var(--wc-text) !important;
   }
 
   .go-board {

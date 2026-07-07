@@ -200,75 +200,77 @@
 </script>
 
 <div class="row" style="margin-top: 1.5rem;">
-  <!-- Left Side: Editorial & Controls (Newspaper Column 1) -->
-  <div class="col s12 l4" style="border-right: 1px solid var(--wc-border); padding-right: 24px; margin-bottom: 2rem;">
-    <!-- Section Title (News Style) -->
-    <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 8px; margin-bottom: 20px;">
-      <h2 style="font-family: 'Shippori Mincho B1', serif; font-size: 1.3rem; font-weight: 700; margin: 0; color: var(--wc-text); letter-spacing: 0.05em; line-height: 1.2;">
-        {#if publicMode}
-          THE ARCHIVE
-        {:else}
-          THE CHRONICLE
-        {/if}
-      </h2>
-      <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text-muted); text-transform: uppercase; display: block; margin-top: 2px;">Section I — Library Overview</span>
-    </div>
-
-    <!-- Editorial Note (社説) -->
-    <div style="font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif; font-size: 0.85rem; line-height: 1.85; color: var(--wc-text); margin-bottom: 24px; text-align: justify; text-justify: inter-word; opacity: 0.9;">
-      <span style="float: left; font-size: 2.2rem; font-family: 'Cormorant Garamond', serif; line-height: 0.85; margin-top: 4px; margin-right: 6px; font-weight: 700; color: var(--wc-accent-warm);">G</span>o is not merely a game of patterns, but a silent conversation recorded in stones. Here lies a personal library, structured through vintage print aesthetics to preserve each tactical path with clarity and editorial elegance.
-    </div>
-
-    <!-- Actions (Newspaper Buttons) -->
-    {#if !publicMode}
-      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; border-bottom: 1px dashed var(--wc-border); padding-bottom: 24px;">
-        <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="width: 100%; border-radius: 0px !important;">
-          <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
-        </button>
-        <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1px solid var(--wc-text) !important;">
-          <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-          {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
-        </button>
-      </div>
-    {/if}
-
-    <!-- Filtering Panel (Embedded directly in Column 1) -->
-    {#if kifus.length > 0}
-      <div style="border-bottom: 1px dashed var(--wc-border); padding-bottom: 24px; margin-bottom: 24px;">
-        <h3 style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0; color: var(--wc-accent);">Filter Records</h3>
-        
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-          <div class="input-field" style="margin: 0; position: relative;">
-            <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important;" />
-            <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted); font-size: 0.8rem;">キーワード</label>
-          </div>
-          <div class="input-field" style="margin: 0; position: relative;">
-            <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important;" />
-            <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted); font-size: 0.8rem;">開始日</label>
-          </div>
-          <div class="input-field" style="margin: 0; position: relative;">
-            <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important;" />
-            <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted); font-size: 0.8rem;">終了日</label>
-          </div>
-          {#if searchQuery || startDate || endDate}
-            <!-- svelte-ignore a11y_missing_attribute -->
-            <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 0 4px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'DM Sans', sans-serif;">
-              <i class="material-icons" style="font-size: 0.95rem;">clear_all</i>条件クリア
-            </a>
+  <!-- Left Side: Editorial & Controls (Portfolio Column 1) -->
+  <div class="col s12 l4" style="margin-bottom: 2rem; position: relative;">
+    <div class="em-portfolio-section" style="background: var(--wc-surface-alt); border-color: var(--wc-text) !important;">
+      <!-- Section Title (News Style) -->
+      <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 8px; margin-bottom: 20px;">
+        <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; margin: 0; color: var(--wc-text); letter-spacing: 0.08em; line-height: 1.1; text-transform: uppercase;">
+          {#if publicMode}
+            the archive.
+          {:else}
+            the chronicle.
           {/if}
-        </div>
+        </h2>
+        <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.62rem; color: var(--wc-text-muted); text-transform: uppercase; display: block; margin-top: 4px; letter-spacing: 0.05em;">Section I — Library Overview</span>
       </div>
-    {/if}
 
-    <!-- Vertical Japanese Column (アヴァンギャルド縦書き) -->
-    <div style="display: flex; justify-content: flex-end; padding-top: 10px; height: 200px;">
-      <div class="em-newspaper-vertical-col" style="opacity: 0.65; height: 180px;">
-        一打一打に宿る思考を印刷インクの温もりとともに残す。静かなる黒と白の調和。
+      <!-- Editorial Note (社説 - 巨大なドロップキャップ) -->
+      <div style="font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif; font-size: 0.82rem; line-height: 1.9; color: var(--wc-text); margin-bottom: 24px; text-align: justify; text-justify: inter-word; opacity: 0.95;">
+        <span style="float: left; font-size: 3.2rem; font-family: 'Cormorant Garamond', serif; line-height: 0.8; margin-top: 4px; margin-right: 8px; font-weight: 700; color: var(--wc-accent); text-transform: uppercase;">G</span>o is not merely a game of patterns, but a silent conversation recorded in stones. Here lies a personal library, structured through vintage print aesthetics to preserve each tactical path with clarity and editorial elegance.
+      </div>
+
+      <!-- Actions (Newspaper Buttons) -->
+      {#if !publicMode}
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px;">
+          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important;">
+            <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
+          </button>
+          <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+            <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
+            {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
+          </button>
+        </div>
+      {/if}
+
+      <!-- Filtering Panel (Embedded directly in Column 1) -->
+      {#if kifus.length > 0}
+        <div style="border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px; margin-bottom: 24px;">
+          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0; color: var(--wc-text); border-bottom: 1px solid var(--wc-text); padding-bottom: 4px; display: inline-block;">Filter Records</h3>
+          
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="input-field" style="margin: 0; position: relative;">
+              <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+              <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">キーワード</label>
+            </div>
+            <div class="input-field" style="margin: 0; position: relative;">
+              <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+              <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">開始日</label>
+            </div>
+            <div class="input-field" style="margin: 0; position: relative;">
+              <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+              <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">終了日</label>
+            </div>
+            {#if searchQuery || startDate || endDate}
+              <!-- svelte-ignore a11y_missing_attribute -->
+              <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-text); color: var(--wc-text); text-decoration: none;">
+                <i class="material-icons" style="font-size: 0.85rem;">clear_all</i>条件クリア
+              </a>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Vertical Japanese Column (アヴァンギャルド縦書き) -->
+      <div style="display: flex; justify-content: flex-end; padding-top: 10px; height: 160px;">
+        <div class="em-newspaper-vertical-col" style="opacity: 0.8; height: 140px; border-left-color: var(--wc-text);">
+          一打一打に宿る思考を印刷インクの温もりとともに残す。静かなる黒と白の調和。
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Right Side: Archive Column (Newspaper Column 2) -->
+  <!-- Right Side: Archive Column (Portfolio Column 2) -->
   <div class="col s12 l8" style="padding-left: 20px;">
     <!-- Upload Form Area (if open) -->
     {#if showUploadForm}
@@ -361,28 +363,30 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="col s12 m6" style="margin-bottom: 2rem;">
             <div
-              class="em-newspaper-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
-              style="width: 100%; display: block; text-align: left; position: relative;"
+              class="em-portfolio-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
+              style="width: 100%; display: block; text-align: left; position: relative; border-color: var(--wc-text) !important;"
               onclick={() => dispatch('selectKifu', k.id)}
             >
-              <!-- Absolute Large Index Number (No. 01) -->
-              <span class="em-index-num" style="position: absolute; top: 18px; right: 18px; opacity: 0.15; user-select: none;">{String(i + 1).padStart(2, '0')}</span>
+              <!-- Absolute Large Index Number (Overlapping border) -->
+              <span class="em-index-num" style="position: absolute; top: -20px; right: 16px; opacity: 0.35; user-select: none; font-weight: 700; color: var(--wc-text); font-size: 2.2rem; text-shadow: 2px 2px 0px var(--wc-bg); z-index: 10;">
+                {String(i + 1).padStart(2, '0')}
+              </span>
 
               <div class="card-content" style="padding: 24px 22px; position: relative;">
-                <!-- Overlap Result Badge -->
+                <!-- Overlap Result Badge (Collage tag style overlapping top border) -->
                 {#if k.result}
-                  <div class="em-overlap-badge">
+                  <div class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 11; font-size: 0.65rem;">
                     {k.result}
                   </div>
                 {/if}
 
                 <!-- Subheadline (Newspaper tag) -->
-                <div class="em-newspaper-subheadline">
+                <div class="em-newspaper-subheadline" style="margin-top: 6px;">
                   Go Match Record / No. {String(i + 1).padStart(2, '0')}
                 </div>
 
                 <!-- Headline (Title) -->
-                <h3 class="em-newspaper-headline" title={k.title}>
+                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Shippori Mincho B1', serif; font-weight: 700;">
                   {k.title}
                 </h3>
 

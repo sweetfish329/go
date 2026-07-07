@@ -17,38 +17,38 @@
 
 :root {
   /* ================================================================
-     Washi Earth Color Palette — 和紙の縁側
+     Nordic Modern Pastel Color Palette — 北欧モダン・ポートフォリオ
      ================================================================ */
 
   /* --- Backgrounds --- */
-  --wc-bg:           #F5F0E8;   /* 和紙オフホワイト — ページ背景 */
-  --wc-surface:      #EDE5D8;   /* リネン — カード・ニューモーフィックの地 */
-  --wc-surface-alt:  #E8DFD0;   /* やや深いリネン — 入れ子カードなど */
+  --wc-bg:           #f2f5f4;   /* ペールミントセージ — ページ背景 */
+  --wc-surface:      #ffffff;   /* クリーンホワイト — カード・ベースの地 */
+  --wc-surface-alt:  #fcf7f5;   /* パウダーシェルピンク — 入れ子カードやポイント背景 */
 
-  /* --- Neumorphic Shadow Recipe --- */
-  --wc-shadow-dark:  #CFC4B2;   /* 右下 暗い影（暖かいタウプ） */
-  --wc-shadow-light: #FFFFFF;   /* 左上 明るいハイライト */
+  /* --- Neumorphic Shadow Recipe (Soft Pastels) --- */
+  --wc-shadow-dark:  #e0e7e4;   /* ソフトセージグレーの影 */
+  --wc-shadow-light: #ffffff;   /* 白いハイライト */
 
   /* --- Tones & Mid --- */
-  --wc-border:       #D8CDBF;   /* ボーダー・ディバイダー */
-  --wc-mid:          #B8A899;   /* ナチュラルウッド — 中間トーン */
+  --wc-border:       #e2e9e6;   /* ソフトグレーセージ境界線 */
+  --wc-mid:          #adc2b8;   /* 中間ミントグレー */
 
   /* --- Text --- */
-  --wc-text:         #2C2420;   /* 炭黒 — メインテキスト */
-  --wc-text-muted:   #9D8E82;   /* 灰茶 — サブテキスト・補助情報 */
-  --wc-text-light:   #C5B8AE;   /* 薄茶 — プレースホルダー等 */
+  --wc-text:         #1d2924;   /* ダークフォレストグリーン — メインテキスト */
+  --wc-text-muted:   #758a80;   /* ミディアムセージグレー — サブテキスト */
+  --wc-text-light:   #b5c4bd;   /* ライトセージグレー */
 
-  /* --- Accent Colors --- */
-  --wc-accent:       #7C6B52;   /* 煤竹（すすたけ） — プライマリアクセント */
-  --wc-accent-hover: #65573F;   /* 煤竹・深 — ホバー時 */
-  --wc-accent-warm:  #C8956C;   /* 朱砂（しゅしゃ） — CTA・強調 */
-  --wc-accent-warm-hover: #B07E57; /* 朱砂・深 — ホバー時 */
-  --wc-accent-soft:  rgba(124, 107, 82, 0.1);  /* 煤竹・淡 — 薄い背景 */
+  /* --- Accent Colors (Pastel Accent) --- */
+  --wc-accent:       #d89bb9;   /* ダスティローズラベンダー — プライマリアクセント */
+  --wc-accent-hover: #c484a5;   /* ダスティローズ・深 — ホバー時 */
+  --wc-accent-warm:  #e2b448;   /* パステルミモザゴールド — CTA・強調 */
+  --wc-accent-warm-hover: #cda136; /* ミモザゴールド・深 — ホバー時 */
+  --wc-accent-soft:  rgba(216, 155, 185, 0.08); /* ローズラベンダー・極淡 */
 
-  /* --- Go Stone Colors --- */
-  --wc-go-black:     #2D2926;   /* 碁石・黒（墨色） */
-  --wc-go-white:     #F9F7F4;   /* 碁石・白（和紙白） */
-  --wc-board:        #D4B896;   /* 碁盤色（榧の木） */
+  /* --- Go Stone & Board Colors --- */
+  --wc-go-black:     #232f2a;   /* 碁石・黒（深緑墨色） */
+  --wc-go-white:     #ffffff;   /* 碁石・白（純白） */
+  --wc-board:        #e6edea;   /* 碁盤色（モダンペールセージグリーン） */
 
   /* ================================================================
      Neumorphism 2.0 Shadows — 暖色土系 / 統一光源: 左上
@@ -1085,4 +1085,94 @@ textarea.nm-textarea:focus {
   margin: 25px 0;
 }
 
+/* ================================================================
+   Nordic Portfolio Overlap Styles — デザイナーポートフォリオ風オーバーラップ・高コントラスト
+   ================================================================ */
 
+/* デザイナーポートフォリオ風 巨大タイトル（極端なジャンプ率） */
+.em-huge-title {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  color: var(--wc-text);
+  opacity: 0.15;
+  user-select: none;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+/* 枠線をまたいで大胆に重なるオーバーラップタイトル */
+.em-overlap-title-wrap {
+  position: relative;
+  margin-top: -2.5rem;
+  margin-left: -1rem;
+  margin-bottom: 2rem;
+  z-index: 10;
+}
+
+/* ポートフォリオ用のコラージュ付箋・タグ（わずかに回転させて躍動感を持たせる） */
+.em-collage-tag {
+  display: inline-block;
+  background-color: var(--wc-accent-warm);
+  color: var(--wc-surface) !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  letter-spacing: 0.12em;
+  transform: rotate(-1.5deg);
+  box-shadow: 2px 2px 8px rgba(29, 41, 36, 0.08);
+  border: 1px solid var(--wc-text);
+}
+
+.em-collage-tag-pastel {
+  display: inline-block;
+  background-color: var(--wc-surface-alt);
+  color: var(--wc-text) !important;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--wc-text);
+  transform: rotate(1deg);
+  box-shadow: 3px 3px 0px var(--wc-text);
+}
+
+/* 枠線を極限までミニマルにし、巨大な余白と太線で分けるアシンメトリーコンテナ */
+.em-portfolio-section {
+  background: var(--wc-surface);
+  border: 2px solid var(--wc-text) !important;
+  box-shadow: 6px 6px 0px var(--wc-text) !important; /* ポップモダンなベタ塗りの影 */
+  border-radius: 0px !important;
+  padding: 32px !important;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+/* ポートフォリオカード：境界線を黒にし、ベタ塗りのソリッド影を適用したモダンデザイン */
+.em-portfolio-card {
+  background: var(--wc-surface) !important;
+  border: 1.5px solid var(--wc-text) !important;
+  box-shadow: 4px 4px 0px var(--wc-text) !important; /* ソリッドシャドウ */
+  border-radius: 0px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: visible !important;
+}
+
+.em-portfolio-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0px var(--wc-text) !important;
+}
+
+@media only screen and (max-width: 600px) {
+  .em-huge-title {
+    font-size: 3.5rem;
+  }
+  .em-portfolio-section {
+    padding: 20px !important;
+  }
+}

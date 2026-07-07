@@ -809,62 +809,62 @@
     <div class="col s12 l6 text-left" style="text-align: left;">
       <!-- Game Info Card (Collapsible) -->
       {#if kifu}
-      <div class="em-magazine-card game-info-card hoverable" style="margin-top: 0; margin-bottom: 1.5rem;">
-        <!-- Card Header Toggle (Click to Toggle) -->
+      <div class="em-portfolio-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-color: var(--wc-text) !important; padding: 24px 20px 20px 20px !important;">
+        <!-- Card Header Toggle (Click to Toggle) - Slanted Collage Tag overlapping top border -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="card-header-toggle cursor-pointer" onclick={() => isGameInfoExpanded = !isGameInfoExpanded} style="padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
-          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <span style="font-weight: 600; font-size: 1rem; display: inline-flex; align-items: center; gap: 6px; color: var(--wc-accent); font-family: 'Shippori Mincho B1', serif;">
-              <i class="material-icons" style="font-size: 1.2rem;">info_outline</i>
-              対局情報 — Record Specifications
-            </span>
-          </div>
-          <button class="nm-btn-flat nm-btn-round" style="width: 32px; height: 32px; min-width: 32px; padding: 0;">
-            <i class="material-icons" style="font-size: 1.3rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-accent);">keyboard_arrow_down</i>
+        <div class="card-header-toggle cursor-pointer" onclick={() => isGameInfoExpanded = !isGameInfoExpanded} style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+          <span class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 10; font-size: 0.72rem;">
+            Info — Record Specs
+          </span>
+          <span style="font-weight: 700; font-size: 0.95rem; color: var(--wc-text); font-family: 'Shippori Mincho B1', serif; padding-top: 6px;">
+            ● {kifu.black_player || 'Unknown'} vs ○ {kifu.white_player || 'Unknown'}
+          </span>
+          <button class="nm-btn-flat" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+            <i class="material-icons" style="font-size: 1.1rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-text);">keyboard_arrow_down</i>
           </button>
         </div>
 
         <!-- Expanded details -->
         {#if isGameInfoExpanded}
-          <div class="card-content" style="padding: 0 20px 20px 20px; border-top: 1px dashed var(--wc-border); transition: all 0.3s ease;">
-            <table class="em-table" style="margin-top: 12px;">
+          <div class="card-content" style="padding: 16px 0 0 0; border-top: 1.5px solid var(--wc-text); margin-top: 14px; transition: all 0.3s ease;">
+            <table class="em-table">
               <tbody>
                 <tr>
-                  <th>● 黒番 (PB)</th>
-                  <td>
-                    <span style="font-weight: 600; color: var(--wc-text);">{kifu.black_player || '不明'}</span>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">● 黒番 (PB)</th>
+                  <td style="border-bottom-color: var(--wc-text);">
+                    <span style="font-weight: 700; color: var(--wc-text);">{kifu.black_player || '不明'}</span>
                     {#if kifu.black_rank}
-                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px;">{kifu.black_rank}</span>
+                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt);">{kifu.black_rank}</span>
                     {/if}
                     <div style="font-size: 0.8rem; color: var(--wc-text-muted); margin-top: 2px;">
-                      アゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">{captives.W}</strong> 子
+                      アゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--wc-text);">{captives.W}</strong> 子
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <th>○ 白番 (PW)</th>
-                  <td>
-                    <span style="font-weight: 600; color: var(--wc-text);">{kifu.white_player || '不明'}</span>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">○ 白番 (PW)</th>
+                  <td style="border-bottom-color: var(--wc-text);">
+                    <span style="font-weight: 700; color: var(--wc-text);">{kifu.white_player || '不明'}</span>
                     {#if kifu.white_rank}
-                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px;">{kifu.white_rank}</span>
+                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt);">{kifu.white_rank}</span>
                     {/if}
                     <div style="font-size: 0.8rem; color: var(--wc-text-muted); margin-top: 2px;">
-                      アゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">{captives.B}</strong> 子
+                      アゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--wc-text);">{captives.B}</strong> 子
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <th>コミ / 置き石</th>
-                  <td style="font-family: 'JetBrains Mono', monospace;">コミ: {kifu.komi}目 / {kifu.handicap}子</td>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">コミ / 置き石</th>
+                  <td style="font-family: 'JetBrains Mono', monospace; border-bottom-color: var(--wc-text);">コミ: {kifu.komi}目 / {kifu.handicap}子</td>
                 </tr>
                 <tr>
-                  <th>対局結果</th>
-                  <td style="font-weight: 600; color: var(--wc-accent-warm);">{kifu.result || '対局中'}</td>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">対局結果</th>
+                  <td style="font-weight: 700; color: var(--wc-accent); border-bottom-color: var(--wc-text);">{kifu.result || '対局中'}</td>
                 </tr>
                 <tr>
-                  <th>対局日</th>
-                  <td>{kifu.game_date || '未登録'}</td>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">対局日</th>
+                  <td style="border-bottom-color: var(--wc-text);">{kifu.game_date || '未登録'}</td>
                 </tr>
               </tbody>
             </table>
@@ -901,36 +901,37 @@
       {/if}
 
       <!-- Comments / Review Card -->
-      <div class="em-magazine-card" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-        <div class="card-content" style="padding: 24px; flex-grow: 1;">
-          <span class="card-title" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--wc-accent); font-family: 'Shippori Mincho B1', serif; letter-spacing: 0.02em;">
-            検討・指導コメント — Editorial Reviews (第 {currentIndex} 手)
+      <div class="em-portfolio-section" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 2rem; border-color: var(--wc-text) !important; padding: 24px 20px 20px 20px !important;">
+        <div class="card-content" style="padding: 16px 0 0 0; flex-grow: 1; position: relative;">
+          <!-- Overlapping Title with Collage style -->
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -38px; left: -4px; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text);">
+            Reviews (第 {currentIndex} 手)
           </span>
 
           {#if comments.length === 0}
-            <div class="center-align" style="padding: 3rem 0; opacity: 0.5;">
-              <i class="material-icons" style="font-size: 2.8rem; color: var(--wc-text-muted);">chat_bubble_outline</i>
+            <div class="center-align" style="padding: 2.5rem 0; opacity: 0.5;">
+              <i class="material-icons" style="font-size: 2.6rem; color: var(--wc-text-muted);">chat_bubble_outline</i>
               <p style="margin: 8px 0 0 0; font-size: 0.88rem; color: var(--wc-text-muted); font-family: 'DM Sans', sans-serif;">この手に対するコメントはありません</p>
             </div>
           {:else}
             <div class="comments-list" style="max-height: 250px; overflow-y: auto; padding-right: 4px;">
               {#each comments as comment}
-                <div class="comment-item" style="border-bottom: 1px dashed var(--wc-border); padding: 14px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="comment-item" style="border-bottom: 1.5px dashed var(--wc-border); padding: 14px 0; display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="flex-grow: 1; text-align: left;">
-                    <span class="wc-tag" style="font-weight: 600; margin-bottom: 8px; padding: 2px 10px; font-size: 0.72rem; letter-spacing: 0.05em;">
+                    <span class="wc-tag" style="font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">
                       {comment.author}
                     </span>
-                    <p style="margin: 0; padding-left: 2px; font-size: 0.93rem; white-space: pre-wrap; color: var(--wc-text); line-height: 1.6; font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">{comment.text}</p>
+                    <p style="margin: 0; padding-left: 2px; font-size: 0.92rem; white-space: pre-wrap; color: var(--wc-text); line-height: 1.6; font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">{comment.text}</p>
                   </div>
                   {#if comment.reviewId && (isOwner || auth.username === comment.reviewerName)}
                     <div style="display: flex; gap: 6px; margin-left: 12px;">
                       <!-- svelte-ignore a11y_missing_attribute -->
-                      <button class="nm-btn-flat nm-btn-round" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0;">
-                        <i class="material-icons" style="font-size: 1.1rem; color: var(--wc-accent);">edit</i>
+                      <button class="nm-btn-flat" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+                        <i class="material-icons" style="font-size: 1rem; color: var(--wc-text);">edit</i>
                       </button>
                       <!-- svelte-ignore a11y_missing_attribute -->
-                      <button class="nm-btn-flat nm-btn-round" onclick={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0;">
-                        <i class="material-icons" style="font-size: 1.1rem; color: #e53935;">delete</i>
+                      <button class="nm-btn-flat" onclick={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+                        <i class="material-icons" style="font-size: 1rem; color: #e53935;">delete</i>
                       </button>
                     </div>
                   {/if}
@@ -941,43 +942,43 @@
         </div>
 
         <!-- Mode Toggle & Edit Panel Footer -->
-        <div class="card-action" style="border-top: 1px solid var(--wc-border); padding: 16px 24px; background: rgba(245, 240, 232, 0.35);">
+        <div class="card-action" style="border-top: 1.5px solid var(--wc-text); padding: 16px 0 0 0; margin-top: 16px; background: transparent;">
           <div class="switch" style="margin-bottom: 12px;">
             <label style="font-weight: 500; display: inline-flex; align-items: center; gap: 8px; color: var(--wc-text); font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
-              <span style="color: var(--wc-text-muted); font-size: 0.9rem;">通常再生</span>
+              <span style="color: var(--wc-text-muted); font-size: 0.88rem;">通常再生</span>
               <input type="checkbox" bind:checked={reviewMode}>
-              <span class="lever brown lighten-3"></span>
-              <span style="color: var(--wc-text); font-weight: 600; font-size: 0.9rem;">添削モード (盤面入力可)</span>
+              <span class="lever" style="background-color: var(--wc-border); border: 1px solid var(--wc-text);"></span>
+              <span style="color: var(--wc-text); font-weight: 700; font-size: 0.88rem;">添削モード (盤面入力)</span>
             </label>
           </div>
 
           {#if reviewMode}
-            <div class="review-edit-panel animate-fade-in" style="margin-top: 12px; border-top: 1px dashed var(--wc-border); padding-top: 16px;">
-              <p style="font-size: 0.82rem; margin: 0 0 16px 0; color: var(--wc-text-muted); display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', 'Noto Sans JP', sans-serif; line-height: 1.4;">
-                <i class="material-icons" style="font-size: 1rem; color: var(--wc-accent-warm);">info_outline</i>
+            <div class="review-edit-panel animate-fade-in" style="margin-top: 12px; border-top: 1.5px dashed var(--wc-text); padding-top: 16px;">
+              <p style="font-size: 0.78rem; margin: 0 0 16px 0; color: var(--wc-text-muted); display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', 'Noto Sans JP', sans-serif; line-height: 1.45;">
+                <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm);">info_outline</i>
                 盤面をクリックして石を置くと変化図を作成できます。解説コメントを入力してください。
               </p>
               
               <div class="row" style="margin-bottom: 0; display: flex; flex-direction: column; gap: 12px;">
                 <div class="input-field col s12" style="margin-top: 0; margin-bottom: 0;">
-                  <input id="reviewer_name" type="text" class="nm-input" bind:value={reviewerName} placeholder="添削者名を入力" style="margin-bottom: 0;" />
-                  <label for="reviewer_name" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">添削者 (Reviewer)</label>
+                  <input id="reviewer_name" type="text" class="nm-input" bind:value={reviewerName} placeholder="添削者名を入力" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                  <label for="reviewer_name" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">添削者 (Reviewer)</label>
                 </div>
                 <div class="input-field col s12" style="margin-top: 4px; margin-bottom: 0;">
-                  <input id="review_comment" type="text" class="nm-input" bind:value={reviewComment} placeholder="指導・変化図の解説を入力" style="margin-bottom: 0;" />
-                  <label for="review_comment" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">コメント (Comment)</label>
+                  <input id="review_comment" type="text" class="nm-input" bind:value={reviewComment} placeholder="指導・変化図の解説を入力" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                  <label for="review_comment" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">コメント (Comment)</label>
                 </div>
                 <div class="col s12 right-align" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                   {#if editingReviewId}
-                    <button class="nm-btn-flat" onclick={handleCancelEdit} disabled={isAddingReview}>
+                    <button class="nm-btn-flat" style="border-radius: 0 !important;" onclick={handleCancelEdit} disabled={isAddingReview}>
                       キャンセル
                     </button>
-                    <button class="nm-btn-primary" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
-                      <i class="material-icons" style="font-size: 1.2rem;">save</i>添削を更新
+                    <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text) !important;" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
+                      <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 4px;">save</i>添削を更新
                     </button>
                   {:else}
-                    <button class="nm-btn-primary" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
-                      <i class="material-icons" style="font-size: 1.2rem;">save</i>添削を保存
+                    <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text) !important;" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
+                      <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 4px;">save</i>添削を保存
                     </button>
                   {/if}
                 </div>
