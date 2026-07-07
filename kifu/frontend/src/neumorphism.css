@@ -135,27 +135,27 @@
   /* ================================================================
      Nordic Dark Neon Pastel Palette — ダークセージ＆ネオンパステル
      ================================================================ */
-  --wc-bg:           #1e2a26;   /* 深すぎないフォレストセージグリーン */
-  --wc-surface:      #273732;   /* 中間ダークセージ */
-  --wc-surface-alt:  #2f423c;   /* ライトダークセージ */
-  --wc-shadow-dark:  #0f1714;
-  --wc-shadow-light: #324740;
-  --wc-border:       #819991;   /* 中間セージの境界線 */
-  --wc-mid:          #506b62;
-  --wc-text:         #cbdad5;   /* ペールセージホワイト — 中間的なテキスト */
-  --wc-text-muted:   #8ca29a;
-  --wc-text-light:   #5b726a;
+  --wc-bg:           #352e35;   /* 深く静かなスモーキーパステルモーブ — ページ背景 */
+  --wc-surface:      #403840;   /* くすみパステルラベンダー面 */
+  --wc-surface-alt:  #4c434c;   /* ライトモーブ面 */
+  --wc-shadow-dark:  #1d191d;
+  --wc-shadow-light: #4e444e;
+  --wc-border:       #968996;   /* くすみモーブグレーの境界線 */
+  --wc-mid:          #706270;
+  --wc-text:         #ece5ec;   /* ペールモーブホワイト — テキスト */
+  --wc-text-muted:   #a395a3;
+  --wc-text-light:   #756775;
   --wc-accent:       #e899c4;   /* 落ち着いたパステルモーヴピンク */
   --wc-accent-hover: #f1b5d6;
   --wc-accent-warm:  #f3ce73;   /* 落ち着いたパステルミモザ */
   --wc-accent-warm-hover: #ffd985;
   --wc-accent-soft:  rgba(232, 153, 196, 0.12);
-  --wc-glass-bg:     rgba(30, 42, 38, 0.85);
+  --wc-glass-bg:     rgba(53, 46, 53, 0.85);
   --wc-glass-border: rgba(232, 153, 196, 0.15);
 
-  --wc-board:        #1c2824;   /* 中間ダークセージ碁盤色 */
-  --wc-go-black:     #0c1412;
-  --wc-go-white:     #cbdad5;
+  --wc-board:        #2c252c;   /* モーブ調のくすみウッドパステル碁盤色 */
+  --wc-go-black:     #1c171c;
+  --wc-go-white:     #ece5ec;
 
   --nm-bg:           var(--wc-bg);
   --nm-bg-element:   var(--wc-surface);
