@@ -21,34 +21,34 @@
      ================================================================ */
 
   /* --- Backgrounds --- */
-  --wc-bg:           #eaeceb;   /* アート紙セージグレー — ページ背景 */
-  --wc-surface:      #ffffff;   /* クリーンアートホワイト — カード・ベースの地 */
-  --wc-surface-alt:  #fcf7f5;   /* パウダーシェルピンク — 入れ子カードやポイント背景 */
+  --wc-bg:           #dcdfdc;   /* 落ち着いた中間セージグレー — ページ背景 */
+  --wc-surface:      #f4f6f5;   /* 柔らかいペールミントホワイト — カードの地 */
+  --wc-surface-alt:  #eaeceb;   /* 中間セージグレーの別面 */
 
   /* --- Neumorphic Shadow Recipe (Soft Pastels) --- */
-  --wc-shadow-dark:  #0d1715;   /* ソリッド影用のインクブラック */
+  --wc-shadow-dark:  #253530;   /* ソリッド影用の中間ダークセージ */
   --wc-shadow-light: #ffffff;   /* 白いハイライト */
 
   /* --- Tones & Mid --- */
-  --wc-border:       #0d1715;   /* 強烈な境界線を定義するインクブラック */
+  --wc-border:       #253530;   /* 境界線を定義する中間ダークセージ */
   --wc-mid:          #7c948a;   /* 中間ミントグレー */
 
   /* --- Text --- */
-  --wc-text:         #0d1715;   /* インクブラック — メインテキスト */
-  --wc-text-muted:   #687e79;   /* ミディアムセージグレー — サブテキスト */
-  --wc-text-light:   #a5bcb5;   /* ライトセージグレー */
+  --wc-text:         #253530;   /* 中間ダークセージ — メインテキスト */
+  --wc-text-muted:   #5b726a;   /* ミディアムセージグレー — サブテキスト */
+  --wc-text-light:   #8fa79f;   /* ライトセージグレー */
 
   /* --- Accent Colors (Pastel Accent) --- */
-  --wc-accent:       #f883b4;   /* ネオンパウダーホットピンク — プライマリアクセント */
-  --wc-accent-hover: #e56b9c;   /* ホットピンク・深 — ホバー時 */
-  --wc-accent-warm:  #ffd454;   /* ネオンゴールドイエロー — CTA・強調 */
-  --wc-accent-warm-hover: #eabf3e; /* ゴールド・深 — ホバー時 */
-  --wc-accent-soft:  rgba(248, 131, 180, 0.1); /* ホットピンク・極淡 */
+  --wc-accent:       #e57ba9;   /* 落ち着いたホットピンク — プライマリアクセント */
+  --wc-accent-hover: #cf6694;   /* ホットピンク・深 — ホバー時 */
+  --wc-accent-warm:  #eabf3e;   /* 落ち着いたゴールドイエロー — CTA・強調 */
+  --wc-accent-warm-hover: #d2aa2c; /* ゴールド・深 — ホバー時 */
+  --wc-accent-soft:  rgba(229, 123, 169, 0.1); /* ホットピンク・極淡 */
 
   /* --- Go Stone & Board Colors --- */
-  --wc-go-black:     #080f0d;   /* 碁石・黒（墨黒） */
-  --wc-go-white:     #f3f6f5;   /* 碁石・白（ペールミント） */
-  --wc-board:        #14211d;   /* 碁盤色（深遠なダークセージグリーン） */
+  --wc-go-black:     #1a2622;   /* 碁石・黒（ダークセージ） */
+  --wc-go-white:     #ffffff;   /* 碁石・白（純白） */
+  --wc-board:        #b8c6c0;   /* 碁盤色（つぶれない明るい中間セージグリーン） */
 
   /* ================================================================
      Neumorphism 2.0 Shadows — 暖色土系 / 統一光源: 左上
@@ -135,27 +135,27 @@
   /* ================================================================
      Nordic Dark Neon Pastel Palette — ダークセージ＆ネオンパステル
      ================================================================ */
-  --wc-bg:           #141c19;   /* ディープセージグリーン */
-  --wc-surface:      #1d2925;   /* ダークセージ */
-  --wc-surface-alt:  #253530;   /* ライトダークセージ */
-  --wc-shadow-dark:  #0a0e0d;
-  --wc-shadow-light: #243530;
-  --wc-border:       #2b3a36;
+  --wc-bg:           #1e2a26;   /* 深すぎないフォレストセージグリーン */
+  --wc-surface:      #273732;   /* 中間ダークセージ */
+  --wc-surface-alt:  #2f423c;   /* ライトダークセージ */
+  --wc-shadow-dark:  #0f1714;
+  --wc-shadow-light: #324740;
+  --wc-border:       #819991;   /* 中間セージの境界線 */
   --wc-mid:          #506b62;
-  --wc-text:         #e2ede9;   /* ペールミントホワイト */
-  --wc-text-muted:   #819c90;
-  --wc-text-light:   #50675d;
-  --wc-accent:       #f4b2d5;   /* パステルネオンモーヴピンク */
-  --wc-accent-hover: #f9cce4;
-  --wc-accent-warm:  #ffd466;   /* パステルネオンミモザレモン */
-  --wc-accent-warm-hover: #ffe299;
-  --wc-accent-soft:  rgba(244, 178, 213, 0.12);
-  --wc-glass-bg:     rgba(20, 28, 25, 0.85);
-  --wc-glass-border: rgba(244, 178, 213, 0.15);
+  --wc-text:         #cbdad5;   /* ペールセージホワイト — 中間的なテキスト */
+  --wc-text-muted:   #8ca29a;
+  --wc-text-light:   #5b726a;
+  --wc-accent:       #e899c4;   /* 落ち着いたパステルモーヴピンク */
+  --wc-accent-hover: #f1b5d6;
+  --wc-accent-warm:  #f3ce73;   /* 落ち着いたパステルミモザ */
+  --wc-accent-warm-hover: #ffd985;
+  --wc-accent-soft:  rgba(232, 153, 196, 0.12);
+  --wc-glass-bg:     rgba(30, 42, 38, 0.85);
+  --wc-glass-border: rgba(232, 153, 196, 0.15);
 
-  --wc-board:        #23302c;   /* ダークセージ碁盤色 */
-  --wc-go-black:     #080d0b;
-  --wc-go-white:     #e2ede9;
+  --wc-board:        #1c2824;   /* 中間ダークセージ碁盤色 */
+  --wc-go-black:     #0c1412;
+  --wc-go-white:     #cbdad5;
 
   --nm-bg:           var(--wc-bg);
   --nm-bg-element:   var(--wc-surface);
