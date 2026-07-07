@@ -694,18 +694,20 @@
 
 <div class="row" style="margin-top: 1rem;">
   <!-- Header Navigation -->
-  <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-    <div style="display: flex; align-items: center;">
-      <button class="nm-btn-flat" onclick={onBack} style="padding-left: 0; display: inline-flex; align-items: center; gap: 6px;">
-        <i class="material-icons">arrow_back</i>戻る
+  <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px;">
+    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <button class="nm-btn-flat" onclick={onBack} style="padding: 0; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; font-size: 0.72rem; text-transform: uppercase; font-weight: 500;">
+        <i class="material-icons" style="font-size: 0.95rem;">arrow_back</i>Back
       </button>
       {#if kifu}
-        <h5 style="margin: 0; font-weight: 600; margin-left: 1.5rem; color: var(--wc-text); font-family: 'Shippori Mincho B1', serif; letter-spacing: 0.02em;">{kifu.title}</h5>
+        <h1 class="em-newspaper-headline" style="margin: 0; font-size: 1.5rem; line-height: 1.2;">
+          {kifu.title}
+        </h1>
       {/if}
     </div>
     {#if kifu && isOwner}
-      <button class="nm-btn" onclick={() => showShareDialog = true}>
-        <i class="material-icons" style="font-size: 1.2rem;">share</i>共有設定
+      <button class="nm-btn" onclick={() => showShareDialog = true} style="border-radius: 0 !important; font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important; height: auto !important; line-height: 1.8 !important; padding: 4px 12px !important;">
+        <i class="material-icons" style="font-size: 0.95rem; vertical-align: middle; margin-right: 4px;">share</i>Share settings
       </button>
     {/if}
   </div>
@@ -750,7 +752,7 @@
       </div>
 
       <!-- Playback Controls -->
-      <div class="nm-card controls-panel" style="margin-top: 1.5rem;">
+      <div class="em-newspaper-card controls-panel" style="margin-top: 1.5rem;">
         <div class="card-content" style="padding: 16px 24px;">
           <!-- Slider -->
           <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
@@ -766,34 +768,34 @@
           </div>
 
           <!-- Buttons Row -->
-          <div class="buttons-row" style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
-            <button class="nm-btn-flat nm-btn-round" onclick={goFirst} title="最初へ">
-              <i class="material-icons">first_page</i>
+          <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={goFirst} title="最初へ">
+              <i class="material-icons" style="font-size: 1.25rem;">first_page</i>
             </button>
-            <button class="nm-btn-flat nm-btn-round" onclick={() => stepBack(10)} title="10手戻る">
-              <i class="material-icons">fast_rewind</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepBack(10)} title="10手戻る">
+              <i class="material-icons" style="font-size: 1.25rem;">fast_rewind</i>
             </button>
-            <button class="nm-btn-flat nm-btn-round" onclick={() => stepBack(1)} title="1手戻る">
-              <i class="material-icons">navigate_before</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepBack(1)} title="1手戻る">
+              <i class="material-icons" style="font-size: 1.25rem;">navigate_before</i>
             </button>
-            <button class="nm-btn-primary nm-btn-round" style="width: 44px !important; height: 44px !important;" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
-              <i class="material-icons">{isAutoplay ? 'pause' : 'play_arrow'}</i>
+            <button class="nm-btn-primary" style="width: 38px !important; height: 38px !important; min-width: 38px; padding: 0; border-radius: 0px !important;" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
+              <i class="material-icons" style="font-size: 1.25rem;">{isAutoplay ? 'pause' : 'play_arrow'}</i>
             </button>
-            <button class="nm-btn-flat nm-btn-round" onclick={() => stepForward(1)} title="1手進む">
-              <i class="material-icons">navigate_next</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepForward(1)} title="1手進む">
+              <i class="material-icons" style="font-size: 1.25rem;">navigate_next</i>
             </button>
-            <button class="nm-btn-flat nm-btn-round" onclick={() => stepForward(10)} title="10手進む">
-              <i class="material-icons">fast_forward</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepForward(10)} title="10手進む">
+              <i class="material-icons" style="font-size: 1.25rem;">fast_forward</i>
             </button>
-            <button class="nm-btn-flat nm-btn-round" onclick={goLast} title="最後へ">
-              <i class="material-icons">last_page</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={goLast} title="最後へ">
+              <i class="material-icons" style="font-size: 1.25rem;">last_page</i>
             </button>
           </div>
 
           {#if isViewingVariation}
             <!-- svelte-ignore a11y_missing_attribute -->
             <div class="animate-fade-in" style="margin-top: 16px; display: flex; justify-content: center;">
-              <button class="nm-btn" onclick={handleReturnToMainPath} style="border-radius: 20px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
+              <button class="nm-btn" onclick={handleReturnToMainPath} style="border-radius: 0px !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
                 <i class="material-icons" style="font-size: 1.15rem;">assignment_return</i>
                 本線（元の棋譜）に戻る
               </button>

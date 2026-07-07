@@ -199,230 +199,244 @@
   });
 </script>
 
-<div class="row">
-  <!-- Page Header -->
-  <div class="col s12" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
-    <div class="list-page-header">
-      <div class="list-page-title-wrap" style="border-left: 2px solid var(--wc-accent-warm); padding-left: 16px;">
-        <h1 class="em-magazine-title" style="margin: 0 !important;">
-          {#if publicMode}
-            {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
-          {:else}
-            {auth.username ? `${auth.username}’s Archive` : 'Personal Collection'}
-          {/if}
-        </h1>
-        <p class="list-page-subtitle">
-          {#if publicMode}
-            公開棋譜ライブラリ — Collection of Go game records
-          {:else}
-            あなたの棋譜コレクション — Editorial view of records
-          {/if}
-        </p>
+<div class="row" style="margin-top: 1.5rem;">
+  <!-- Left Side: Editorial & Controls (Newspaper Column 1) -->
+  <div class="col s12 l4" style="border-right: 1px solid var(--wc-border); padding-right: 24px; margin-bottom: 2rem;">
+    <!-- Section Title (News Style) -->
+    <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 8px; margin-bottom: 20px;">
+      <h2 style="font-family: 'Shippori Mincho B1', serif; font-size: 1.3rem; font-weight: 700; margin: 0; color: var(--wc-text); letter-spacing: 0.05em; line-height: 1.2;">
+        {#if publicMode}
+          THE ARCHIVE
+        {:else}
+          THE CHRONICLE
+        {/if}
+      </h2>
+      <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text-muted); text-transform: uppercase; display: block; margin-top: 2px;">Section I — Library Overview</span>
+    </div>
+
+    <!-- Editorial Note (社説) -->
+    <div style="font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif; font-size: 0.85rem; line-height: 1.85; color: var(--wc-text); margin-bottom: 24px; text-align: justify; text-justify: inter-word; opacity: 0.9;">
+      <span style="float: left; font-size: 2.2rem; font-family: 'Cormorant Garamond', serif; line-height: 0.85; margin-top: 4px; margin-right: 6px; font-weight: 700; color: var(--wc-accent-warm);">G</span>o is not merely a game of patterns, but a silent conversation recorded in stones. Here lies a personal library, structured through vintage print aesthetics to preserve each tactical path with clarity and editorial elegance.
+    </div>
+
+    <!-- Actions (Newspaper Buttons) -->
+    {#if !publicMode}
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; border-bottom: 1px dashed var(--wc-border); padding-bottom: 24px;">
+        <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="width: 100%; border-radius: 0px !important;">
+          <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
+        </button>
+        <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1px solid var(--wc-text) !important;">
+          <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
+          {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
+        </button>
       </div>
-      {#if !publicMode}
-        <div class="list-page-actions">
-          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')}>
-            <i class="material-icons" style="font-size: 1.1rem;">edit</i>棋譜を作成
-          </button>
-          <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm}>
-            <i class="material-icons" style="font-size: 1.1rem;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-            {showUploadForm ? '閉じる' : 'SGF Upload'}
-          </button>
+    {/if}
+
+    <!-- Filtering Panel (Embedded directly in Column 1) -->
+    {#if kifus.length > 0}
+      <div style="border-bottom: 1px dashed var(--wc-border); padding-bottom: 24px; margin-bottom: 24px;">
+        <h3 style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0; color: var(--wc-accent);">Filter Records</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="input-field" style="margin: 0; position: relative;">
+            <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important;" />
+            <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted); font-size: 0.8rem;">キーワード</label>
+          </div>
+          <div class="input-field" style="margin: 0; position: relative;">
+            <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important;" />
+            <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted); font-size: 0.8rem;">開始日</label>
+          </div>
+          <div class="input-field" style="margin: 0; position: relative;">
+            <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important;" />
+            <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted); font-size: 0.8rem;">終了日</label>
+          </div>
+          {#if searchQuery || startDate || endDate}
+            <!-- svelte-ignore a11y_missing_attribute -->
+            <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 0 4px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'DM Sans', sans-serif;">
+              <i class="material-icons" style="font-size: 0.95rem;">clear_all</i>条件クリア
+            </a>
+          {/if}
         </div>
-      {/if}
+      </div>
+    {/if}
+
+    <!-- Vertical Japanese Column (アヴァンギャルド縦書き) -->
+    <div style="display: flex; justify-content: flex-end; padding-top: 10px; height: 200px;">
+      <div class="em-newspaper-vertical-col" style="opacity: 0.65; height: 180px;">
+        一打一打に宿る思考を印刷インクの温もりとともに残す。静かなる黒と白の調和。
+      </div>
     </div>
   </div>
 
-  <!-- Filter Panel -->
-  {#if !loading && !error && kifus.length > 0}
-    <div class="col s12" style="margin-bottom: 1.5rem;">
-      <div class="nm-card filter-card animate-fade-in" style="margin: 0;">
-        <div class="card-content" style="padding: 18px 24px;">
-          <div class="filter-header">
-            <span class="filter-label font-outfit">
-              <i class="material-icons" style="font-size: 1rem; vertical-align: middle;">filter_list</i>
-              フィルター
-            </span>
-          </div>
-          <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end;">
-            <!-- Text Search -->
-            <div class="input-field col s12 m6" style="margin: 0;">
-              <i class="material-icons prefix" style="font-size: 1.2rem; margin-top: 10px; color: var(--wc-accent); opacity: 0.7;">search</i>
-              <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者名" style="margin-bottom: 0; padding-left: 3rem !important;" />
-              <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--nm-text-muted);">キーワード検索</label>
-            </div>
-            <!-- Date Start -->
-            <div class="input-field col s6 m3" style="margin: 0;">
-              <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0;" />
-              <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--nm-text-muted);">開始日</label>
-            </div>
-            <!-- Date End -->
-            <div class="input-field col s6 m3" style="margin: 0;">
-              <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0;" />
-              <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--nm-text-muted);">終了日</label>
-            </div>
-          </div>
-          {#if searchQuery || startDate || endDate}
-            <div class="right-align" style="margin-top: 10px;">
-              <!-- svelte-ignore a11y_missing_attribute -->
-              <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }}>
-                <i class="material-icons" style="font-size: 1rem;">clear_all</i>クリア
-              </a>
-            </div>
-          {/if}
-        </div>
-      </div>
-    </div>
-  {/if}
+  <!-- Right Side: Archive Column (Newspaper Column 2) -->
+  <div class="col s12 l8" style="padding-left: 20px;">
+    <!-- Upload Form Area (if open) -->
+    {#if showUploadForm}
+      <div class="row" style="margin-bottom: 1.5rem;">
+        <div class="col s12">
+          <div class="em-newspaper-card" style="border: 1px solid var(--wc-text) !important;">
+            <div class="card-content" style="padding: 24px;">
+              <span class="card-title" style="font-weight: 600; color: var(--wc-accent); margin-bottom: 20px; font-family: 'Shippori Mincho B1', serif;">SGF棋譜のアップロード</span>
+              
+              <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 0;">
+                <div class="file-field input-field col s12 m6" style="margin-top: 0; margin-bottom: 0; display: flex; gap: 10px; align-items: center;">
+                  <div class="nm-btn" style="position: relative; overflow: hidden; white-space: nowrap; border-radius: 0 !important; border: 1px solid var(--wc-text) !important;">
+                    <span>SGFファイル選択</span>
+                    <input type="file" accept=".sgf" onchange={handleFileChange} />
+                  </div>
+                  <div class="file-path-wrapper" style="flex-grow: 1; padding-left: 0;">
+                    <input class="file-path validate nm-input" type="text" placeholder="または以下に直接貼り付け" style="margin-bottom: 0; border-radius: 0 !important;" />
+                  </div>
+                </div>
 
-  <!-- Upload Form -->
-  {#if showUploadForm}
-    <div class="col s12" style="margin-bottom: 1.5rem;">
-      <div class="nm-card animate-fade-in">
-        <div class="card-content" style="padding: 24px;">
-          <span class="card-title" style="font-weight: 600; color: var(--wc-accent); margin-bottom: 20px; font-family: 'Shippori Mincho B1', serif;">SGF棋譜のアップロード</span>
-          
-          <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 0;">
-            <div class="file-field input-field col s12 m6" style="margin-top: 0; margin-bottom: 0; display: flex; gap: 10px; align-items: center;">
-              <div class="nm-btn" style="position: relative; overflow: hidden; white-space: nowrap;">
-                <span>SGFファイル選択</span>
-                <input type="file" accept=".sgf" onchange={handleFileChange} />
-              </div>
-              <div class="file-path-wrapper" style="flex-grow: 1; padding-left: 0;">
-                <input class="file-path validate nm-input" type="text" placeholder="または以下に直接貼り付け" style="margin-bottom: 0;" />
+                <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
+                  <input id="kifu_title" type="text" class="nm-input" bind:value={title} placeholder="対局名など (省略時は自動設定)" style="margin-bottom: 0; border-radius: 0 !important;" />
+                  <label for="kifu_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">タイトル</label>
+                </div>
+
+                <div class="input-field col s12" style="margin-top: 12px; margin-bottom: 0;">
+                  <textarea id="sgf_data" class="materialize-textarea nm-textarea nm-input" style="font-family: monospace; min-height: 120px; margin-bottom: 0; border-radius: 0 !important;" bind:value={sgfData} placeholder="(;GM[1]FF[4]...)"></textarea>
+                  <label for="sgf_data" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">SGFデータ (必須)</label>
+                </div>
               </div>
             </div>
-
-            <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
-              <input id="kifu_title" type="text" class="nm-input" bind:value={title} placeholder="対局名など (省略時は自動設定)" style="margin-bottom: 0;" />
-              <label for="kifu_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">タイトル</label>
-            </div>
-
-            <div class="input-field col s12" style="margin-top: 12px; margin-bottom: 0;">
-              <textarea id="sgf_data" class="materialize-textarea nm-textarea nm-input" style="font-family: monospace; min-height: 120px; margin-bottom: 0;" bind:value={sgfData} placeholder="(;GM[1]FF[4]...)"></textarea>
-              <label for="sgf_data" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem;">SGFデータ (必須)</label>
+            <div class="card-action right-align" style="border-top: 1px solid var(--wc-border); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: rgba(245, 240, 232, 0.35);">
+              <button class="nm-btn-flat" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
+              <button class="nm-btn-primary" style="border-radius: 0 !important;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
+                {#if uploading}
+                  保存中...
+                {:else}
+                  <i class="material-icons" style="font-size: 1.2rem; vertical-align: middle; margin-right: 4px;">check</i>登録する
+                {/if}
+              </button>
             </div>
           </div>
         </div>
-        <div class="card-action right-align" style="border-top: 1px solid rgba(163, 177, 198, 0.2); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px;">
-          <button class="nm-btn-flat" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
-          <button class="nm-btn-primary" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
-            {#if uploading}
-              保存中...
-            {:else}
-              <i class="material-icons" style="font-size: 1.2rem;">check</i>登録する
-            {/if}
-          </button>
-        </div>
       </div>
+    {/if}
+    
+    <!-- Title wrapper inside main column -->
+    <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 10px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
+      <span style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 500; font-style: italic; color: var(--wc-text); line-height: 1;">
+        {#if publicMode}
+          {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
+        {:else}
+          Personal Library
+        {/if}
+      </span>
+      <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; color: var(--wc-text-muted); font-weight: 600; letter-spacing: 0.05em;">{filteredKifus.length} RECORDS FOUND</span>
     </div>
-  {/if}
-
-  <!-- Loading State -->
-  {#if loading}
-    <div class="col s12 center-align" style="margin-top: 5rem;">
-      <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto;"></div>
-      <p class="text-muted" style="margin-top: 16px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif;">棋譜データを読み込み中...</p>
-    </div>
-  {:else if error}
-    <div class="col s12">
-      <div class="card-panel red lighten-4 red-text text-darken-4">
+    
+    <!-- Archive Column Grid -->
+    {#if loading}
+      <div class="center-align" style="margin-top: 5rem;">
+        <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto;"></div>
+        <p class="text-muted" style="margin-top: 16px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif;">棋譜データを読み込み中...</p>
+      </div>
+    {:else if error}
+      <div class="card-panel red lighten-4 red-text text-darken-4" style="border-radius: 0px;">
         <i class="material-icons left">error</i>
         エラーが発生しました: {error}
       </div>
-    </div>
-  {:else if kifus.length === 0}
-    <div class="col s12 center-align" style="margin-top: 4rem; padding: 2rem;">
-      <i class="material-icons grey-text" style="font-size: 5rem;">layers_clear</i>
-      <h5 class="grey-text text-darken-1">登録されている棋譜がありません</h5>
-      {#if !publicMode}
-        <p class="grey-text">「SGFアップロード」または「自分で棋譜を作成」ボタンから登録を行ってください。</p>
-      {:else}
-        <p class="grey-text">このユーザーが一般公開している棋譜はまだありません。</p>
-      {/if}
-    </div>
-  {:else if filteredKifus.length === 0}
-    <div class="col s12 center-align" style="margin-top: 4rem; padding: 2rem;">
-      <i class="material-icons grey-text" style="font-size: 5rem;">search_off</i>
-      <h5 class="grey-text text-darken-1">条件に一致する棋譜が見つかりません</h5>
-      <p class="grey-text">検索キーワードや日付の範囲を変更してお試しください。</p>
-    </div>
-  {:else}
-      <!-- Kifu Cards Grid -->
-    {#each filteredKifus as k, i (k.id)}
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="col s12 m6 l4" style="margin-bottom: 2rem;">
-        <div
-          class="em-magazine-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
-          style="width: 100%; display: block; text-align: left; position: relative;"
-          onclick={() => dispatch('selectKifu', k.id)}
-        >
-          <!-- Absolute Large Index Number (No. 01) -->
-          <span class="em-index-num" style="position: absolute; top: 18px; right: 18px; opacity: 0.15; user-select: none;">{String(i + 1).padStart(2, '0')}</span>
-
-          <div class="card-content" style="padding: 24px 22px; position: relative;">
-            <!-- Overlap Result Badge -->
-            {#if k.result}
-              <div class="em-overlap-badge">
-                {k.result}
-              </div>
-            {/if}
-
-            <!-- Title -->
-            <div class="kifu-card-title" title={k.title} style="margin-top: 8px;">
-              {k.title}
-            </div>
-
-            <!-- Divider line inside card -->
-            <hr style="border: none; border-top: 1px dashed var(--wc-border); margin: 12px 0 10px 0;" />
-
-            <!-- Players -->
-            <div class="players-info">
-              <!-- Black Player -->
-              <div class="player-row">
-                <span class="stone-dot stone-black" aria-label="黒"></span>
-                <span class="player-name">{k.black_player || 'Unknown'}</span>
-                {#if k.black_rank}
-                  <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.black_rank}</span>
-                {/if}
-              </div>
-              <!-- White Player -->
-              <div class="player-row">
-                <span class="stone-dot stone-white" aria-label="白"></span>
-                <span class="player-name">{k.white_player || 'Unknown'}</span>
-                {#if k.white_rank}
-                  <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.white_rank}</span>
-                {/if}
-              </div>
-            </div>
-
-            <!-- Meta Info -->
-            <div class="kifu-meta">
-              <span>📅 {k.game_date || '対局日不明'}</span>
-              <span style="opacity: 0.6; font-size: 0.72rem;">ARCHIVED: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
-            </div>
-          </div>
-
-          <div class="card-action-bar" style="background: rgba(245, 240, 232, 0.35);">
-            <span class="open-label" style="font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
-              Read Record <span style="font-size: 0.9rem; margin-left: 2px;">→</span>
-            </span>
-            {#if !publicMode}
-              <button
-                class="delete-btn"
-                onclick={(e) => handleDelete(k.id, e)}
-                title="削除"
-                aria-label="この棋譜を削除"
-              >
-                <i class="material-icons" style="font-size: 1.15rem;">delete_outline</i>
-              </button>
-            {/if}
-          </div>
-        </div>
+    {:else if kifus.length === 0}
+      <div class="center-align" style="padding: 4rem 2rem; border: 1px dashed var(--wc-border); background: var(--wc-surface-alt);">
+        <i class="material-icons" style="font-size: 4rem; color: var(--wc-text-muted); opacity: 0.5;">layers_clear</i>
+        <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 600; margin-top: 16px; color: var(--wc-text);">登録されている棋譜がありません</h5>
+        {#if !publicMode}
+          <p class="text-muted" style="font-size: 0.88rem; margin-top: 8px;">「自分で棋譜を作成」または「SGFファイルアップロード」から登録を行ってください。</p>
+        {:else}
+          <p class="text-muted" style="font-size: 0.88rem; margin-top: 8px;">このユーザーが一般公開している棋譜はまだありません。</p>
+        {/if}
       </div>
-    {/each}
-  {/if}
+    {:else if filteredKifus.length === 0}
+      <div class="center-align" style="padding: 4rem 2rem; border: 1px dashed var(--wc-border); background: var(--wc-surface-alt);">
+        <i class="material-icons" style="font-size: 4rem; color: var(--wc-text-muted); opacity: 0.5;">search_off</i>
+        <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 600; margin-top: 16px; color: var(--wc-text);">条件に一致する棋譜が見つかりません</h5>
+        <p class="text-muted" style="font-size: 0.88rem; margin-top: 8px;">検索キーワードや日付の範囲を変更してお試しください。</p>
+      </div>
+    {:else}
+      <div class="row">
+        {#each filteredKifus as k, i (k.id)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="col s12 m6" style="margin-bottom: 2rem;">
+            <div
+              class="em-newspaper-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
+              style="width: 100%; display: block; text-align: left; position: relative;"
+              onclick={() => dispatch('selectKifu', k.id)}
+            >
+              <!-- Absolute Large Index Number (No. 01) -->
+              <span class="em-index-num" style="position: absolute; top: 18px; right: 18px; opacity: 0.15; user-select: none;">{String(i + 1).padStart(2, '0')}</span>
+
+              <div class="card-content" style="padding: 24px 22px; position: relative;">
+                <!-- Overlap Result Badge -->
+                {#if k.result}
+                  <div class="em-overlap-badge">
+                    {k.result}
+                  </div>
+                {/if}
+
+                <!-- Subheadline (Newspaper tag) -->
+                <div class="em-newspaper-subheadline">
+                  Go Match Record / No. {String(i + 1).padStart(2, '0')}
+                </div>
+
+                <!-- Headline (Title) -->
+                <h3 class="em-newspaper-headline" title={k.title}>
+                  {k.title}
+                </h3>
+
+                <!-- Divider line inside card -->
+                <hr style="border: none; border-top: 1px dashed var(--wc-border); margin: 12px 0 10px 0;" />
+
+                <!-- Players -->
+                <div class="players-info">
+                  <!-- Black Player -->
+                  <div class="player-row">
+                    <span class="stone-dot stone-black" aria-label="黒"></span>
+                    <span class="player-name">{k.black_player || 'Unknown'}</span>
+                    {#if k.black_rank}
+                      <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.black_rank}</span>
+                    {/if}
+                  </div>
+                  <!-- White Player -->
+                  <div class="player-row">
+                    <span class="stone-dot stone-white" aria-label="白"></span>
+                    <span class="player-name">{k.white_player || 'Unknown'}</span>
+                    {#if k.white_rank}
+                      <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.white_rank}</span>
+                    {/if}
+                  </div>
+                </div>
+
+                <!-- Meta Info -->
+                <div class="kifu-meta">
+                  <span>📅 {k.game_date || '対局日不明'}</span>
+                  <span style="opacity: 0.6; font-size: 0.72rem;">ARCHIVED: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
+                </div>
+              </div>
+
+              <div class="card-action-bar" style="background: rgba(245, 240, 232, 0.35);">
+                <span class="open-label" style="font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
+                  Read Record <span style="font-size: 0.9rem; margin-left: 2px;">→</span>
+                </span>
+                {#if !publicMode}
+                  <button
+                    class="delete-btn"
+                    onclick={(e) => handleDelete(k.id, e)}
+                    title="削除"
+                    aria-label="この棋譜を削除"
+                  >
+                    <i class="material-icons" style="font-size: 1.15rem;">delete_outline</i>
+                  </button>
+                {/if}
+              </div>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>

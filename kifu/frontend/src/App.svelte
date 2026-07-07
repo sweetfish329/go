@@ -250,58 +250,54 @@
 
 <div class="app-shell">
   <!-- Navigation Header — Y2K Holographic Glass Nav -->
-  <nav class="nm-nav">
-    <div class="nav-wrapper container">
-      <!-- svelte-ignore a11y_missing_attribute -->
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <a class="brand-logo cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <!-- 碁石モチーフ ロゴマーク（エディトリアル極小円） -->
-        <span class="nav-logo-icon" aria-hidden="true" style="font-size: 0.9rem; position: relative; top: -1px;">○</span>
-        <span class="nav-logo-text">{siteSettings.title}</span>
-      </a>
-
-      <ul id="nav-mobile" class="right" style="display: flex; align-items: center; gap: 4px;">
+  <!-- Newspaper Masthead Header -->
+  <header class="container" style="margin-top: 1.5rem; margin-bottom: 0;">
+    <div class="em-newspaper-masthead">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--wc-border); padding-bottom: 8px; margin-bottom: 10px;">
+        <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; color: var(--wc-text-muted); font-weight: 500; letter-spacing: 0.05em;">EST. 2026</span>
         <!-- svelte-ignore a11y_missing_attribute -->
-        <li><a onclick={handleGoHome} class="cursor-pointer nav-link">ホーム</a></li>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <a onclick={handleGoHome} class="cursor-pointer" style="display: flex; align-items: center; justify-content: center; text-decoration: none;">
+          <span style="font-family: 'Cormorant Garamond', serif; font-size: 3.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: var(--wc-text); line-height: 0.9; text-align: center;">
+            {siteSettings.title}
+          </span>
+        </a>
+        <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; color: var(--wc-text-muted); font-weight: 500; letter-spacing: 0.05em;">GO ARCHIVE</span>
+      </div>
 
-        {#if auth.isLoggedIn}
+      <!-- Meta Bar: Date, Edition, Actions -->
+      <div class="em-newspaper-meta-bar">
+        <span>No. {String(new Date().getDate()).padStart(2, '0')} / Vol. II</span>
+        <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <span>Tokyo / Paris Edition</span>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <!-- Home Link -->
           <!-- svelte-ignore a11y_missing_attribute -->
-          <li>
-            <a
-              onclick={() => showUsernameDialog = true}
-              class="cursor-pointer nav-link nav-user-chip"
-              title="ニックネームを変更"
-            >
-              <span class="user-avatar" aria-hidden="true">◎</span>
-              <span>{auth.username}</span>
-              <i class="material-icons" style="font-size: 0.9rem; opacity: 0.6;">edit</i>
+          <a onclick={handleGoHome} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Home</a>
+          
+          {#if auth.isLoggedIn}
+            <!-- Username chip -->
+            <!-- svelte-ignore a11y_missing_attribute -->
+            <a onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">
+              @{auth.username}
             </a>
-          </li>
+            <!-- Logout Link -->
+            <!-- svelte-ignore a11y_missing_attribute -->
+            <a onclick={handleLogout} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Logout</a>
+          {/if}
+          
+          <!-- Theme Toggle -->
           <!-- svelte-ignore a11y_missing_attribute -->
-          <li>
-            <a onclick={handleLogout} class="cursor-pointer nav-link" title="ログアウト">
-              <i class="material-icons" style="font-size: 1.1rem;">logout</i>
-            </a>
-          </li>
-        {/if}
-
-        <!-- Theme Mode Toggle -->
-        <li>
-          <!-- svelte-ignore a11y_missing_attribute -->
-          <a
-            onclick={toggleTheme}
-            class="cursor-pointer nav-theme-btn"
-            title="テーマ切り替え ({themeMode === 'light' ? 'ライト固定' : themeMode === 'dark' ? 'ダーク固定' : 'システム連動'})"
-          >
-            <i class="material-icons" style="font-size: 1.2rem;">
+          <a onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); text-decoration: none; height: auto !important; line-height: normal !important; padding: 0 !important; font-size: 0.72rem; display: flex; align-items: center; border: none; background: none;">
+            <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm);">
               {themeMode === 'light' ? 'wb_sunny' : themeMode === 'dark' ? 'brightness_2' : 'brightness_auto'}
             </i>
           </a>
-        </li>
-      </ul>
+        </div>
+      </div>
     </div>
-  </nav>
+  </header>
 
   <!-- Main Container -->
   <main class="container" style="padding-bottom: 5rem; padding-top: 2rem;">
