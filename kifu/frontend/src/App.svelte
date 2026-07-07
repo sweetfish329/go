@@ -249,10 +249,6 @@
 />
 
 <div class="app-shell em-bg-pulse-dots" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
-  <!-- Huge ambient spinning outline text for high-end graphic design feel -->
-  <div class="em-ambient-spin-text" style="position: fixed; top: 30%; left: 50%; width: 60vmax; height: 60vmax; border-radius: 50%; border: 1.5px dashed var(--wc-accent-soft); opacity: 0.12; pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 8rem; font-weight: 700; color: var(--wc-text); letter-spacing: 0.15em; text-transform: uppercase; user-select: none;">
-    KIFU STUDIO
-  </div>
 
   <!-- Newspaper/Portfolio Masthead Header -->
   <header class="container" style="margin-top: 3rem; margin-bottom: 2rem; position: relative;">
