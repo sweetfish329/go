@@ -694,19 +694,19 @@
 
 <div class="row" style="margin-top: 1rem;">
   <!-- Header Navigation -->
-  <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px;">
-    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 16px;">
-      <button class="nm-btn-flat" onclick={onBack} style="padding: 0; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; font-size: 0.72rem; text-transform: uppercase; font-weight: 500;">
-        <i class="material-icons" style="font-size: 0.95rem;">arrow_back</i>Back
+  <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-text); padding-bottom: 16px; position: relative; z-index: 10;">
+    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 16px; position: relative;">
+      <button class="em-collage-tag-pastel em-float-badge" onclick={onBack} style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; font-size: 0.68rem; text-transform: uppercase; font-weight: bold; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text);">
+        <i class="material-icons" style="font-size: 0.85rem; vertical-align: middle;">arrow_back</i>Back
       </button>
       {#if kifu}
-        <h1 class="em-newspaper-headline" style="margin: 0; font-size: 1.5rem; line-height: 1.2;">
+        <h1 class="em-newspaper-headline" style="margin: 0; font-size: 1.6rem; font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text); line-height: 1.2;">
           {kifu.title}
         </h1>
       {/if}
     </div>
     {#if kifu && isOwner}
-      <button class="nm-btn" onclick={() => showShareDialog = true} style="border-radius: 0 !important; font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important; height: auto !important; line-height: 1.8 !important; padding: 4px 12px !important;">
+      <button class="nm-btn em-pulse-button" onclick={() => showShareDialog = true} style="border-radius: 0 !important; font-family: 'JetBrains Mono', sans-serif; font-size: 0.72rem; text-transform: uppercase; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; font-weight: bold; padding: 4px 14px !important; color: var(--wc-text) !important;">
         <i class="material-icons" style="font-size: 0.95rem; vertical-align: middle; margin-right: 4px;">share</i>Share settings
       </button>
     {/if}
@@ -752,11 +752,16 @@
       </div>
 
       <!-- Playback Controls -->
-      <div class="em-newspaper-card controls-panel" style="margin-top: 1.5rem;">
-        <div class="card-content" style="padding: 16px 24px;">
+      <div class="em-portfolio-section" style="margin-top: 2rem; border-color: var(--wc-text) !important; padding: 28px 20px 20px 20px !important;">
+        <!-- Overlapping Badge -->
+        <span class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 10; font-size: 0.72rem; transform: rotate(-1deg);">
+          Playback Controls — Navigation
+        </span>
+
+        <div class="card-content" style="padding: 12px 0 0 0;">
           <!-- Slider -->
           <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-            <span style="font-weight: 600; min-width: 70px; color: var(--wc-accent); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace;">{currentIndex} / {maxIndex}手</span>
+            <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-text); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-text); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
             <input
               type="range"
               min="0"
@@ -768,27 +773,27 @@
           </div>
 
           <!-- Buttons Row -->
-          <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={goFirst} title="最初へ">
-              <i class="material-icons" style="font-size: 1.25rem;">first_page</i>
+          <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={goFirst} title="最初へ">
+              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">first_page</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepBack(10)} title="10手戻る">
-              <i class="material-icons" style="font-size: 1.25rem;">fast_rewind</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepBack(10)} title="10手戻る">
+              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">fast_rewind</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepBack(1)} title="1手戻る">
-              <i class="material-icons" style="font-size: 1.25rem;">navigate_before</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepBack(1)} title="1手戻る">
+              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">navigate_before</i>
             </button>
-            <button class="nm-btn-primary" style="width: 38px !important; height: 38px !important; min-width: 38px; padding: 0; border-radius: 0px !important;" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
+            <button class="nm-btn-primary em-pulse-button" style="width: 38px !important; height: 38px !important; min-width: 38px; padding: 0; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important;" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
               <i class="material-icons" style="font-size: 1.25rem;">{isAutoplay ? 'pause' : 'play_arrow'}</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepForward(1)} title="1手進む">
-              <i class="material-icons" style="font-size: 1.25rem;">navigate_next</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepForward(1)} title="1手進む">
+              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">navigate_next</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={() => stepForward(10)} title="10手進む">
-              <i class="material-icons" style="font-size: 1.25rem;">fast_forward</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepForward(10)} title="10手進む">
+              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">fast_forward</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1px solid var(--wc-border) !important; min-width: 38px; height: 38px; padding: 0;" onclick={goLast} title="最後へ">
-              <i class="material-icons" style="font-size: 1.25rem;">last_page</i>
+            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={goLast} title="最後へ">
+              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
             </button>
           </div>
 

@@ -248,20 +248,18 @@
   }}
 />
 
-<div class="app-shell">
-  <!-- Navigation Header — Y2K Holographic Glass Nav -->
-  <!-- Newspaper Masthead Header -->
+<div class="app-shell em-bg-pulse-dots" style="min-height: 100vh; padding-bottom: 2rem;">
   <!-- Newspaper/Portfolio Masthead Header -->
   <header class="container" style="margin-top: 2rem; margin-bottom: 1.5rem; position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast -->
-    <div class="em-huge-title" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); opacity: 0.06; font-size: 7.5rem; letter-spacing: 0.1em; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif;">
+    <div class="em-huge-title" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); opacity: 0.07; font-size: 7.5rem; letter-spacing: 0.1em; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif;">
       ARCHIVES
     </div>
 
     <div class="em-newspaper-masthead" style="position: relative; z-index: 2; padding: 20px 0 10px 0;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <!-- Left decoration: collage tag -->
-        <span class="em-collage-tag-pastel" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text);">
+        <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2.5px 2.5px 0px var(--wc-text);">
           EDITION II // TOKYO
         </span>
 
@@ -280,7 +278,7 @@
         </a>
 
         <!-- Right decoration: collage tag (slanted yellow) -->
-        <span class="em-collage-tag" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace;">
+        <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; animation-delay: -2s;">
           EST. 2026
         </span>
       </div>

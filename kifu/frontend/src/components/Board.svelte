@@ -193,23 +193,24 @@
       {/each}
     {/each}
 
-    <!-- Highlight last move -->
+    <!-- Highlight last move (Constant Pulse Ring Animation) -->
     {#if lastMove && lastMove.x >= 0 && lastMove.x < size && lastMove.y >= 0 && lastMove.y < size}
       {@const stoneColor = board[lastMove.y][lastMove.x]}
       {#if stoneColor !== 0}
+        <!-- Core highlight center dot -->
         <circle
           cx={getPos(lastMove.x)}
           cy={getPos(lastMove.y)}
-          r="4"
-          fill={stoneColor === 1 ? "#ff5252" : "#d32f2f"}
+          r="3.5"
+          fill="var(--wc-accent-warm)"
         />
+        <!-- Pulsing radial ring -->
         <circle
           cx={getPos(lastMove.x)}
           cy={getPos(lastMove.y)}
-          r={step * 0.2}
           fill="none"
-          stroke={stoneColor === 1 ? "#ff5252" : "#d32f2f"}
-          stroke-width="1.5"
+          stroke="var(--wc-accent-warm)"
+          class="em-board-pulse-ring"
         />
       {/if}
     {/if}

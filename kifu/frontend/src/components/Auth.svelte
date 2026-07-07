@@ -37,23 +37,32 @@
       <div class="auth-washi-dot auth-washi-dot--1" aria-hidden="true"></div>
       <div class="auth-washi-dot auth-washi-dot--2" aria-hidden="true"></div>
 
-      <div class="em-newspaper-card auth-card" style="margin-top: 2rem;">
+      <div class="em-portfolio-section auth-card" style="margin-top: 3rem; border-color: var(--wc-text) !important; transform: rotate(-1.2deg); box-shadow: 8px 8px 0px var(--wc-text) !important; background: var(--wc-surface) !important; transition: transform 0.3s ease;">
+        <!-- Overlap Badge with Floating animation -->
+        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: -16px; font-size: 0.72rem; z-index: 10; box-shadow: 2px 2px 0px var(--wc-text);">
+          ACCESS GATEWAYS
+        </span>
+
         <div class="card-content" style="padding: 3rem 2.5rem; position: relative; z-index: 1;">
+          <!-- Giant Background text -->
+          <div class="em-huge-title" style="position: absolute; top: 10%; left: 0; opacity: 0.05; font-size: 6rem; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif;">
+            SECURE
+          </div>
 
           <!-- Header -->
-          <div class="center-align" style="margin-bottom: 2.5rem;">
+          <div class="center-align" style="margin-bottom: 2.5rem; position: relative; z-index: 2;">
             <div class="auth-icon-wrap" aria-hidden="true" style="margin-bottom: 20px;">
-              <span style="font-size: 1.1rem; color: var(--wc-accent-warm); letter-spacing: 0.15em;">○</span>
+              <span style="font-size: 1.3rem; color: var(--wc-accent); font-weight: bold; letter-spacing: 0.15em;">●</span>
             </div>
-            <h1 class="auth-title" style="font-family: 'Cormorant Garamond', serif !important; font-size: 2.2rem !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.16em; font-style: normal; margin: 0 0 10px 0 !important; line-height: 1 !important;">Kifu Store</h1>
-            <p class="auth-subtitle" style="font-family: 'JetBrains Mono', 'DM Sans', sans-serif; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--wc-text-muted);">
-              Secure Sign-in / Archive Access
+            <h1 class="auth-title" style="font-family: 'Cormorant Garamond', serif !important; font-size: 2.6rem !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 8px 0 !important; line-height: 1 !important; color: var(--wc-text);">Kifu Store</h1>
+            <p class="auth-subtitle" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--wc-accent);">
+              SIGN-IN / PRIVATE ARCHIVE
             </p>
           </div>
 
           {#if error}
-            <div class="error-panel" style="border-radius: 0px; border: 1px solid rgba(160, 50, 40, 0.4); background: rgba(160, 50, 40, 0.03);">
-              <i class="material-icons" style="font-size: 1.1rem;">error_outline</i>
+            <div class="error-panel" style="border-radius: 0px; border: 1.5px solid var(--wc-text); background: var(--wc-surface-alt); color: var(--wc-text); font-weight: 600; padding: 12px; margin-bottom: 20px; box-shadow: 3px 3px 0px var(--wc-text);">
+              <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 6px;">error_outline</i>
               <span>{error}</span>
             </div>
           {/if}
@@ -61,42 +70,42 @@
           <!-- Social Login Buttons -->
           {#if loading}
             <div class="center-align" style="margin: 2.5rem 0;">
-              <div class="nm-spinner mx-auto"></div>
-              <p class="text-muted" style="margin-top: 12px; font-size: 0.9rem;">読み込み中...</p>
+              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text);"></div>
+              <p class="text-muted" style="margin-top: 12px; font-size: 0.88rem; font-family: 'JetBrains Mono', monospace;">CONNECTING...</p>
             </div>
           {:else}
             {#if !providers.google && !providers.line && !providers.meta}
-              <div class="center-align" style="margin-top: 15px; border: 1px dashed var(--wc-border); padding: 24px 16px; background: var(--wc-surface-alt);">
-                <i class="material-icons" style="font-size: 2.2rem; color: var(--wc-accent-warm); margin-bottom: 8px; display: block;">info_outline</i>
-                <p class="font-outfit" style="margin: 0; font-weight: 600; font-size: 1rem; color: var(--wc-text);">ソーシャルログインは現在無効化されています</p>
-                <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: var(--wc-text-muted);">管理者へお問い合わせください。</p>
+              <div class="center-align" style="margin-top: 15px; border: 2px solid var(--wc-text); padding: 24px 16px; background: var(--wc-surface-alt); box-shadow: 4px 4px 0px var(--wc-text);">
+                <i class="material-icons" style="font-size: 2.2rem; color: var(--wc-accent); margin-bottom: 8px; display: block;">info_outline</i>
+                <p class="font-outfit" style="margin: 0; font-weight: 700; font-size: 0.95rem; color: var(--wc-text);">ソーシャルログインは現在無効化されています</p>
+                <p style="margin: 6px 0 0 0; font-size: 0.78rem; color: var(--wc-text-muted);">管理者へお問い合わせください。</p>
               </div>
             {:else}
-              <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 14px;">
                 <!-- Google Button -->
                 {#if providers.google}
-                  <button class="social-btn google-btn" onclick={() => handleOAuth('google')} style="border-radius: 0px !important; box-shadow: none !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important;">
-                    <span class="social-btn-icon google-icon" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; border: 1px solid var(--wc-text); border-radius: 0;">G</span>
-                    <span style="font-weight: 600; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;">Continue with Google</span>
-                    <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold;">→</span>
+                  <button class="social-btn google-btn em-pulse-button" onclick={() => handleOAuth('google')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; transition: all 0.2s ease;">
+                    <span class="social-btn-icon google-icon" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">G</span>
+                    <span style="font-weight: 700; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: var(--wc-text);">Continue with Google</span>
+                    <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--wc-text);">→</span>
                   </button>
                 {/if}
 
                 <!-- LINE Button -->
                 {#if providers.line}
-                  <button class="social-btn line-btn" onclick={() => handleOAuth('line')} style="border-radius: 0px !important; box-shadow: none !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important;">
-                    <i class="material-icons social-btn-icon" style="border: 1px solid var(--wc-text); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">chat</i>
-                    <span style="font-weight: 600; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;">Continue with LINE</span>
-                    <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold;">→</span>
+                  <button class="social-btn line-btn em-pulse-button" onclick={() => handleOAuth('line')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; transition: all 0.2s ease; animation-delay: -1s;">
+                    <i class="material-icons social-btn-icon" style="border: 1.5px solid var(--wc-text); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--wc-surface-alt); color: var(--wc-text);">chat</i>
+                    <span style="font-weight: 700; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: var(--wc-text);">Continue with LINE</span>
+                    <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--wc-text);">→</span>
                   </button>
                 {/if}
 
                 <!-- Meta Button -->
                 {#if providers.meta}
-                  <button class="social-btn meta-btn" onclick={() => handleOAuth('meta')} style="border-radius: 0px !important; box-shadow: none !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important;">
-                    <i class="material-icons social-btn-icon" style="border: 1px solid var(--wc-text); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">facebook</i>
-                    <span style="font-weight: 600; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;">Continue with Meta</span>
-                    <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold;">→</span>
+                  <button class="social-btn meta-btn em-pulse-button" onclick={() => handleOAuth('meta')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; transition: all 0.2s ease; animation-delay: -2s;">
+                    <i class="material-icons social-btn-icon" style="border: 1.5px solid var(--wc-text); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--wc-surface-alt); color: var(--wc-text);">facebook</i>
+                    <span style="font-weight: 700; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: var(--wc-text);">Continue with Meta</span>
+                    <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--wc-text);">→</span>
                   </button>
                 {/if}
               </div>
@@ -104,7 +113,7 @@
           {/if}
 
           <!-- Footer deco -->
-          <p class="auth-footer-deco" style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--wc-text-muted); opacity: 0.6; margin-top: 30px; letter-spacing: 0.2em; text-transform: uppercase;">○ ARCHIVE ACCESS PLATFORM ○</p>
+          <p class="auth-footer-deco" style="font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--wc-text-muted); opacity: 0.7; margin-top: 30px; letter-spacing: 0.22em; text-transform: uppercase;">○ ARCHIVE ACCESS PLATFORM ○</p>
         </div>
       </div>
 
