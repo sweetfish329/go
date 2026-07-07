@@ -733,7 +733,7 @@
   {:else}
     <!-- Main UI Grid -->
     <!-- Left Column: Go Board & Controls -->
-    <div class="col s12 l7 center-align" style="margin-bottom: 2rem;">
+    <div class="col s12 l7 center-align" style="margin-bottom: 2rem; position: relative;">
       <div class="board-wrapper {isViewingVariation ? 'viewing-variation' : ''}" style="position: relative; display: inline-block;">
         {#if isViewingVariation}
           <div class="wc-variation-badge animate-fade-in" style="position: absolute; top: 15px; left: 15px; z-index: 10;">
@@ -741,14 +741,22 @@
             <span>指導手順: {activeReviewer ? `${activeReviewer} さん` : 'あなた'}</span>
           </div>
         {/if}
-        <Board
-          board={boardState}
-          size={boardSize}
-          lastMove={lastMove}
-          interactive={reviewMode}
-          turnColor={currentTurn}
-          on:intersectionClick={handleIntersectionClick}
-        />
+
+        <!-- Huge Vogue Background Deco Text overlapping under board -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-4deg); opacity: 0.08; font-size: 8rem; font-weight: 900; font-family: 'Cormorant Garamond', serif; text-transform: uppercase; letter-spacing: 0.15em; color: var(--wc-text); pointer-events: none; white-space: nowrap; z-index: 0; user-select: none;">
+          {#if kifu}{kifu.result || 'THE GAME'}{:else}THE GAME{/if}
+        </div>
+
+        <div style="position: relative; z-index: 2;">
+          <Board
+            board={boardState}
+            size={boardSize}
+            lastMove={lastMove}
+            interactive={reviewMode}
+            turnColor={currentTurn}
+            on:intersectionClick={handleIntersectionClick}
+          />
+        </div>
       </div>
 
       <!-- Playback Controls -->
@@ -814,12 +822,12 @@
     <div class="col s12 l5 text-left em-magazine-overlap-left" style="text-align: left; position: relative;">
       <!-- Game Info Card (Collapsible) -->
       {#if kifu}
-      <div class="em-portfolio-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-color: var(--wc-text) !important; padding: 24px 20px 20px 20px !important;">
+      <div class="em-vogue-editorial-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
         <!-- Card Header Toggle (Click to Toggle) - Slanted Collage Tag overlapping top border -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="card-header-toggle cursor-pointer" onclick={() => isGameInfoExpanded = !isGameInfoExpanded} style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
-          <span class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 10; font-size: 0.72rem;">
+          <span class="em-collage-tag" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-text);">
             Info — Record Specs
           </span>
           <span style="font-weight: 700; font-size: 0.95rem; color: var(--wc-text); font-family: 'Shippori Mincho B1', serif; padding-top: 6px;">
@@ -906,10 +914,10 @@
       {/if}
 
       <!-- Comments / Review Card -->
-      <div class="em-portfolio-section" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 2rem; border-color: var(--wc-text) !important; padding: 24px 20px 20px 20px !important;">
+      <div class="em-vogue-editorial-section" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
         <div class="card-content" style="padding: 16px 0 0 0; flex-grow: 1; position: relative;">
           <!-- Overlapping Title with Collage style -->
-          <span class="em-collage-tag-pastel" style="position: absolute; top: -38px; left: -4px; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text);">
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -38px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text);">
             Reviews (第 {currentIndex} 手)
           </span>
 

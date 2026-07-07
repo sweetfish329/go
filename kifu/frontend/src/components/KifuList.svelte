@@ -193,85 +193,104 @@
     }
   }
 
+  let isDrawerOpen = $state(false);
+
   onMount(() => {
     fetchKifus();
     fetchOwnerUsername();
   });
 </script>
 
-<div class="row" style="margin-top: 1.5rem;">
-  <!-- Left Side: Editorial & Controls (Portfolio Column 1) -->
-  <div class="col s12 l5" style="margin-bottom: 2rem; position: relative;">
-    <div class="em-portfolio-section" style="background: var(--wc-surface-alt); border-color: var(--wc-text) !important; padding: 28px 20px 20px 20px !important;">
-      <!-- Section Title (News Style) -->
-      <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 8px; margin-bottom: 20px;">
-        <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; margin: 0; color: var(--wc-text); letter-spacing: 0.08em; line-height: 1.1; text-transform: uppercase;">
-          {#if publicMode}
-            the archive.
-          {:else}
-            the chronicle.
-          {/if}
-        </h2>
-        <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.62rem; color: var(--wc-text-muted); text-transform: uppercase; display: block; margin-top: 4px; letter-spacing: 0.05em;">Section I — Library Overview</span>
-      </div>
+<!-- Floating Vogue Drawer Toggle Button (Left edge vertical ribbon) -->
+<button 
+  onclick={() => isDrawerOpen = !isDrawerOpen} 
+  class="em-vogue-drawer-toggle em-float-badge"
+  style="position: fixed; left: 0; top: 25%; z-index: 1000; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; border-left: none !important; box-shadow: 3px 3px 0px var(--wc-text); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important; padding: 12px 6px; writing-mode: vertical-rl; text-orientation: mixed; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.15em; cursor: pointer; text-transform: uppercase;"
+>
+  [ VIEW FILTERS & OVERVIEW ]
+</button>
 
-      <!-- Editorial Note (社説 - 巨大なドロップキャップ) -->
-      <div style="font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif; font-size: 0.82rem; line-height: 1.9; color: var(--wc-text); margin-bottom: 24px; text-align: justify; text-justify: inter-word; opacity: 0.95;">
-        <span style="float: left; font-size: 3.2rem; font-family: 'Cormorant Garamond', serif; line-height: 0.8; margin-top: 4px; margin-right: 8px; font-weight: 700; color: var(--wc-accent); text-transform: uppercase;">G</span>o is not merely a game of patterns, but a silent conversation recorded in stones. Here lies a personal library, structured through vintage print aesthetics to preserve each tactical path with clarity and editorial elegance.
-      </div>
+{#if isDrawerOpen}
+  <!-- svelte-ignore a11y_missing_attribute -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div 
+    class="em-vogue-overlay animate-fade-in" 
+    onclick={() => isDrawerOpen = false}
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(30,42,38,0.4); backdrop-filter: blur(4px); z-index: 998; cursor: pointer;"
+  ></div>
+{/if}
 
-      <!-- Actions (Newspaper Buttons) -->
-      {#if !publicMode}
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px;">
-          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important;">
-            <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
-          </button>
-          <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-            <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-            {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
-          </button>
-        </div>
-      {/if}
-
-      <!-- Filtering Panel (Embedded directly in Column 1) -->
-      {#if kifus.length > 0}
-        <div style="border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px; margin-bottom: 24px;">
-          <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0; color: var(--wc-text); border-bottom: 1px solid var(--wc-text); padding-bottom: 4px; display: inline-block;">Filter Records</h3>
-          
-          <div style="display: flex; flex-direction: column; gap: 14px;">
-            <div class="input-field" style="margin: 0; position: relative;">
-              <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
-              <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">キーワード</label>
-            </div>
-            <div class="input-field" style="margin: 0; position: relative;">
-              <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
-              <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">開始日</label>
-            </div>
-            <div class="input-field" style="margin: 0; position: relative;">
-              <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
-              <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">終了日</label>
-            </div>
-            {#if searchQuery || startDate || endDate}
-              <!-- svelte-ignore a11y_missing_attribute -->
-              <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-text); color: var(--wc-text); text-decoration: none;">
-                <i class="material-icons" style="font-size: 0.85rem;">clear_all</i>条件クリア
-              </a>
-            {/if}
-          </div>
-        </div>
-      {/if}
-
-      <!-- Vertical Japanese Column (アヴァンギャルド縦書き) -->
-      <div style="display: flex; justify-content: flex-end; padding-top: 10px; height: 160px;">
-        <div class="em-newspaper-vertical-col" style="opacity: 0.8; height: 140px; border-left-color: var(--wc-text);">
-          一打一打に宿る思考を印刷インクの温もりとともに残す。静かなる黒と白の調和。
-        </div>
-      </div>
-    </div>
+<!-- Vogue Editorial Drawer Panel -->
+<div 
+  class="em-vogue-drawer {isDrawerOpen ? 'open' : ''}"
+  style="position: fixed; top: 0; left: 0; width: 380px; height: 100vh; background: var(--wc-surface); border-right: 2px solid var(--wc-text); z-index: 999; transform: translateX({isDrawerOpen ? '0' : '-100%'}); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); padding: 40px 24px; overflow-y: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.15); text-align: left;"
+>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px;">
+    <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 800; margin: 0; color: var(--wc-text); text-transform: uppercase; letter-spacing: 0.08em;">
+      the chronicle.
+    </h2>
+    <button onclick={() => isDrawerOpen = false} style="background: transparent; border: none; cursor: pointer; color: var(--wc-text); display: flex; align-items: center; justify-content: center;">
+      <i class="material-icons" style="font-size: 1.5rem;">close</i>
+    </button>
   </div>
 
+  <!-- Editorial Note (社説 - 巨大なドロップキャップ) -->
+  <div style="font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif; font-size: 0.82rem; line-height: 1.9; color: var(--wc-text); margin-bottom: 24px; text-align: justify; text-justify: inter-word; opacity: 0.95;">
+    <span style="float: left; font-size: 3.2rem; font-family: 'Cormorant Garamond', serif; line-height: 0.8; margin-top: 4px; margin-right: 8px; font-weight: 700; color: var(--wc-accent); text-transform: uppercase;">G</span>o is not merely a game of patterns, but a silent conversation recorded in stones. Here lies a personal library, structured through vintage print aesthetics to preserve each tactical path with clarity and editorial elegance.
+  </div>
+
+  <!-- Actions (Newspaper Buttons) -->
+  {#if !publicMode}
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px;">
+      <button class="nm-btn-primary" onclick={() => { dispatch('createKifu'); isDrawerOpen = false; }} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important;">
+        <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
+      </button>
+      <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+        <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
+        {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
+      </button>
+    </div>
+  {/if}
+
+  <!-- Filtering Panel -->
+  {#if kifus.length > 0}
+    <div style="border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px; margin-bottom: 24px;">
+      <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0; color: var(--wc-text); border-bottom: 1px solid var(--wc-text); padding-bottom: 4px; display: inline-block;">Filter Records</h3>
+      
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="input-field" style="margin: 0; position: relative;">
+          <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+          <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">キーワード</label>
+        </div>
+        <div class="input-field" style="margin: 0; position: relative;">
+          <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+          <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">開始日</label>
+        </div>
+        <div class="input-field" style="margin: 0; position: relative;">
+          <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+          <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">終了日</label>
+        </div>
+        {#if searchQuery || startDate || endDate}
+          <!-- svelte-ignore a11y_missing_attribute -->
+          <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-text); color: var(--wc-text); text-decoration: none;">
+            <i class="material-icons" style="font-size: 0.85rem;">clear_all</i>条件クリア
+          </a>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Vertical Japanese Column -->
+  <div style="display: flex; justify-content: flex-end; padding-top: 10px; height: 160px;">
+    <div class="em-newspaper-vertical-col" style="opacity: 0.8; height: 140px; border-left-color: var(--wc-text);">
+      一打一打に宿る思考を印刷インクの温もりとともに残す。静かなる黒と白の調和。
+    </div>
+  </div>
+</div>
+
+<div class="row" style="margin-top: 1.5rem; position: relative;">
   <!-- Right Side: Archive Column (Portfolio Column 2) -->
-  <div class="col s12 l7" style="padding-left: 24px; position: relative; z-index: 2;">
+  <div class="col s12 m10 offset-m1 l8 offset-l2" style="position: relative; z-index: 2; margin-top: 2rem;">
     <!-- Upload Form Area (if open) -->
     {#if showUploadForm}
       <div class="row" style="margin-bottom: 2rem;">
@@ -364,71 +383,68 @@
         {#each filteredKifus as k, i (k.id)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="col s12" style="margin-bottom: 2.5rem;">
+          <div class="col s12" style="margin-bottom: 3.5rem;">
             <div
-              class="em-portfolio-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
-              style="width: 100%; display: block; text-align: left; position: relative; border-color: var(--wc-text) !important; border-width: 2px !important; box-shadow: 6px 6px 0px var(--wc-text) !important;"
+              class="em-vogue-editorial-item hoverable animate-pop-in stagger-{(i % 5) + 1}"
+              style="width: 100%; display: block; text-align: left; position: relative; border: none; background: transparent; padding-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); transition: transform 0.4s ease;"
               onclick={() => dispatch('selectKifu', k.id)}
             >
-              <!-- Absolute Large Index Number (Overlapping border) -->
-              <span class="em-index-num" style="position: absolute; top: -24px; right: 24px; opacity: 0.45; user-select: none; font-weight: 900; color: var(--wc-text); font-size: 2.8rem; text-shadow: 2px 2px 0px var(--wc-bg); z-index: 10; font-family: 'Cormorant Garamond', serif;">
-                No. {String(i + 1).padStart(2, '0')}
+              <!-- Absolute Large Index Number (VOGUE overlap typography) -->
+              <span class="em-index-num" style="position: absolute; top: -16px; right: 0; opacity: 0.18; user-select: none; font-weight: 900; color: var(--wc-text); font-size: 5rem; z-index: 1; font-family: 'Cormorant Garamond', serif; font-style: italic; transition: transform 0.4s ease, color 0.3s ease, opacity 0.3s ease;">
+                {String(i + 1).padStart(2, '0')}
               </span>
 
-              <div class="card-content" style="padding: 28px 24px; position: relative; overflow: hidden;">
-                <!-- Overlap Result Badge (Collage tag style overlapping top border) -->
+              <div class="card-content" style="padding: 0; position: relative; z-index: 2;">
+                <!-- Overlap Result Badge (Collage tag style) -->
                 {#if k.result}
-                  <div class="em-collage-tag em-float-badge" style="position: absolute; top: -14px; left: 24px; z-index: 11; font-size: 0.72rem; animation-delay: -{i * 0.8}s; border-width: 1.5px;">
+                  <div class="em-collage-tag em-float-badge" style="position: absolute; top: -36px; left: 0; z-index: 10; font-size: 0.68rem; animation-delay: -{i * 0.8}s; border-width: 1.5px; box-shadow: 2px 2px 0 var(--wc-text);">
                     {k.result}
                   </div>
                 {/if}
 
                 <!-- Subheadline (Newspaper tag) -->
-                <div class="em-newspaper-subheadline" style="margin-top: 8px; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">
-                  CHRONICLE COLLECTION // NO. {String(i + 1).padStart(2, '0')}
+                <div class="em-newspaper-subheadline" style="margin-top: 8px; font-weight: 800; letter-spacing: 0.12em; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-accent);">
+                  RECORD NO. {String(i + 1).padStart(2, '0')} // ARCHIVE
                 </div>
 
                 <!-- Headline (Title) - High jump-rate style -->
-                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-weight: 900; font-size: 2rem; line-height: 1.1; margin-top: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
+                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-weight: 900; font-size: 2.5rem; line-height: 1.05; margin-top: 10px; margin-bottom: 18px; letter-spacing: -0.02em; color: var(--wc-text); word-break: break-word;">
                   {k.title}
                 </h3>
 
-                <!-- Divider line inside card -->
-                <hr style="border: none; border-top: 2px solid var(--wc-text); margin: 16px 0 16px 0;" />
-
                 <!-- Players and Meta Side-by-Side (Magazine Spread feel) -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
-                  <div class="players-info" style="display: flex; gap: 24px; flex-wrap: wrap;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; margin-top: 24px;">
+                  <div class="players-info" style="display: flex; gap: 32px; flex-wrap: wrap;">
                     <!-- Black Player -->
                     <div class="player-row" style="display: flex; align-items: center; gap: 8px;">
-                      <span class="stone-dot stone-black" style="border: 1px solid var(--wc-text);" aria-label="黒"></span>
-                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.95rem; color: var(--wc-text);">{k.black_player || 'Unknown'}</span>
+                      <span class="stone-dot stone-black" style="border: 1.5px solid var(--wc-text); width: 14px; height: 14px;" aria-label="黒"></span>
+                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 900; font-size: 1.05rem; color: var(--wc-text);">{k.black_player || 'Unknown'}</span>
                       {#if k.black_rank}
-                        <span class="wc-tag" style="font-size: 0.65rem; padding: 1px 6px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); font-weight: bold; color: var(--wc-text);">{k.black_rank}</span>
+                        <span class="wc-tag" style="font-size: 0.65rem; padding: 2px 8px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface); font-weight: bold; color: var(--wc-text); font-family: 'JetBrains Mono', monospace;">{k.black_rank}</span>
                       {/if}
                     </div>
                     <!-- White Player -->
                     <div class="player-row" style="display: flex; align-items: center; gap: 8px;">
-                      <span class="stone-dot stone-white" style="border: 1px solid var(--wc-text);" aria-label="白"></span>
-                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.95rem; color: var(--wc-text);">{k.white_player || 'Unknown'}</span>
+                      <span class="stone-dot stone-white" style="border: 1.5px solid var(--wc-text); width: 14px; height: 14px;" aria-label="白"></span>
+                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 900; font-size: 1.05rem; color: var(--wc-text);">{k.white_player || 'Unknown'}</span>
                       {#if k.white_rank}
-                        <span class="wc-tag" style="font-size: 0.65rem; padding: 1px 6px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); font-weight: bold; color: var(--wc-text);">{k.white_rank}</span>
+                        <span class="wc-tag" style="font-size: 0.65rem; padding: 2px 8px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface); font-weight: bold; color: var(--wc-text); font-family: 'JetBrains Mono', monospace;">{k.white_rank}</span>
                       {/if}
                     </div>
                   </div>
 
                   <!-- Meta Info -->
                   <div class="kifu-meta" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-text-muted); display: flex; flex-direction: column; gap: 2px; text-align: right;">
-                    <span style="font-weight: bold; color: var(--wc-text);">📅 Match Date: {k.game_date || 'Unknown'}</span>
-                    <span style="opacity: 0.8;">ARCHIVED: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
+                    <span style="font-weight: bold; color: var(--wc-text); letter-spacing: 0.05em;">DATE: {k.game_date || 'Unknown'}</span>
+                    <span style="opacity: 0.8;">ARCHIVED ON {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Action footer in card (Thick border and slanted text) -->
-              <div class="card-action-bar" style="background: var(--wc-surface-alt); border-top: 2px solid var(--wc-text); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
-                <span class="open-label" style="font-size: 0.78rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; color: var(--wc-text);">
-                  READ FULL RECORD <span style="font-size: 0.95rem; margin-left: 4px;">→</span>
+              <!-- Action Link and Delete Button -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 12px;">
+                <span class="open-label" style="font-size: 0.78rem; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; color: var(--wc-text); display: inline-flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--wc-accent); padding-bottom: 2px; transition: letter-spacing 0.3s ease;">
+                  READ FULL JOURNAL <span>→</span>
                 </span>
                 {#if !publicMode}
                   <button
@@ -436,9 +452,9 @@
                     onclick={(e) => handleDelete(k.id, e)}
                     title="削除"
                     aria-label="この棋譜を削除"
-                    style="background: transparent; border: none; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--wc-text); transition: color 0.2s;"
+                    style="background: transparent; border: none; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--wc-text); opacity: 0.6; transition: opacity 0.2s;"
                   >
-                    <i class="material-icons" style="font-size: 1.25rem;">delete_outline</i>
+                    <i class="material-icons" style="font-size: 1.3rem;">delete_outline</i>
                   </button>
                 {/if}
               </div>

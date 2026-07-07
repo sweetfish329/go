@@ -1343,3 +1343,65 @@ textarea.nm-textarea:focus {
 .auth-card .em-huge-title {
   transition: transform 0.6s ease, opacity 0.6s ease;
 }
+
+/* ================================================================
+   VOGUE Style Editorial Layout — 枠にとらわれない見開きレイアウト
+   ================================================================ */
+
+/* VOGUE 縦書きトグルボタン */
+.em-vogue-drawer-toggle {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), padding 0.3s ease, background-color 0.2s ease;
+}
+.em-vogue-drawer-toggle:hover {
+  transform: scale(1.05) translate(4px, 0) !important;
+  background-color: var(--wc-accent) !important;
+  padding-left: 20px !important;
+}
+
+/* VOGUE スライダードロワー */
+.em-vogue-drawer {
+  box-shadow: 10px 0 30px rgba(0,0,0,0.15);
+  scrollbar-width: thin;
+}
+.em-vogue-drawer::-webkit-scrollbar {
+  width: 4px;
+}
+.em-vogue-drawer::-webkit-scrollbar-thumb {
+  background: var(--wc-mid);
+}
+
+/* 枠のないボーダーレスな見開きセクション */
+.em-vogue-editorial-section {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  position: relative;
+  transition: border-color 0.3s ease;
+}
+
+/* ボーダーレスな誌面アイテム */
+.em-vogue-editorial-item {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.em-vogue-editorial-item:hover {
+  transform: translateY(-8px) !important;
+}
+.em-vogue-editorial-item:hover .em-index-num {
+  transform: translate(-15px, -10px) scale(1.1) rotate(-3deg) !important;
+  opacity: 0.4 !important;
+  color: var(--wc-accent) !important;
+}
+.em-vogue-editorial-item:hover .open-label {
+  letter-spacing: 0.18em !important;
+}
+.em-vogue-editorial-item:hover .open-label span {
+  transform: translateX(6px);
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.em-vogue-editorial-item .open-label span {
+  transition: transform 0.3s ease;
+}
