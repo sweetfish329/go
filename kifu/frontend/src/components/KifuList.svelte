@@ -203,19 +203,19 @@
   <!-- Page Header -->
   <div class="col s12" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
     <div class="list-page-header">
-      <div class="list-page-title-wrap">
-        <h1 class="list-page-title font-outfit">
+      <div class="list-page-title-wrap" style="border-left: 2px solid var(--wc-accent-warm); padding-left: 16px;">
+        <h1 class="em-magazine-title" style="margin: 0 !important;">
           {#if publicMode}
-            {ownerUsername ? `✦ ${ownerUsername}'s Kifu` : '✦ Public Kifu'}
+            {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
           {:else}
-            {auth.username ? `✦ ${auth.username}'s Kifu` : '✦ My Kifu'}
+            {auth.username ? `${auth.username}’s Archive` : 'Personal Collection'}
           {/if}
         </h1>
-        <p class="list-page-subtitle text-muted">
+        <p class="list-page-subtitle">
           {#if publicMode}
-            公開棋譜ライブラリ
+            公開棋譜ライブラリ — Collection of Go game records
           {:else}
-            あなたの棋譜コレクション
+            あなたの棋譜コレクション — Editorial view of records
           {/if}
         </p>
       </div>
@@ -264,7 +264,7 @@
           </div>
           {#if searchQuery || startDate || endDate}
             <div class="right-align" style="margin-top: 10px;">
-              <!-- svelte-ignore a11y-missing-attribute -->
+              <!-- svelte-ignore a11y_missing_attribute -->
               <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }}>
                 <i class="material-icons" style="font-size: 1rem;">clear_all</i>クリア
               </a>
@@ -350,26 +350,32 @@
   {:else}
       <!-- Kifu Cards Grid -->
     {#each filteredKifus as k, i (k.id)}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="col s12 m6 l4" style="margin-bottom: 1.5rem;">
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="col s12 m6 l4" style="margin-bottom: 2rem;">
         <div
-          class="nm-card hoverable kifu-card kifu-stone-hover animate-pop-in stagger-{(i % 5) + 1}"
-          style="width: 100%; display: block; text-align: left;"
+          class="em-magazine-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
+          style="width: 100%; display: block; text-align: left; position: relative;"
           onclick={() => dispatch('selectKifu', k.id)}
         >
-          <div class="card-content" style="padding: 20px 22px; position: relative;">
-            <!-- Result Sticker -->
+          <!-- Absolute Large Index Number (No. 01) -->
+          <span class="em-index-num" style="position: absolute; top: 18px; right: 18px; opacity: 0.15; user-select: none;">{String(i + 1).padStart(2, '0')}</span>
+
+          <div class="card-content" style="padding: 24px 22px; position: relative;">
+            <!-- Overlap Result Badge -->
             {#if k.result}
-              <div class="wc-result-badge" style="position: absolute; top: 14px; right: 14px; z-index: 5;">
+              <div class="em-overlap-badge">
                 {k.result}
               </div>
             {/if}
 
             <!-- Title -->
-            <div class="kifu-card-title" title={k.title}>
+            <div class="kifu-card-title" title={k.title} style="margin-top: 8px;">
               {k.title}
             </div>
+
+            <!-- Divider line inside card -->
+            <hr style="border: none; border-top: 1px dashed var(--wc-border); margin: 12px 0 10px 0;" />
 
             <!-- Players -->
             <div class="players-info">
@@ -378,7 +384,7 @@
                 <span class="stone-dot stone-black" aria-label="黒"></span>
                 <span class="player-name">{k.black_player || 'Unknown'}</span>
                 {#if k.black_rank}
-                  <span class="holo-tag">{k.black_rank}</span>
+                  <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.black_rank}</span>
                 {/if}
               </div>
               <!-- White Player -->
@@ -386,7 +392,7 @@
                 <span class="stone-dot stone-white" aria-label="白"></span>
                 <span class="player-name">{k.white_player || 'Unknown'}</span>
                 {#if k.white_rank}
-                  <span class="holo-tag">{k.white_rank}</span>
+                  <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.white_rank}</span>
                 {/if}
               </div>
             </div>
@@ -394,13 +400,13 @@
             <!-- Meta Info -->
             <div class="kifu-meta">
               <span>📅 {k.game_date || '対局日不明'}</span>
-              <span style="opacity: 0.5; font-size: 0.7rem;">登録: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
+              <span style="opacity: 0.6; font-size: 0.72rem;">ARCHIVED: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
             </div>
           </div>
 
-          <div class="card-action-bar">
-            <span class="open-label">
-              開いて再生 <span style="font-size: 1rem;">→</span>
+          <div class="card-action-bar" style="background: rgba(245, 240, 232, 0.35);">
+            <span class="open-label" style="font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
+              Read Record <span style="font-size: 0.9rem; margin-left: 2px;">→</span>
             </span>
             {#if !publicMode}
               <button
@@ -409,7 +415,7 @@
                 title="削除"
                 aria-label="この棋譜を削除"
               >
-                <i class="material-icons" style="font-size: 1.1rem;">delete_outline</i>
+                <i class="material-icons" style="font-size: 1.15rem;">delete_outline</i>
               </button>
             {/if}
           </div>
@@ -498,33 +504,26 @@
     text-underline-offset: 3px;
   }
 
-  /* ---- Kifu Cards ---- */
-  .kifu-card {
-    cursor: pointer;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease;
-    border-radius: 20px !important;
-    overflow: hidden;
-  }
-
+  /* ---- Kifu Cards (Editorial) ---- */
   .kifu-card-title {
     font-weight: 600;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     color: var(--wc-text);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: calc(100% - 80px);
-    letter-spacing: 0.01em;
+    max-width: calc(100% - 35px);
+    letter-spacing: 0.02em;
     font-family: 'Shippori Mincho B1', 'Noto Serif JP', serif;
   }
 
   /* ---- Players ---- */
   .players-info {
-    margin: 0.75rem 0;
+    margin: 0.6rem 0;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 6px;
   }
 
   .player-row {
@@ -536,28 +535,28 @@
   /* Stone dots — washi clay style */
   .stone-dot {
     display: inline-block;
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .stone-black {
-    background: radial-gradient(circle at 32% 32%, #666, #0a0a0a);
-    border: 1.5px solid rgba(0,0,0,0.7);
-    box-shadow: 1px 1px 4px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.1);
+    background: radial-gradient(circle at 32% 32%, #555, var(--wc-go-black));
+    border: 1px solid rgba(0,0,0,0.6);
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
   }
 
   .stone-white {
-    background: radial-gradient(circle at 32% 32%, #ffffff, #d4d4d4);
-    border: 1.5px solid rgba(180,180,180,0.8);
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.15), inset -1px -1px 2px rgba(255,255,255,0.9);
+    background: radial-gradient(circle at 32% 32%, #ffffff, var(--wc-go-white));
+    border: 1px solid var(--wc-border);
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
   }
 
   .player-name {
     font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -569,12 +568,12 @@
   .kifu-meta {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    font-size: 0.78rem;
+    gap: 2px;
+    font-size: 0.76rem;
     color: var(--wc-text-muted);
     margin-top: 10px;
     padding-top: 8px;
-    border-top: 1px solid var(--wc-border);
+    border-top: 1px dashed var(--wc-border);
     font-family: 'DM Sans', sans-serif;
   }
 
@@ -584,18 +583,18 @@
     justify-content: space-between;
     align-items: center;
     border-top: 1px solid var(--wc-border);
-    padding: 10px 20px;
+    padding: 12px 20px;
   }
 
   .open-label {
     font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: var(--wc-accent);
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
   }
 
   .delete-btn {

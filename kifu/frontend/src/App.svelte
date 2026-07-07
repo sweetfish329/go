@@ -252,21 +252,21 @@
   <!-- Navigation Header — Y2K Holographic Glass Nav -->
   <nav class="nm-nav">
     <div class="nav-wrapper container">
-      <!-- svelte-ignore a11y-missing-attribute -->
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <a class="brand-logo cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-        <!-- 碁石モチーフ ロゴマーク -->
-        <span class="nav-logo-icon" aria-hidden="true">◉</span>
-        <span class="nav-logo-text font-cormorant">{siteSettings.title}</span>
+      <!-- svelte-ignore a11y_missing_attribute -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <a class="brand-logo cursor-pointer" onclick={handleGoHome} style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <!-- 碁石モチーフ ロゴマーク（エディトリアル極小円） -->
+        <span class="nav-logo-icon" aria-hidden="true" style="font-size: 0.9rem; position: relative; top: -1px;">○</span>
+        <span class="nav-logo-text">{siteSettings.title}</span>
       </a>
 
       <ul id="nav-mobile" class="right" style="display: flex; align-items: center; gap: 4px;">
-        <!-- svelte-ignore a11y-missing-attribute -->
+        <!-- svelte-ignore a11y_missing_attribute -->
         <li><a onclick={handleGoHome} class="cursor-pointer nav-link">ホーム</a></li>
 
         {#if auth.isLoggedIn}
-          <!-- svelte-ignore a11y-missing-attribute -->
+          <!-- svelte-ignore a11y_missing_attribute -->
           <li>
             <a
               onclick={() => showUsernameDialog = true}
@@ -278,7 +278,7 @@
               <i class="material-icons" style="font-size: 0.9rem; opacity: 0.6;">edit</i>
             </a>
           </li>
-          <!-- svelte-ignore a11y-missing-attribute -->
+          <!-- svelte-ignore a11y_missing_attribute -->
           <li>
             <a onclick={handleLogout} class="cursor-pointer nav-link" title="ログアウト">
               <i class="material-icons" style="font-size: 1.1rem;">logout</i>
@@ -288,7 +288,7 @@
 
         <!-- Theme Mode Toggle -->
         <li>
-          <!-- svelte-ignore a11y-missing-attribute -->
+          <!-- svelte-ignore a11y_missing_attribute -->
           <a
             onclick={toggleTheme}
             class="cursor-pointer nav-theme-btn"
@@ -350,26 +350,26 @@
 
   /* ---- Nav Logo ---- */
   .nav-logo-icon {
-    font-size: 1.3rem;
-    color: var(--wc-accent);
+    font-size: 1rem;
+    color: var(--wc-accent-warm);
     display: inline-block;
     line-height: 1;
     transition: var(--wc-transition-fast);
-    opacity: 0.75;
+    opacity: 0.85;
   }
 
   .brand-logo:hover .nav-logo-icon {
     opacity: 1;
-    transform: scale(1.1);
+    transform: rotate(180deg);
   }
 
   .nav-logo-text {
-    font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif;
-    font-size: 1.45rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
     color: var(--wc-text);
-    font-style: italic;
+    text-transform: uppercase;
   }
 
   /* ---- Nav Links ---- */

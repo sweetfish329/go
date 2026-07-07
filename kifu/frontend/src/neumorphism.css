@@ -852,3 +852,117 @@ textarea.nm-textarea:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ================================================================
+   Editorial Magazine Styles — ヨーロッパのおしゃれな雑誌風
+   ================================================================ */
+
+/* マガジンレイアウト用の罫線コンテナ */
+.em-border-box {
+  border: 1px solid var(--wc-border);
+  background-color: var(--wc-surface);
+  position: relative;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* 雑誌のインデックス（No. 01 などのセリフ数字表記） */
+.em-index-num {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 3rem;
+  font-weight: 300;
+  line-height: 0.8;
+  color: var(--wc-accent-warm);
+  opacity: 0.7;
+  letter-spacing: -0.05em;
+}
+
+/* 雑誌コラム風カード（シャドウを控えめにし、罫線でシャープに見せる、角は丸くせず直角でモダンに） */
+.em-magazine-card {
+  background: var(--wc-surface) !important;
+  border: 1px solid var(--wc-border) !important;
+  box-shadow: 2px 2px 10px rgba(44, 36, 32, 0.03) !important;
+  border-radius: 0px !important;
+  transition: var(--wc-transition);
+  position: relative;
+  overflow: visible !important;
+}
+
+.em-magazine-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--wc-accent-warm);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.em-magazine-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 4px 10px 24px rgba(44, 36, 32, 0.07) !important;
+}
+
+.em-magazine-card:hover::after {
+  transform: scaleX(1);
+}
+
+/* 雑誌風の大見出し（セリフ体の優美なジャンプ率） */
+.em-magazine-title {
+  font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif !important;
+  font-size: 2.4rem;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--wc-text);
+  letter-spacing: -0.01em;
+}
+
+/* 重ね合わせ文字（要素をオーバーラップさせるバッジ） */
+.em-overlap-badge {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: var(--wc-accent-warm);
+  color: #FFFFFF;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  z-index: 10;
+  box-shadow: 2px 3px 8px rgba(44, 36, 32, 0.12);
+}
+
+/* 細い垂直線（エディトリアルな分割用） */
+.em-v-line {
+  border-left: 1px solid var(--wc-border);
+  height: 100%;
+  margin: 0 15px;
+}
+
+/* エディトリアル用テーブル（対局情報等） */
+.em-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+}
+
+.em-table th, .em-table td {
+  border-bottom: 1px solid var(--wc-border);
+  padding: 12px 8px;
+  font-size: 0.88rem;
+  color: var(--wc-text);
+}
+
+.em-table th {
+  font-weight: 600;
+  color: var(--wc-accent);
+  text-align: left;
+  width: 30%;
+}
+
