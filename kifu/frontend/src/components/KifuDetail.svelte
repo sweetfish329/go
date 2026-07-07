@@ -733,7 +733,7 @@
   {:else}
     <!-- Main UI Grid -->
     <!-- Left Column: Go Board & Controls -->
-    <div class="col s12 l6 center-align">
+    <div class="col s12 l7 center-align" style="margin-bottom: 2rem;">
       <div class="board-wrapper {isViewingVariation ? 'viewing-variation' : ''}" style="position: relative; display: inline-block;">
         {#if isViewingVariation}
           <div class="wc-variation-badge animate-fade-in" style="position: absolute; top: 15px; left: 15px; z-index: 10;">
@@ -811,7 +811,7 @@
     </div>
 
     <!-- Right Column: Game Info, Comments & Variations -->
-    <div class="col s12 l6 text-left" style="text-align: left;">
+    <div class="col s12 l5 text-left em-magazine-overlap-left" style="text-align: left; position: relative;">
       <!-- Game Info Card (Collapsible) -->
       {#if kifu}
       <div class="em-portfolio-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-color: var(--wc-text) !important; padding: 24px 20px 20px 20px !important;">

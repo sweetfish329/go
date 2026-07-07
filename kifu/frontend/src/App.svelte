@@ -248,18 +248,23 @@
   }}
 />
 
-<div class="app-shell em-bg-pulse-dots" style="min-height: 100vh; padding-bottom: 2rem;">
+<div class="app-shell em-bg-pulse-dots" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
+  <!-- Huge ambient spinning outline text for high-end graphic design feel -->
+  <div class="em-ambient-spin-text" style="position: fixed; top: 30%; left: 50%; width: 60vmax; height: 60vmax; border-radius: 50%; border: 1.5px dashed var(--wc-accent-soft); opacity: 0.12; pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 8rem; font-weight: 700; color: var(--wc-text); letter-spacing: 0.15em; text-transform: uppercase; user-select: none;">
+    KIFU STUDIO
+  </div>
+
   <!-- Newspaper/Portfolio Masthead Header -->
-  <header class="container" style="margin-top: 2rem; margin-bottom: 1.5rem; position: relative;">
+  <header class="container" style="margin-top: 3rem; margin-bottom: 2rem; position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast -->
-    <div class="em-huge-title" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); opacity: 0.07; font-size: 7.5rem; letter-spacing: 0.1em; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif;">
-      ARCHIVES
+    <div class="em-huge-title" style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); opacity: 0.08; font-size: 9.5rem; letter-spacing: 0.08em; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif; font-weight: 700;">
+      RECORDINGS
     </div>
 
     <div class="em-newspaper-masthead" style="position: relative; z-index: 2; padding: 20px 0 10px 0;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 16px;">
         <!-- Left decoration: collage tag -->
-        <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2.5px 2.5px 0px var(--wc-text);">
+        <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
           EDITION II // TOKYO
         </span>
 
@@ -267,19 +272,19 @@
         <!-- svelte-ignore a11y_missing_attribute -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <a onclick={handleGoHome} class="cursor-pointer" style="text-decoration: none; position: relative;">
+        <a onclick={handleGoHome} class="cursor-pointer" style="text-decoration: none; position: relative; display: block;">
           <!-- Overlap ornament text -->
-          <span style="position: absolute; top: -14px; left: -10px; font-family: 'Cormorant Garamond', serif; font-size: 0.8rem; font-style: italic; color: var(--wc-accent); letter-spacing: 0.15em; font-weight: 500;">
+          <span style="position: absolute; top: -18px; left: -14px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-style: italic; color: var(--wc-accent); letter-spacing: 0.18em; font-weight: 600; text-shadow: 2px 2px 0 var(--wc-bg);">
             the collection of
           </span>
-          <span style="font-family: 'Cormorant Garamond', serif; font-size: 3.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--wc-text); line-height: 1;">
+          <span style="font-family: 'Cormorant Garamond', serif; font-size: 4.8rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: var(--wc-text); line-height: 0.85; display: block;">
             {siteSettings.title}
           </span>
         </a>
 
         <!-- Right decoration: collage tag (slanted yellow) -->
-        <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; animation-delay: -2s;">
-          EST. 2026
+        <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; border-width: 2px; animation-delay: -2s;">
+          ISSUE // 2026
         </span>
       </div>
 

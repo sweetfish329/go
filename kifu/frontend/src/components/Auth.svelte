@@ -29,33 +29,51 @@
   }
 </script>
 
-<div class="auth-container animate-fade-in">
-  <div class="row">
-    <div class="col s12 m8 offset-m2 l6 offset-l3">
+<div class="auth-container animate-fade-in" style="margin-top: 2rem; position: relative;">
+  <div class="row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 30px 0;">
+    <!-- Left Column: Giant Editorial Typo (Magazine Style) -->
+    <div class="col s12 l7" style="position: relative; z-index: 2; padding-right: 40px; text-align: left;">
+      <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; display: inline-block; margin-bottom: 20px;">
+        CATALOGUE SYSTEM
+      </span>
+      <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 6rem; font-style: italic; font-weight: 800; line-height: 0.9; color: var(--wc-text); margin: 0 0 20px 0; letter-spacing: -0.02em;">
+        the gateway.
+      </h2>
+      <div style="border-left: 3px solid var(--wc-text); padding-left: 20px; max-width: 440px;">
+        <p style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.6; color: var(--wc-text); margin: 0 0 12px 0;">
+          美しさと戦術が交錯する、私的な記録庫へ。
+        </p>
+        <p style="font-family: 'DM Sans', sans-serif; font-size: 0.85rem; line-height: 1.6; color: var(--wc-text-muted); margin: 0;">
+          Kifu Store is a minimal, grid-driven digital archive for preserving and analyzing Go match specifications. Please verify your identity using your preferred network below.
+        </p>
+      </div>
+      <!-- Huge Deco Number -->
+      <div style="position: absolute; bottom: -80px; left: -10px; opacity: 0.05; font-family: 'Cormorant Garamond', serif; font-size: 14rem; font-weight: 900; pointer-events: none; user-select: none;">
+        01
+      </div>
+    </div>
 
-      <!-- Decorative washi dots -->
-      <div class="auth-washi-dot auth-washi-dot--1" aria-hidden="true"></div>
-      <div class="auth-washi-dot auth-washi-dot--2" aria-hidden="true"></div>
-
-      <div class="em-portfolio-section auth-card" style="margin-top: 3rem; border-color: var(--wc-text) !important; transform: rotate(-1.2deg); box-shadow: 8px 8px 0px var(--wc-text) !important; background: var(--wc-surface) !important; transition: transform 0.3s ease;">
+    <!-- Right Column: Login Card -->
+    <div class="col s12 l5" style="position: relative; z-index: 3;">
+      <div class="em-portfolio-section auth-card" style="border-color: var(--wc-text) !important; transform: rotate(-1.5deg); box-shadow: 8px 8px 0px var(--wc-text) !important; background: var(--wc-surface) !important; transition: transform 0.3s ease;">
         <!-- Overlap Badge with Floating animation -->
-        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: -16px; font-size: 0.72rem; z-index: 10; box-shadow: 2px 2px 0px var(--wc-text);">
+        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.72rem; z-index: 10; box-shadow: 2.5px 2.5px 0px var(--wc-text); transform: rotate(1deg);">
           ACCESS GATEWAYS
         </span>
 
-        <div class="card-content" style="padding: 3rem 2.5rem; position: relative; z-index: 1;">
+        <div class="card-content" style="padding: 3rem 2.2rem; position: relative; z-index: 1;">
           <!-- Giant Background text -->
-          <div class="em-huge-title" style="position: absolute; top: 10%; left: 0; opacity: 0.05; font-size: 6rem; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif;">
+          <div class="em-huge-title" style="position: absolute; top: 12%; left: 0; opacity: 0.04; font-size: 6rem; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif; font-weight: 700; pointer-events: none;">
             SECURE
           </div>
 
           <!-- Header -->
-          <div class="center-align" style="margin-bottom: 2.5rem; position: relative; z-index: 2;">
-            <div class="auth-icon-wrap" aria-hidden="true" style="margin-bottom: 20px;">
+          <div class="center-align" style="margin-bottom: 2.2rem; position: relative; z-index: 2;">
+            <div class="auth-icon-wrap" aria-hidden="true" style="margin-bottom: 16px;">
               <span style="font-size: 1.3rem; color: var(--wc-accent); font-weight: bold; letter-spacing: 0.15em;">●</span>
             </div>
-            <h1 class="auth-title" style="font-family: 'Cormorant Garamond', serif !important; font-size: 2.6rem !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 8px 0 !important; line-height: 1 !important; color: var(--wc-text);">Kifu Store</h1>
-            <p class="auth-subtitle" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--wc-accent);">
+            <h1 class="auth-title" style="font-family: 'Cormorant Garamond', serif !important; font-size: 2.8rem !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 6px 0 !important; line-height: 0.9 !important; color: var(--wc-text);">Kifu Store</h1>
+            <p class="auth-subtitle" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--wc-accent); font-weight: bold;">
               SIGN-IN / PRIVATE ARCHIVE
             </p>
           </div>
@@ -70,8 +88,8 @@
           <!-- Social Login Buttons -->
           {#if loading}
             <div class="center-align" style="margin: 2.5rem 0;">
-              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text);"></div>
-              <p class="text-muted" style="margin-top: 12px; font-size: 0.88rem; font-family: 'JetBrains Mono', monospace;">CONNECTING...</p>
+              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 36px; height: 36px;"></div>
+              <p class="text-muted" style="margin-top: 12px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">CONNECTING...</p>
             </div>
           {:else}
             {#if !providers.google && !providers.line && !providers.meta}
@@ -113,13 +131,14 @@
           {/if}
 
           <!-- Footer deco -->
-          <p class="auth-footer-deco" style="font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--wc-text-muted); opacity: 0.7; margin-top: 30px; letter-spacing: 0.22em; text-transform: uppercase;">○ ARCHIVE ACCESS PLATFORM ○</p>
+          <p class="auth-footer-deco" style="font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--wc-text-muted); opacity: 0.7; margin-top: 30px; letter-spacing: 0.22em; text-transform: uppercase; text-align: center;">○ ARCHIVE ACCESS PLATFORM ○</p>
         </div>
       </div>
-
     </div>
   </div>
 </div>
+
+
 
 <style>
   .auth-container {

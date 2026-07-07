@@ -21,34 +21,34 @@
      ================================================================ */
 
   /* --- Backgrounds --- */
-  --wc-bg:           #f2f5f4;   /* ペールミントセージ — ページ背景 */
-  --wc-surface:      #ffffff;   /* クリーンホワイト — カード・ベースの地 */
+  --wc-bg:           #eaeceb;   /* アート紙セージグレー — ページ背景 */
+  --wc-surface:      #ffffff;   /* クリーンアートホワイト — カード・ベースの地 */
   --wc-surface-alt:  #fcf7f5;   /* パウダーシェルピンク — 入れ子カードやポイント背景 */
 
   /* --- Neumorphic Shadow Recipe (Soft Pastels) --- */
-  --wc-shadow-dark:  #e0e7e4;   /* ソフトセージグレーの影 */
+  --wc-shadow-dark:  #0d1715;   /* ソリッド影用のインクブラック */
   --wc-shadow-light: #ffffff;   /* 白いハイライト */
 
   /* --- Tones & Mid --- */
-  --wc-border:       #e2e9e6;   /* ソフトグレーセージ境界線 */
-  --wc-mid:          #adc2b8;   /* 中間ミントグレー */
+  --wc-border:       #0d1715;   /* 強烈な境界線を定義するインクブラック */
+  --wc-mid:          #7c948a;   /* 中間ミントグレー */
 
   /* --- Text --- */
-  --wc-text:         #1d2924;   /* ダークフォレストグリーン — メインテキスト */
-  --wc-text-muted:   #758a80;   /* ミディアムセージグレー — サブテキスト */
-  --wc-text-light:   #b5c4bd;   /* ライトセージグレー */
+  --wc-text:         #0d1715;   /* インクブラック — メインテキスト */
+  --wc-text-muted:   #687e79;   /* ミディアムセージグレー — サブテキスト */
+  --wc-text-light:   #a5bcb5;   /* ライトセージグレー */
 
   /* --- Accent Colors (Pastel Accent) --- */
-  --wc-accent:       #d89bb9;   /* ダスティローズラベンダー — プライマリアクセント */
-  --wc-accent-hover: #c484a5;   /* ダスティローズ・深 — ホバー時 */
-  --wc-accent-warm:  #e2b448;   /* パステルミモザゴールド — CTA・強調 */
-  --wc-accent-warm-hover: #cda136; /* ミモザゴールド・深 — ホバー時 */
-  --wc-accent-soft:  rgba(216, 155, 185, 0.08); /* ローズラベンダー・極淡 */
+  --wc-accent:       #f883b4;   /* ネオンパウダーホットピンク — プライマリアクセント */
+  --wc-accent-hover: #e56b9c;   /* ホットピンク・深 — ホバー時 */
+  --wc-accent-warm:  #ffd454;   /* ネオンゴールドイエロー — CTA・強調 */
+  --wc-accent-warm-hover: #eabf3e; /* ゴールド・深 — ホバー時 */
+  --wc-accent-soft:  rgba(248, 131, 180, 0.1); /* ホットピンク・極淡 */
 
   /* --- Go Stone & Board Colors --- */
-  --wc-go-black:     #232f2a;   /* 碁石・黒（深緑墨色） */
-  --wc-go-white:     #ffffff;   /* 碁石・白（純白） */
-  --wc-board:        #e6edea;   /* 碁盤色（モダンペールセージグリーン） */
+  --wc-go-black:     #080f0d;   /* 碁石・黒（墨黒） */
+  --wc-go-white:     #f3f6f5;   /* 碁石・白（ペールミント） */
+  --wc-board:        #14211d;   /* 碁盤色（深遠なダークセージグリーン） */
 
   /* ================================================================
      Neumorphism 2.0 Shadows — 暖色土系 / 統一光源: 左上
@@ -1260,8 +1260,32 @@ textarea.nm-textarea:focus {
   }
 }
 
-/* 5. ポートフォリオカードのホバー時の回転アニメーション */
+/* 5. ポートフォリオカード of ホバー時の回転アニメーション */
 .em-portfolio-card:hover {
   transform: translate(-3px, -3px) rotate(-0.8deg) !important;
   box-shadow: 8px 8px 0px var(--wc-text) !important;
+}
+
+/* 6. エディトリアル見開き用: デスクトップ表示時に右コラムを左側に大きくオーバーラップさせてデジタルコラージュを演出 */
+@media (min-width: 993px) {
+  .em-magazine-overlap-left {
+    margin-left: -50px !important;
+    position: relative;
+    z-index: 10;
+  }
+}
+
+/* 7. アヴァンギャルド半透明デコテキストの常時回転アニメーション */
+.em-ambient-spin-text {
+  animation: ambient-rotate 90s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes ambient-rotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }

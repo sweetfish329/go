@@ -201,8 +201,8 @@
 
 <div class="row" style="margin-top: 1.5rem;">
   <!-- Left Side: Editorial & Controls (Portfolio Column 1) -->
-  <div class="col s12 l4" style="margin-bottom: 2rem; position: relative;">
-    <div class="em-portfolio-section" style="background: var(--wc-surface-alt); border-color: var(--wc-text) !important;">
+  <div class="col s12 l5" style="margin-bottom: 2rem; position: relative;">
+    <div class="em-portfolio-section" style="background: var(--wc-surface-alt); border-color: var(--wc-text) !important; padding: 28px 20px 20px 20px !important;">
       <!-- Section Title (News Style) -->
       <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 8px; margin-bottom: 20px;">
         <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; margin: 0; color: var(--wc-text); letter-spacing: 0.08em; line-height: 1.1; text-transform: uppercase;">
@@ -271,44 +271,47 @@
   </div>
 
   <!-- Right Side: Archive Column (Portfolio Column 2) -->
-  <div class="col s12 l8" style="padding-left: 20px;">
+  <div class="col s12 l7" style="padding-left: 24px; position: relative; z-index: 2;">
     <!-- Upload Form Area (if open) -->
     {#if showUploadForm}
-      <div class="row" style="margin-bottom: 1.5rem;">
+      <div class="row" style="margin-bottom: 2rem;">
         <div class="col s12">
-          <div class="em-newspaper-card" style="border: 1px solid var(--wc-text) !important;">
-            <div class="card-content" style="padding: 24px;">
-              <span class="card-title" style="font-weight: 600; color: var(--wc-accent); margin-bottom: 20px; font-family: 'Shippori Mincho B1', serif;">SGF棋譜のアップロード</span>
-              
-              <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 12px 0;">
+          <div class="em-portfolio-section" style="border-color: var(--wc-text) !important; padding: 28px 24px 20px 24px !important; background: var(--wc-surface) !important; box-shadow: 6px 6px 0px var(--wc-text) !important;">
+            <!-- Overlap Badge -->
+            <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -14px; left: 16px; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text);">
+              UPLOADER STUDIO
+            </span>
+
+            <div class="card-content" style="padding: 12px 0 0 0;">
+              <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 14px 0;">
                 <div class="file-field input-field col s12 m6" style="margin-top: 0; margin-bottom: 0; display: flex; gap: 10px; align-items: center;">
-                  <div class="nm-btn" style="position: relative; overflow: hidden; white-space: nowrap; border-radius: 0 !important; border: 1px solid var(--wc-text) !important;">
+                  <div class="nm-btn" style="position: relative; overflow: hidden; white-space: nowrap; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2.5px 2.5px 0px var(--wc-text); font-weight: bold; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
                     <span>SGFファイル選択</span>
                     <input type="file" accept=".sgf" onchange={handleFileChange} />
                   </div>
                   <div class="file-path-wrapper" style="flex-grow: 1; padding-left: 0;">
-                    <input class="file-path validate nm-input" type="text" placeholder="または以下に直接貼り付け" style="margin-bottom: 0; border-radius: 0 !important;" />
+                    <input class="file-path validate nm-input" type="text" placeholder="または以下に直接貼り付け" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
                   </div>
                 </div>
 
                 <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
-                  <input id="kifu_title" type="text" class="nm-input" bind:value={title} placeholder="対局名など (省略時は自動設定)" style="margin-bottom: 0; border-radius: 0 !important;" />
-                  <label for="kifu_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">タイトル</label>
+                  <input id="kifu_title" type="text" class="nm-input" bind:value={title} placeholder="対局名など (省略時は自動設定)" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                  <label for="kifu_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">タイトル</label>
                 </div>
 
-                <div class="input-field col s12" style="margin-top: 12px; margin-bottom: 0;">
-                  <textarea id="sgf_data" class="materialize-textarea nm-textarea nm-input" style="font-family: monospace; min-height: 120px; margin-bottom: 0; border-radius: 0 !important;" bind:value={sgfData} placeholder="(;GM[1]FF[4]...)"></textarea>
-                  <label for="sgf_data" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">SGFデータ (必須)</label>
+                <div class="input-field col s12" style="margin-top: 14px; margin-bottom: 0;">
+                  <textarea id="sgf_data" class="materialize-textarea nm-textarea nm-input" style="font-family: monospace; min-height: 120px; margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" bind:value={sgfData} placeholder="(;GM[1]FF[4]...)"></textarea>
+                  <label for="sgf_data" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">SGFデータ (必須)</label>
                 </div>
               </div>
             </div>
-            <div class="card-action right-align" style="border-top: 1px solid var(--wc-border); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: rgba(245, 240, 232, 0.35);">
-              <button class="nm-btn-flat" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
-              <button class="nm-btn-primary" style="border-radius: 0 !important;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
+            <div class="card-action right-align" style="border-top: 1.5px solid var(--wc-text); padding: 16px 0 0 0; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; background: transparent;">
+              <button class="nm-btn-flat" style="font-weight: bold;" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
+              <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; font-weight: bold;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
                 {#if uploading}
                   保存中...
                 {:else}
-                  <i class="material-icons" style="font-size: 1.2rem; vertical-align: middle; margin-right: 4px;">check</i>登録する
+                  <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 4px;">check</i>登録する
                 {/if}
               </button>
             </div>
@@ -318,111 +321,114 @@
     {/if}
     
     <!-- Title wrapper inside main column -->
-    <div style="border-bottom: 2px solid var(--wc-text); padding-bottom: 10px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
-      <span style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 500; font-style: italic; color: var(--wc-text); line-height: 1;">
+    <div style="border-bottom: 2.5px solid var(--wc-text); padding-bottom: 12px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; position: relative;">
+      <span style="font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 800; font-style: italic; color: var(--wc-text); line-height: 1; letter-spacing: -0.01em;">
         {#if publicMode}
           {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
         {:else}
           Personal Library
         {/if}
       </span>
-      <span style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.7rem; color: var(--wc-text-muted); font-weight: 600; letter-spacing: 0.05em;">{filteredKifus.length} RECORDS FOUND</span>
+      <span class="em-collage-tag-pastel" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text); font-weight: bold; letter-spacing: 0.05em; border: 1.5px solid var(--wc-text); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-text); background: var(--wc-surface-alt);">{filteredKifus.length} RECORDS FOUND</span>
     </div>
     
-    <!-- Archive Column Grid -->
+    <!-- Archive Column Grid (Magazine View Spread) -->
     {#if loading}
       <div class="center-align" style="margin-top: 5rem;">
-        <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto;"></div>
-        <p class="text-muted" style="margin-top: 16px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif;">棋譜データを読み込み中...</p>
+        <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto; border-top-color: var(--wc-text);"></div>
+        <p class="text-muted" style="margin-top: 16px; font-size: 0.88rem; font-family: 'JetBrains Mono', monospace;">LOADING ARCHIVES...</p>
       </div>
     {:else if error}
-      <div class="card-panel red lighten-4 red-text text-darken-4" style="border-radius: 0px;">
+      <div class="card-panel red lighten-4 red-text text-darken-4" style="border: 2px solid var(--wc-text); border-radius: 0; box-shadow: 4px 4px 0px var(--wc-text);">
         <i class="material-icons left">error</i>
         エラーが発生しました: {error}
       </div>
     {:else if kifus.length === 0}
-      <div class="center-align" style="padding: 4rem 2rem; border: 1px dashed var(--wc-border); background: var(--wc-surface-alt);">
-        <i class="material-icons" style="font-size: 4rem; color: var(--wc-text-muted); opacity: 0.5;">layers_clear</i>
-        <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 600; margin-top: 16px; color: var(--wc-text);">登録されている棋譜がありません</h5>
+      <div class="center-align" style="padding: 4rem 2rem; border: 2px dashed var(--wc-text); background: var(--wc-surface-alt); box-shadow: 5px 5px 0px rgba(0,0,0,0.05);">
+        <i class="material-icons" style="font-size: 3.6rem; color: var(--wc-text); opacity: 0.35; margin-bottom: 12px;">layers_clear</i>
+        <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text); margin-bottom: 8px;">登録されている棋譜がありません</h5>
         {#if !publicMode}
-          <p class="text-muted" style="font-size: 0.88rem; margin-top: 8px;">「自分で棋譜を作成」または「SGFファイルアップロード」から登録を行ってください。</p>
+          <p class="text-muted" style="font-size: 0.82rem; max-width: 320px; margin: 0 auto;">「自分で棋譜を作成」または「SGFファイルアップロード」から登録を行ってください。</p>
         {:else}
-          <p class="text-muted" style="font-size: 0.88rem; margin-top: 8px;">このユーザーが一般公開している棋譜はまだありません。</p>
+          <p class="text-muted" style="font-size: 0.82rem; max-width: 320px; margin: 0 auto;">このユーザーが一般公開している棋譜はまだありません。</p>
         {/if}
       </div>
     {:else if filteredKifus.length === 0}
-      <div class="center-align" style="padding: 4rem 2rem; border: 1px dashed var(--wc-border); background: var(--wc-surface-alt);">
-        <i class="material-icons" style="font-size: 4rem; color: var(--wc-text-muted); opacity: 0.5;">search_off</i>
-        <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 600; margin-top: 16px; color: var(--wc-text);">条件に一致する棋譜が見つかりません</h5>
-        <p class="text-muted" style="font-size: 0.88rem; margin-top: 8px;">検索キーワードや日付の範囲を変更してお試しください。</p>
+      <div class="center-align" style="padding: 4rem 2rem; border: 2px dashed var(--wc-text); background: var(--wc-surface-alt);">
+        <i class="material-icons" style="font-size: 3.6rem; color: var(--wc-text); opacity: 0.35; margin-bottom: 12px;">search_off</i>
+        <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text); margin-bottom: 8px;">条件に一致する棋譜が見つかりません</h5>
+        <p class="text-muted" style="font-size: 0.82rem;">検索キーワードや日付の範囲を変更してお試しください。</p>
       </div>
     {:else}
       <div class="row">
         {#each filteredKifus as k, i (k.id)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="col s12 m6" style="margin-bottom: 2rem;">
+          <div class="col s12" style="margin-bottom: 2.5rem;">
             <div
               class="em-portfolio-card hoverable animate-pop-in stagger-{(i % 5) + 1}"
-              style="width: 100%; display: block; text-align: left; position: relative; border-color: var(--wc-text) !important;"
+              style="width: 100%; display: block; text-align: left; position: relative; border-color: var(--wc-text) !important; border-width: 2px !important; box-shadow: 6px 6px 0px var(--wc-text) !important;"
               onclick={() => dispatch('selectKifu', k.id)}
             >
               <!-- Absolute Large Index Number (Overlapping border) -->
-              <span class="em-index-num" style="position: absolute; top: -20px; right: 16px; opacity: 0.35; user-select: none; font-weight: 700; color: var(--wc-text); font-size: 2.2rem; text-shadow: 2px 2px 0px var(--wc-bg); z-index: 10;">
-                {String(i + 1).padStart(2, '0')}
+              <span class="em-index-num" style="position: absolute; top: -24px; right: 24px; opacity: 0.45; user-select: none; font-weight: 900; color: var(--wc-text); font-size: 2.8rem; text-shadow: 2px 2px 0px var(--wc-bg); z-index: 10; font-family: 'Cormorant Garamond', serif;">
+                No. {String(i + 1).padStart(2, '0')}
               </span>
 
-              <div class="card-content" style="padding: 24px 22px; position: relative;">
+              <div class="card-content" style="padding: 28px 24px; position: relative; overflow: hidden;">
                 <!-- Overlap Result Badge (Collage tag style overlapping top border) -->
                 {#if k.result}
-                  <div class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 11; font-size: 0.65rem;">
+                  <div class="em-collage-tag em-float-badge" style="position: absolute; top: -14px; left: 24px; z-index: 11; font-size: 0.72rem; animation-delay: -{i * 0.8}s; border-width: 1.5px;">
                     {k.result}
                   </div>
                 {/if}
 
                 <!-- Subheadline (Newspaper tag) -->
-                <div class="em-newspaper-subheadline" style="margin-top: 6px;">
-                  Go Match Record / No. {String(i + 1).padStart(2, '0')}
+                <div class="em-newspaper-subheadline" style="margin-top: 8px; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">
+                  CHRONICLE COLLECTION // NO. {String(i + 1).padStart(2, '0')}
                 </div>
 
-                <!-- Headline (Title) -->
-                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Shippori Mincho B1', serif; font-weight: 700;">
+                <!-- Headline (Title) - High jump-rate style -->
+                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-weight: 900; font-size: 2rem; line-height: 1.1; margin-top: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
                   {k.title}
                 </h3>
 
                 <!-- Divider line inside card -->
-                <hr style="border: none; border-top: 1px dashed var(--wc-border); margin: 12px 0 10px 0;" />
+                <hr style="border: none; border-top: 2px solid var(--wc-text); margin: 16px 0 16px 0;" />
 
-                <!-- Players -->
-                <div class="players-info">
-                  <!-- Black Player -->
-                  <div class="player-row">
-                    <span class="stone-dot stone-black" aria-label="黒"></span>
-                    <span class="player-name">{k.black_player || 'Unknown'}</span>
-                    {#if k.black_rank}
-                      <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.black_rank}</span>
-                    {/if}
+                <!-- Players and Meta Side-by-Side (Magazine Spread feel) -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+                  <div class="players-info" style="display: flex; gap: 24px; flex-wrap: wrap;">
+                    <!-- Black Player -->
+                    <div class="player-row" style="display: flex; align-items: center; gap: 8px;">
+                      <span class="stone-dot stone-black" style="border: 1px solid var(--wc-text);" aria-label="黒"></span>
+                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.95rem; color: var(--wc-text);">{k.black_player || 'Unknown'}</span>
+                      {#if k.black_rank}
+                        <span class="wc-tag" style="font-size: 0.65rem; padding: 1px 6px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); font-weight: bold; color: var(--wc-text);">{k.black_rank}</span>
+                      {/if}
+                    </div>
+                    <!-- White Player -->
+                    <div class="player-row" style="display: flex; align-items: center; gap: 8px;">
+                      <span class="stone-dot stone-white" style="border: 1px solid var(--wc-text);" aria-label="白"></span>
+                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.95rem; color: var(--wc-text);">{k.white_player || 'Unknown'}</span>
+                      {#if k.white_rank}
+                        <span class="wc-tag" style="font-size: 0.65rem; padding: 1px 6px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); font-weight: bold; color: var(--wc-text);">{k.white_rank}</span>
+                      {/if}
+                    </div>
                   </div>
-                  <!-- White Player -->
-                  <div class="player-row">
-                    <span class="stone-dot stone-white" aria-label="白"></span>
-                    <span class="player-name">{k.white_player || 'Unknown'}</span>
-                    {#if k.white_rank}
-                      <span class="wc-tag" style="font-size: 0.7rem; padding: 1px 6px;">{k.white_rank}</span>
-                    {/if}
-                  </div>
-                </div>
 
-                <!-- Meta Info -->
-                <div class="kifu-meta">
-                  <span>📅 {k.game_date || '対局日不明'}</span>
-                  <span style="opacity: 0.6; font-size: 0.72rem;">ARCHIVED: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
+                  <!-- Meta Info -->
+                  <div class="kifu-meta" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-text-muted); display: flex; flex-direction: column; gap: 2px; text-align: right;">
+                    <span style="font-weight: bold; color: var(--wc-text);">📅 Match Date: {k.game_date || 'Unknown'}</span>
+                    <span style="opacity: 0.8;">ARCHIVED: {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
+                  </div>
                 </div>
               </div>
 
-              <div class="card-action-bar" style="background: rgba(245, 240, 232, 0.35);">
-                <span class="open-label" style="font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
-                  Read Record <span style="font-size: 0.9rem; margin-left: 2px;">→</span>
+              <!-- Action footer in card (Thick border and slanted text) -->
+              <div class="card-action-bar" style="background: var(--wc-surface-alt); border-top: 2px solid var(--wc-text); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
+                <span class="open-label" style="font-size: 0.78rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; color: var(--wc-text);">
+                  READ FULL RECORD <span style="font-size: 0.95rem; margin-left: 4px;">→</span>
                 </span>
                 {#if !publicMode}
                   <button
@@ -430,8 +436,9 @@
                     onclick={(e) => handleDelete(k.id, e)}
                     title="削除"
                     aria-label="この棋譜を削除"
+                    style="background: transparent; border: none; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--wc-text); transition: color 0.2s;"
                   >
-                    <i class="material-icons" style="font-size: 1.15rem;">delete_outline</i>
+                    <i class="material-icons" style="font-size: 1.25rem;">delete_outline</i>
                   </button>
                 {/if}
               </div>
