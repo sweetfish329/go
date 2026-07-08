@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/png"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -45,6 +46,7 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/kifus", AuthMiddleware(http.HandlerFunc(h.Upload)))
 	mux.Handle("POST /api/kifus/{id}/share", AuthMiddleware(http.HandlerFunc(h.Share)))
 	mux.Handle("PUT /api/kifus/{id}/privacy", AuthMiddleware(http.HandlerFunc(h.UpdatePrivacy)))
+	mux.Handle("PUT /api/kifus/{id}/ogp", AuthMiddleware(http.HandlerFunc(h.UpdateOgpImage)))
 	mux.Handle("DELETE /api/kifus/{id}", AuthMiddleware(http.HandlerFunc(h.Delete)))
 
 	// Public routes
@@ -52,6 +54,7 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/share/{token}/og-image", h.GetSharedOgImage)
 	mux.HandleFunc("GET /api/u/{userId}/kifus", h.ListPublic)
 	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}", h.GetPublicKifu)
+	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}/og-image", h.GetPublicKifuOgImage)
 }
 
 func (h *KifuHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +140,11 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var uploadedBy *string
+	if userID != "admin" {
+		uploadedBy = &userID
+	}
+
 	kifu := &model.Kifu{
 		Title:       title,
 		BlackPlayer: meta.BlackPlayer,
@@ -148,7 +156,7 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		Komi:        meta.Komi,
 		Handicap:    meta.Handicap,
 		SgfData:     req.SgfData,
-		UploadedBy:  &userID,
+		UploadedBy:  uploadedBy,
 		IsPrivate:   true,
 	}
 
@@ -418,23 +426,113 @@ func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse SGF
+	// Try getting from DB first
+	imgData, err := h.repo.GetOgpImageByShareToken(token)
+	if err == nil && len(imgData) > 0 {
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+		_, _ = w.Write(imgData)
+		return
+	}
+
+	// Fallback to auto generation
+	h.serveGeneratedOgImage(w, kifu)
+}
+
+// UpdateOgpImage receives OGP image from client and saves it in database
+func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing ID")
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	kifu, err := h.repo.FindByID(id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	// Verify ownership
+	if kifu.UploadedBy == nil || *kifu.UploadedBy != userID {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// Read image binary data (limit to 5MB)
+	limitReader := io.LimitReader(r.Body, 5*1024*1024)
+	imgData, err := io.ReadAll(limitReader)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to read request body: "+err.Error())
+		return
+	}
+
+	if len(imgData) == 0 {
+		respondWithError(w, http.StatusBadRequest, "Empty image data")
+		return
+	}
+
+	err = h.repo.UpdateOgpImage(id, imgData)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP image: "+err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+// GetPublicKifuOgImage retrieves and returns OGP PNG image for public kifu
+func (h *KifuHandler) GetPublicKifuOgImage(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	kifuId := r.PathValue("kifuId")
+
+	kifu, err := h.repo.FindByIDAndUser(kifuId, userId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+	if kifu == nil || kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// Try getting from DB first
+	imgData, err := h.repo.GetOgpImage(kifuId)
+	if err == nil && len(imgData) > 0 {
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+		_, _ = w.Write(imgData)
+		return
+	}
+
+	// Fallback to auto generation
+	h.serveGeneratedOgImage(w, kifu)
+}
+
+func (h *KifuHandler) serveGeneratedOgImage(w http.ResponseWriter, kifu *model.Kifu) {
 	rootNode, err := sgf.Parse(kifu.SgfData)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to parse SGF: "+err.Error())
 		return
 	}
 
-	// Simulating SGF moves to reproduce board grid state
 	meta := rootNode.ExtractMetadata()
 	board := sgf.NewBoard(meta.Size)
 	board.ReplicateGame(rootNode)
 
-	// Rendering board grid state to image
 	img := sgf.GenerateBoardImage(board.Grid, board.MoveNumbers, board.Size)
 
 	w.Header().Set("Content-Type", "image/png")
-	// Cache control for OGP images
 	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
 	if err := png.Encode(w, img); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to encode PNG: "+err.Error())
@@ -515,7 +613,9 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 
 			ogImageUrl := ""
 			if kifu.ShareToken != nil && *kifu.ShareToken != "" {
-				ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, *kifu.ShareToken)
+				ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, *kifu.ShareToken, kifu.UpdatedAt.Unix())
+			} else if !kifu.IsPrivate {
+				ogImageUrl = fmt.Sprintf("%s://%s/api/u/%s/kifus/%s/og-image?t=%d", scheme, host, userId, kifuId, kifu.UpdatedAt.Unix())
 			}
 
 			ogpMeta = fmt.Sprintf(`
@@ -562,7 +662,7 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 					scheme = proto
 				}
 				host := r.Host
-				ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image", scheme, host, shareToken)
+				ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, shareToken, kifu.UpdatedAt.Unix())
 
 				ogpMeta = fmt.Sprintf(`
 				<meta property="og:title" content="%s | %s" />

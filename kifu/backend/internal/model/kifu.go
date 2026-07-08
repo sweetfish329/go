@@ -19,6 +19,7 @@ type Kifu struct {
 	ShareToken     *string    `json:"share_token,omitempty"`
 	ShareExpiresAt *time.Time `json:"share_expires_at,omitempty"`
 	IsPrivate      bool       `json:"is_private"`
+	OgpImage       []byte     `json:"-"` // OGP image binary (PNG)
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }

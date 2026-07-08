@@ -19,15 +19,20 @@ pre-commit:
       run: golangci-lint run ./...
 
     # --- Frontend Hooks ---
+    frontend-format:
+      root: "kifu/frontend"
+      glob: "*.{js,ts,jsx,tsx,svelte.ts}"
+      stage_fixed: true
+      run: bunx oxfmt --write --no-error-on-unmatched-pattern {staged_files}
+
     frontend-lint:
       root: "kifu/frontend"
-      glob: "*.{js,ts,svelte}"
-      run: bunx oxlint {staged_files}
+      glob: "*.{js,ts,jsx,tsx,svelte,svelte.ts}"
+      run: bunx oxlint --no-error-on-unmatched-pattern {staged_files}
 
-    frontend-check:
+    frontend-typecheck:
       root: "kifu/frontend"
-      glob: "*.{js,ts,svelte}"
-      run: bun run check
+      run: bunx tsc --noEmit
 
 pre-push:
   commands:

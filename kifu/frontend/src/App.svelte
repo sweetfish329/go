@@ -10,7 +10,7 @@
   import AdminDashboard from './components/AdminDashboard.svelte';
   import { auth } from './lib/auth.svelte';
 
-  let currentView = $state<"list" | "detail" | "auth" | "create" | "admin_auth" | "admin_dashboard" | "public_list">("list");
+  let currentView = $state<"list" | "detail" | "auth" | "create" | "admin_auth" | "admin_dashboard" | "public_list" | "loading">("loading");
   let selectedKifuId = $state("");
   let selectedShareToken = $state("");
   let selectedUserId = $state("");
@@ -132,7 +132,10 @@
 
   // Determine view on mount based on URL query params & auth state
   onMount(async () => {
-    // Load theme from localStorage
+    // 1. Run routing first to capture OAuth parameters & establish session immediately
+    handleRouting();
+
+    // 2. Load theme from localStorage
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light" || savedTheme === "dark" || savedTheme === "system") {
       themeMode = savedTheme;
@@ -145,7 +148,7 @@
       mediaQuery.addEventListener('change', handleSystemThemeChange);
     }
 
-    // Fetch site settings
+    // 3. Fetch site settings in the background without blocking render flow
     try {
       const res = await fetch('/api/site-settings');
       if (res.ok) {
@@ -159,7 +162,6 @@
       console.error("Failed to load site settings:", err);
     }
 
-    handleRouting();
     window.addEventListener('popstate', handleRouting);
   });
 
@@ -186,7 +188,7 @@
     if (siteSettings.favicon) {
       faviconLink.href = siteSettings.favicon;
     } else {
-      faviconLink.href = '/vite.svg';
+      faviconLink.href = '/kifu-favicon.ico';
     }
   });
 
@@ -320,7 +322,11 @@
 
   <!-- Main Container -->
   <main class="container" style="padding-bottom: 5rem; padding-top: 2rem;">
-    {#if currentView === "auth"}
+    {#if currentView === "loading"}
+      <div class="center-align" style="margin-top: 5rem;">
+        <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto;"></div>
+      </div>
+    {:else if currentView === "auth"}
       <Auth />
     {:else if currentView === "list"}
       <KifuList on:selectKifu={handleSelectKifu} on:createKifu={() => currentView = "create"} />

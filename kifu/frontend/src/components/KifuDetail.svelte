@@ -73,6 +73,12 @@
   let comments = $state<CommentItem[]>([]); // Comments at current move
   let alternativeBranches = $state<BranchItem[]>([]); // Sibling nodes (alternative moves)
 
+  // Derived state for the final board position (always the last history entry)
+  const finalBoardState = $derived.by(() => {
+    if (!player || player.history.length === 0) return [];
+    return player.history[player.history.length - 1].board;
+  });
+
   // Autoplay state
   let autoplayInterval = $state<any>(null);
   let isAutoplay = $state(false);
@@ -1002,6 +1008,13 @@
       </div>
     </div>
   {/if}
+</div>
+
+<!-- Hidden board of the final state for OGP generation -->
+<div style="position: absolute; left: -9999px; top: -9999px; visibility: hidden; pointer-events: none;">
+  <div class="final-board-hidden">
+    <Board board={finalBoardState} size={boardSize} interactive={false} />
+  </div>
 </div>
 
 {#if showShareDialog && kifu}

@@ -18,15 +18,19 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/server
 
 # Stage 3: Runner
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates && adduser -D appuser
-USER appuser
+RUN apk --no-cache add ca-certificates && \
+    mkdir -p /data
 WORKDIR /app
 
 # Copy built server and static frontend assets
 COPY --from=backend-builder /app/server .
 COPY --from=frontend-builder /frontend/dist ./dist
 
+# SQLite DB Path configuration
+ENV DB_PATH=/data/kifu.db
 ENV PORT=8080
 EXPOSE 8080
+
+VOLUME ["/data"]
 
 CMD ["./server"]

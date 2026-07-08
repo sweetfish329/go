@@ -54,40 +54,57 @@
 </script>
 
 <div class="modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
-  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true" style="padding: 24px !important;">
+  <!-- Content click propagation stopped to avoid closing on inner click -->
+  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
     <form onsubmit={handleSave}>
-      <div>
-        <span class="card-title" style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--wc-accent); font-size: 1.1rem; margin-bottom: 12px; font-family: 'Shippori Mincho B1', serif; letter-spacing: 0.04em;">
-          <i class="material-icons">edit</i>
+      
+      <!-- Header -->
+      <div class="modal-header">
+        <span class="modal-title font-mincho">
+          <i class="material-icons modal-title-icon">edit</i>
           ユーザー名の変更
         </span>
-        <p style="margin-bottom: 24px; font-size: 0.88rem; color: var(--wc-text-muted); font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
-          指導碁や添削コメントの投稿時に表示される名前を変更できます。
+        <p class="modal-subtitle">
+          添削コメントや公開ライブラリで表示されるお名前を変更できます。
         </p>
+      </div>
 
-        {#if error}
-          <div style="display: flex; align-items: center; gap: 8px; background: rgba(160,50,40,0.08); border: 1px solid rgba(160,50,40,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 15px; color: #8B2020; font-size: 0.88rem; font-family: 'DM Sans', sans-serif;">
-            <i class="material-icons" style="font-size: 1.1rem;">error_outline</i>
-            <span>{error}</span>
-          </div>
-        {/if}
+      <!-- Error box style matched to Washi Clay theme colors -->
+      {#if error}
+        <div class="error-panel font-sans">
+          <i class="material-icons error-icon">error_outline</i>
+          <span>{error}</span>
+        </div>
+      {/if}
 
-        <div class="input-field" style="margin-top: 0;">
-          <input id="new-username" type="text" bind:value={newUsername} required class="nm-input" style="margin-bottom: 0;" />
-          <label for="new-username" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text-muted);">新しいユーザー名</label>
+      <!-- Input Field wrapper -->
+      <div class="input-wrapper">
+        <div class="input-field" style="margin: 0;">
+          <input 
+            id="new-username" 
+            type="text" 
+            bind:value={newUsername} 
+            required 
+            class="nm-input" 
+            placeholder="新しいユーザー名を入力" 
+            style="margin-bottom: 0;" 
+          />
+          <label for="new-username" class="active font-sans">ユーザー名</label>
         </div>
       </div>
 
-      <div style="padding: 20px 0 0 0; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--wc-border); margin-top: 20px;">
-        <button type="button" class="nm-btn-flat" onclick={onClose} disabled={loading}>キャンセル</button>
-        <button type="submit" class="nm-btn-primary" disabled={!newUsername.trim() || loading}>
+      <!-- Actions Footer -->
+      <div class="modal-footer">
+        <button type="button" class="cancel-btn" onclick={onClose} disabled={loading}>キャンセル</button>
+        <button type="submit" class="save-btn" disabled={!newUsername.trim() || loading}>
           {#if loading}
             保存中...
           {:else}
-            保存
+            変更を保存
           {/if}
         </button>
       </div>
+
     </form>
   </div>
 </div>
@@ -99,33 +116,199 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(30, 24, 30, 0.45);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(37, 53, 48, 0.4); /* Consistent harmonized Sage Green translucent background */
+    backdrop-filter: var(--wc-glass-blur);
+    -webkit-backdrop-filter: var(--wc-glass-blur);
     z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
-  }
-  
-  /* Mobile responsive adjustments */
-  @media only screen and (max-width: 400px) {
-    div[style*="justify-content: flex-end"] {
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 10px;
-    }
-    div[style*="justify-content: flex-end"] button {
-      width: 100%;
-      margin: 0 !important;
-    }
+    padding: 16px;
   }
 
+  .modal-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 440px;
+    background: var(--wc-surface) !important;
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
+    padding: 32px 28px !important;
+  }
+
+  .modal-header {
+    margin-bottom: 24px;
+    text-align: left;
+  }
+
+  .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    color: var(--wc-text);
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .modal-title-icon {
+    font-size: 1.5rem;
+    color: var(--wc-accent);
+  }
+
+  .modal-subtitle {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--wc-text-muted);
+    line-height: 1.6;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Harmonized Error Box */
+  .error-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(160, 50, 40, 0.06);
+    border: 1.5px solid #9d2f2f;
+    border-radius: 0px !important;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    color: #9d2f2f;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .error-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .input-wrapper {
+    margin-bottom: 8px;
+  }
+
+  /* Input Style - Vogue sharp borders */
+  .nm-input {
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-border) !important;
+    background: rgba(245, 240, 232, 0.5) !important;
+    color: var(--wc-text) !important;
+    padding: 10px 14px !important;
+    font-size: 0.95rem !important;
+    box-shadow: none !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .nm-input:focus {
+    border-color: var(--wc-accent) !important;
+    outline: none !important;
+  }
+
+  .input-field label.active {
+    transform: translateY(-12px) scale(0.8);
+    left: 0.75rem;
+    color: var(--wc-text-muted) !important;
+  }
+
+  .modal-footer {
+    padding: 20px 0 0 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1.5px solid var(--wc-border);
+    margin-top: 24px;
+  }
+
+  /* Vogue sharp solid buttons */
+  .save-btn {
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    background: var(--wc-accent) !important;
+    color: #FFFFFF !important;
+    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    padding: 8px 24px !important;
+    font-weight: 700;
+    font-size: 0.88rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: var(--wc-transition-fast);
+  }
+
+  .save-btn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    background: var(--wc-accent-hover) !important;
+  }
+
+  .save-btn:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-text) !important;
+  }
+
+  .save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .cancel-btn {
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    background: var(--wc-surface) !important;
+    color: var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    padding: 8px 24px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: var(--wc-transition-fast);
+  }
+
+  .cancel-btn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    background: var(--wc-surface-alt) !important;
+  }
+
+  .cancel-btn:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-text) !important;
+  }
+
+  /* Typography / Fonts classes */
+  .font-mincho {
+    font-family: 'Shippori Mincho B1', serif;
+  }
+
+  .font-sans {
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  }
+
+  /* Animations & Responsive */
   .animate-fade-in {
     animation: fadeIn 0.25s ease-out;
   }
+
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  @media only screen and (max-width: 400px) {
+    .modal-footer {
+      flex-direction: column-reverse;
+      gap: 10px;
+    }
+    .modal-footer button {
+      width: 100% !important;
+      margin: 0 !important;
+    }
   }
 </style>

@@ -440,7 +440,7 @@ body::before {
 }
 
 /* ================================================================
-   Inputs — Warm Inset（温かいくぼみ）
+   Inputs — Vogue Solid Flat (直線的でミニマルな入力欄)
    ================================================================ */
 .nm-input,
 input[type=text].nm-input,
@@ -448,10 +448,10 @@ input[type=password].nm-input,
 input[type=email].nm-input,
 input[type=date].nm-input,
 textarea.nm-textarea {
-  background: rgba(245, 240, 232, 0.6) !important;
-  border: 1px solid var(--wc-border) !important;
-  border-radius: var(--wc-radius-sm) !important;
-  box-shadow: var(--nm-shadow-inset) !important;
+  background: rgba(245, 240, 232, 0.5) !important;
+  border: 1.5px solid var(--wc-border) !important;
+  border-radius: 0px !important; /* Sharp Vogue edges */
+  box-shadow: none !important; /* Flat minimalism */
   padding: 10px 14px !important;
   box-sizing: border-box !important;
   height: auto !important;
@@ -468,7 +468,7 @@ textarea.nm-textarea {
 :root.dark input[type=email].nm-input,
 :root.dark input[type=date].nm-input,
 :root.dark textarea.nm-textarea {
-  background: rgba(28, 23, 20, 0.6) !important;
+  background: rgba(28, 23, 20, 0.4) !important;
   border-color: var(--wc-border) !important;
 }
 
@@ -479,7 +479,7 @@ textarea.nm-textarea {
   :root:not(.light) input[type=email].nm-input,
   :root:not(.light) input[type=date].nm-input,
   :root:not(.light) textarea.nm-textarea {
-    background: rgba(28, 23, 20, 0.6) !important;
+    background: rgba(28, 23, 20, 0.4) !important;
     border-color: var(--wc-border) !important;
   }
 }
@@ -491,16 +491,16 @@ input[type=email].nm-input:focus,
 input[type=date].nm-input:focus,
 textarea.nm-textarea:focus {
   border-color: var(--wc-accent) !important;
-  box-shadow: var(--nm-shadow-inset-focus), 0 0 0 2px rgba(124, 107, 82, 0.12) !important;
+  box-shadow: none !important;
   outline: none !important;
 }
 
 /* Select */
 .nm-select {
-  background: rgba(245, 240, 232, 0.6) !important;
-  border: 1px solid var(--wc-border) !important;
-  border-radius: var(--wc-radius-sm) !important;
-  box-shadow: var(--nm-shadow-outset-sm) !important;
+  background: rgba(245, 240, 232, 0.5) !important;
+  border: 1.5px solid var(--wc-border) !important;
+  border-radius: 0px !important; /* Sharp edges */
+  box-shadow: none !important;
   padding: 10px 14px !important;
   outline: none;
   cursor: pointer;
@@ -511,6 +511,7 @@ textarea.nm-textarea:focus {
 
 .nm-select:focus {
   border-color: var(--wc-accent) !important;
+  box-shadow: none !important;
 }
 
 /* ================================================================

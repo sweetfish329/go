@@ -19,6 +19,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "$lib/*": ["src/lib/*"],
       "$components/*": ["src/components/*"]

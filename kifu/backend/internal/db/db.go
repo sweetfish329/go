@@ -5,43 +5,54 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "modernc.org/sqlite"
 )
 
 // InitDB initializes the database connection and runs migrations.
 func InitDB() (*sql.DB, error) {
-	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "postgres")
-	dbname := getEnv("DB_NAME", "kifu_store")
+	dbPath := getEnv("DB_PATH", "kifu.db")
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	// Ensure the parent directory of dbPath exists (especially important in container)
+	dir := filepath.Dir(dbPath)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create database directory: %w", err)
+		}
+	}
 
 	var db *sql.DB
 	var err error
 
-	// Retry connection since DB container might start slightly after backend
-	for i := 0; i < 10; i++ {
-		db, err = sql.Open("postgres", connStr)
+	// SQLite usually starts instantly, but retrying is harmless
+	for i := 0; i < 5; i++ {
+		db, err = sql.Open("sqlite", dbPath)
 		if err == nil {
 			err = db.Ping()
 			if err == nil {
 				break
 			}
 		}
-		log.Printf("Waiting for database connection (attempt %d/10)... error: %v", i+1, err)
-		time.Sleep(3 * time.Second) // 3 seconds
+		log.Printf("Waiting for database connection (attempt %d/5)... error: %v", i+1, err)
+		time.Sleep(1 * time.Second)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("could not connect to database after retries: %w", err)
+		return nil, fmt.Errorf("could not connect to SQLite database: %w", err)
 	}
 
-	log.Println("Database connection established successfully.")
+	log.Printf("SQLite database connection established successfully at %s.", dbPath)
+
+	// Enable Write-Ahead Logging (WAL) mode for better concurrent performance in SQLite
+	if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
+		log.Printf("Warning: failed to enable WAL mode: %v", err)
+	}
+	// Enable foreign key support
+	if _, err := db.Exec("PRAGMA foreign_keys=ON;"); err != nil {
+		log.Printf("Warning: failed to enable foreign keys: %v", err)
+	}
 
 	if err := runMigrations(db); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
@@ -61,7 +72,7 @@ func runMigrations(db *sql.DB) error {
 	// Create users table (password_hash is nullable to support OAuth-only accounts)
 	usersTableQuery := `
 	CREATE TABLE IF NOT EXISTS users (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		id TEXT PRIMARY KEY,
 		username VARCHAR(100) UNIQUE NOT NULL,
 		password_hash VARCHAR(255),
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -71,8 +82,8 @@ func runMigrations(db *sql.DB) error {
 	// Create user_oauths table
 	oauthsTableQuery := `
 	CREATE TABLE IF NOT EXISTS user_oauths (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		id TEXT PRIMARY KEY,
+		user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 		provider VARCHAR(50) NOT NULL,
 		provider_user_id VARCHAR(255) NOT NULL,
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -83,17 +94,22 @@ func runMigrations(db *sql.DB) error {
 	// Create kifus table
 	kifusTableQuery := `
 	CREATE TABLE IF NOT EXISTS kifus (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		id TEXT PRIMARY KEY,
 		title VARCHAR(255) NOT NULL,
 		black_player VARCHAR(100) NOT NULL,
 		black_rank VARCHAR(20) NOT NULL,
 		white_player VARCHAR(100) NOT NULL,
 		white_rank VARCHAR(20) NOT NULL,
-		game_date DATE NOT NULL,
+		game_date TEXT NOT NULL,
 		result VARCHAR(50) NOT NULL,
 		komi NUMERIC(3, 1) NOT NULL DEFAULT 6.5,
 		handicap INTEGER NOT NULL DEFAULT 0,
 		sgf_data TEXT NOT NULL,
+		uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+		share_token VARCHAR(100) UNIQUE,
+		share_expires_at TIMESTAMP,
+		is_private BOOLEAN NOT NULL DEFAULT TRUE,
+		ogp_image BLOB,
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);`
@@ -101,8 +117,8 @@ func runMigrations(db *sql.DB) error {
 	// Create reviews table
 	reviewsTableQuery := `
 	CREATE TABLE IF NOT EXISTS reviews (
-		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-		kifu_id UUID NOT NULL REFERENCES kifus(id) ON DELETE CASCADE,
+		id TEXT PRIMARY KEY,
+		kifu_id TEXT NOT NULL REFERENCES kifus(id) ON DELETE CASCADE,
 		move_number INTEGER NOT NULL,
 		node_path VARCHAR(255) NOT NULL,
 		reviewer_name VARCHAR(100) NOT NULL,
@@ -111,19 +127,6 @@ func runMigrations(db *sql.DB) error {
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);`
-
-	// Alter kifus table to add new columns if they do not exist
-	alterKifusQuery := `
-	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL;
-	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_token VARCHAR(100) UNIQUE;
-	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS share_expires_at TIMESTAMP;
-	ALTER TABLE kifus ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT TRUE;
-	`
-
-	// Drop NOT NULL constraint on users.password_hash if it exists (for existing tables)
-	alterUsersQuery := `
-	ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
-	`
 
 	// Create index for performance
 	indexQuery := `
@@ -169,16 +172,6 @@ func runMigrations(db *sql.DB) error {
 		return fmt.Errorf("failed to create reviews table: %w", err)
 	}
 
-	_, err = db.Exec(alterKifusQuery)
-	if err != nil {
-		return fmt.Errorf("failed to alter kifus table: %w", err)
-	}
-
-	_, err = db.Exec(alterUsersQuery)
-	if err != nil {
-		return fmt.Errorf("failed to alter users table: %w", err)
-	}
-
 	_, err = db.Exec(indexQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create reviews index: %w", err)
@@ -199,7 +192,7 @@ func runMigrations(db *sql.DB) error {
 	INSERT INTO site_settings (key, value) VALUES
 	('title', 'kifu_store'),
 	('tab_name', 'kifu_store'),
-	('favicon', ''),
+	('favicon', '/kifu-favicon.ico'),
 	('theme_color', '#4e342e'),
 	('external_url', '')
 	ON CONFLICT (key) DO NOTHING;`
