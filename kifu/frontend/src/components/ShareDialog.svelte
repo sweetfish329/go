@@ -447,12 +447,12 @@
   <div class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
     
     <!-- Header with Washi Clay Design Style -->
-    <div class="modal-header">
-      <span class="modal-title font-mincho">
-        <i class="material-icons modal-title-icon">share</i>
+    <div class="share-modal-header">
+      <span class="share-modal-title font-mincho">
+        <i class="material-icons share-modal-title-icon">share</i>
         棋譜を共有する
       </span>
-      <p class="modal-subtitle">
+      <p class="share-modal-subtitle">
         添削の依頼や閲覧用のリンクとQRコードです。
       </p>
     </div>
@@ -533,7 +533,7 @@
     </div>
 
     <!-- Actions Footer -->
-    <div class="modal-footer">
+    <div class="share-modal-footer">
       <button class="close-btn" onclick={onClose}>閉じる</button>
     </div>
   </div>
@@ -567,12 +567,12 @@
     padding: 32px 28px !important;
   }
 
-  .modal-header {
+  .share-modal-header {
     margin-bottom: 24px;
     text-align: left;
   }
 
-  .modal-title {
+  .share-modal-title {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -584,12 +584,12 @@
     text-transform: uppercase;
   }
 
-  .modal-title-icon {
+  .share-modal-title-icon {
     font-size: 1.5rem;
     color: var(--wc-accent);
   }
 
-  .modal-subtitle {
+  .share-modal-subtitle {
     margin: 0;
     font-size: 0.82rem;
     color: var(--wc-text-muted);
@@ -809,7 +809,7 @@
     color: var(--wc-text);
   }
 
-  .modal-footer {
+  .share-modal-footer {
     padding: 20px 0 0 0;
     display: flex;
     justify-content: flex-end;

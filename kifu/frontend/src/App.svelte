@@ -255,12 +255,12 @@
   <!-- Newspaper/Portfolio Masthead Header -->
   <header class="container" style="margin-top: 3rem; margin-bottom: 2rem; position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast -->
-    <div class="em-huge-title" style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); opacity: 0.08; font-size: 9.5rem; letter-spacing: 0.08em; width: 100%; text-align: center; font-family: 'Cormorant Garamond', serif; font-weight: 700;">
+    <div class="em-huge-title masthead-bg-title">
       RECORDINGS
     </div>
 
     <div class="em-newspaper-masthead" style="position: relative; z-index: 2; padding: 20px 0 10px 0;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 16px;">
+      <div class="masthead-flex-row">
         <!-- Left decoration: collage tag -->
         <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
           EDITION II // TOKYO
@@ -270,12 +270,12 @@
         <!-- svelte-ignore a11y_missing_attribute -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <a onclick={handleGoHome} class="cursor-pointer" style="text-decoration: none; position: relative; display: block;">
+        <a onclick={handleGoHome} class="cursor-pointer masthead-title-link" style="text-decoration: none; position: relative; display: block;">
           <!-- Overlap ornament text -->
-          <span style="position: absolute; top: -18px; left: -14px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-style: italic; color: var(--wc-accent); letter-spacing: 0.18em; font-weight: 600; text-shadow: 2px 2px 0 var(--wc-bg);">
+          <span class="masthead-ornament-text" style="position: absolute; top: -18px; left: -14px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-style: italic; color: var(--wc-accent); letter-spacing: 0.18em; font-weight: 600; text-shadow: 2px 2px 0 var(--wc-bg);">
             the collection of
           </span>
-          <span style="font-family: 'Cormorant Garamond', serif; font-size: 4.8rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: var(--wc-text); line-height: 0.85; display: block;">
+          <span class="masthead-site-title">
             {siteSettings.title}
           </span>
         </a>
@@ -288,11 +288,13 @@
 
       <!-- Meta Bar: Slanted/Collaged actions -->
       <div class="em-newspaper-meta-bar" style="border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 3px 3px 0px var(--wc-text); padding: 8px 16px; margin-bottom: 15px;">
-        <span style="font-weight: 600;">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-        <span style="opacity: 0.5; font-family: 'JetBrains Mono', monospace;">●</span>
-        <span style="font-weight: 600; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">CHRONICLE SELECTOR</span>
+        <div class="meta-info-group">
+          <span style="font-weight: 600;">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span style="opacity: 0.5; font-family: 'JetBrains Mono', monospace;">●</span>
+          <span style="font-weight: 600; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">CHRONICLE SELECTOR</span>
+        </div>
         
-        <div style="display: flex; align-items: center; gap: 18px;">
+        <div class="meta-action-group">
           <!-- Home Link -->
           <!-- svelte-ignore a11y_missing_attribute -->
           <a onclick={handleGoHome} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; font-weight: bold;">Home</a>
@@ -357,6 +359,130 @@
   .app-shell {
     min-height: 100vh;
     position: relative;
+  }
+
+  /* ---- Masthead responsive classes ---- */
+  .masthead-bg-title {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.08;
+    font-size: 9.5rem;
+    letter-spacing: 0.08em;
+    width: 100%;
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .masthead-flex-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: nowrap;
+  }
+
+  .meta-info-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .meta-action-group {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead-site-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 4.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--wc-text);
+    line-height: 0.85;
+    display: block;
+    white-space: nowrap;
+  }
+
+  /* スマホ向けレスポンシブ */
+  @media (max-width: 480px) {
+    .masthead-bg-title {
+      font-size: 4rem;
+    }
+
+    .masthead-flex-row {
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* モバイルではバッジを上段に、タイトルを2段目に全幅で */
+    .masthead-flex-row > :first-child {
+      order: 1;
+    }
+    .masthead-flex-row > :last-child {
+      order: 2;
+    }
+    .masthead-title-link {
+      order: 3;
+      width: 100%;
+      text-align: center;
+    }
+
+    .masthead-site-title {
+      font-size: clamp(1.8rem, 8vw, 2.4rem);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .masthead-title-link > span:first-child {
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      width: max-content;
+    }
+
+    .masthead-ornament-text {
+      display: none;
+    }
+
+    .em-newspaper-meta-bar {
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+    }
+
+    .meta-info-group {
+      justify-content: center;
+      font-size: 0.65rem;
+    }
+
+    .meta-action-group {
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .masthead-site-title {
+      font-size: 2rem;
+    }
   }
 
   main {
