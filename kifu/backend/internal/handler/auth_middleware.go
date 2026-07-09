@@ -2,8 +2,11 @@ package handler
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -22,7 +25,7 @@ var jwtSecret []byte
 func init() {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "kifu-secret-key-1234"
+		log.Fatalf("JWT_SECRET environment variable is not set")
 	}
 	jwtSecret = []byte(secret)
 }
@@ -83,23 +86,25 @@ func ValidateToken(tokenStr string) (*Claims, error) {
 	return claims, nil
 }
 
+func extractToken(r *http.Request) string {
+	cookie, err := r.Cookie("session_token")
+	if err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			return parts[1]
+		}
+	}
+	return ""
+}
+
 // AuthMiddleware protects routes that require authentication
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var tokenStr string
-		cookie, err := r.Cookie("session_token")
-		if err == nil && cookie.Value != "" {
-			tokenStr = cookie.Value
-		} else {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" {
-				parts := strings.Split(authHeader, " ")
-				if len(parts) == 2 && parts[0] == "Bearer" {
-					tokenStr = parts[1]
-				}
-			}
-		}
-
+		tokenStr := extractToken(r)
 		if tokenStr == "" {
 			respondWithError(w, http.StatusUnauthorized, "Authorization required")
 			return
@@ -120,20 +125,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 // OptionalAuthMiddleware parses the token if present, but does not reject requests if missing
 func OptionalAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var tokenStr string
-		cookie, err := r.Cookie("session_token")
-		if err == nil && cookie.Value != "" {
-			tokenStr = cookie.Value
-		} else {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" {
-				parts := strings.Split(authHeader, " ")
-				if len(parts) == 2 && parts[0] == "Bearer" {
-					tokenStr = parts[1]
-				}
-			}
-		}
-
+		tokenStr := extractToken(r)
 		if tokenStr == "" {
 			next.ServeHTTP(w, r)
 			return
@@ -154,20 +146,7 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 // AdminMiddleware protects routes that require admin privileges
 func AdminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var tokenStr string
-		cookie, err := r.Cookie("session_token")
-		if err == nil && cookie.Value != "" {
-			tokenStr = cookie.Value
-		} else {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" {
-				parts := strings.Split(authHeader, " ")
-				if len(parts) == 2 && parts[0] == "Bearer" {
-					tokenStr = parts[1]
-				}
-			}
-		}
-
+		tokenStr := extractToken(r)
 		if tokenStr == "" {
 			respondWithError(w, http.StatusUnauthorized, "Authorization required")
 			return
@@ -187,5 +166,47 @@ func AdminMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, UsernameKey, claims.Username)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// CSRFMiddleware handles CSRF protection using Double-Submit Cookie pattern for stateful API endpoints
+func CSRFMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip CSRF check for safe methods
+		if r.Method == "GET" || r.Method == "OPTIONS" || r.Method == "HEAD" {
+			// Generate or reuse CSRF token and set in cookie if not present or empty
+			cookie, err := r.Cookie("csrf_token")
+			var csrfToken string
+			if err != nil || cookie.Value == "" {
+				b := make([]byte, 16)
+				if _, err := rand.Read(b); err == nil {
+					csrfToken = hex.EncodeToString(b)
+					http.SetCookie(w, &http.Cookie{
+						Name:     "csrf_token",
+						Value:    csrfToken,
+						Path:     "/",
+						HttpOnly: false, // Must be readable by frontend JavaScript
+						SameSite: http.SameSiteLaxMode,
+					})
+				}
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Verify CSRF token for mutative requests
+		cookie, err := r.Cookie("csrf_token")
+		if err != nil || cookie.Value == "" {
+			respondWithError(w, http.StatusForbidden, "CSRF token missing")
+			return
+		}
+
+		headerToken := r.Header.Get("X-CSRF-Token")
+		if headerToken == "" || headerToken != cookie.Value {
+			respondWithError(w, http.StatusForbidden, "Invalid CSRF token")
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }

@@ -57,11 +57,12 @@ func main() {
 	mux.HandleFunc("GET /u/{userId}/{kifuId}", kifuHandler.RootHandler)
 	mux.Handle("/", fs)
 
-	// Wrap Mux with CORS middleware
+	// Wrap Mux with CORS and CSRF middleware
 	handlerWithCORS := enableCORS(mux)
+	handlerWithCSRF := handler.CSRFMiddleware(handlerWithCORS)
 
 	log.Printf("Server listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, handlerWithCORS); err != nil {
+	if err := http.ListenAndServe(":"+port, handlerWithCSRF); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

@@ -105,6 +105,43 @@ func (h *KifuHandler) Get(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, kifu)
 }
 
+func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string) (*model.Kifu, error) {
+	rootNode, err := sgf.Parse(sgfData)
+	if err != nil {
+		return nil, err
+	}
+
+	meta := rootNode.ExtractMetadata()
+
+	title := reqTitle
+	if title == "" {
+		title = meta.BlackPlayer + " vs " + meta.WhitePlayer
+		if title == " vs " {
+			title = "Untitled Game"
+		}
+	}
+
+	var uploadedBy *string
+	if userID != "admin" {
+		uploadedBy = &userID
+	}
+
+	return &model.Kifu{
+		Title:       title,
+		BlackPlayer: meta.BlackPlayer,
+		BlackRank:   meta.BlackRank,
+		WhitePlayer: meta.WhitePlayer,
+		WhiteRank:   meta.WhiteRank,
+		GameDate:    meta.Date,
+		Result:      meta.Result,
+		Komi:        meta.Komi,
+		Handicap:    meta.Handicap,
+		SgfData:     sgfData,
+		UploadedBy:  uploadedBy,
+		IsPrivate:   true,
+	}, nil
+}
+
 func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(UserIDKey).(string)
 	if !ok {
@@ -126,42 +163,10 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse SGF to validate and extract metadata
-	rootNode, err := sgf.Parse(req.SgfData)
+	kifu, err := PrepareKifuFromSgf(req.SgfData, req.Title, userID)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid SGF format: "+err.Error())
 		return
-	}
-
-	meta := rootNode.ExtractMetadata()
-
-	// If title is not provided, use a default title
-	title := req.Title
-	if title == "" {
-		title = meta.BlackPlayer + " vs " + meta.WhitePlayer
-		if title == " vs " {
-			title = "Untitled Game"
-		}
-	}
-
-	var uploadedBy *string
-	if userID != "admin" {
-		uploadedBy = &userID
-	}
-
-	kifu := &model.Kifu{
-		Title:       title,
-		BlackPlayer: meta.BlackPlayer,
-		BlackRank:   meta.BlackRank,
-		WhitePlayer: meta.WhitePlayer,
-		WhiteRank:   meta.WhiteRank,
-		GameDate:    meta.Date,
-		Result:      meta.Result,
-		Komi:        meta.Komi,
-		Handicap:    meta.Handicap,
-		SgfData:     req.SgfData,
-		UploadedBy:  uploadedBy,
-		IsPrivate:   true,
 	}
 
 	if err := h.repo.Save(kifu); err != nil {
@@ -548,6 +553,95 @@ func (h *KifuHandler) serveGeneratedOgImage(w http.ResponseWriter, kifu *model.K
 	}
 }
 
+func resolveSchemeAndHost(r *http.Request) (string, string) {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		scheme = proto
+	}
+	return scheme, r.Host
+}
+
+func BuildKifuOgpMeta(kifu *model.Kifu, userId string, kifuId string, scheme string, host string, escapedTabName string) string {
+	title := html.EscapeString(kifu.Title)
+	escapedBlack := html.EscapeString(kifu.BlackPlayer)
+	escapedWhite := html.EscapeString(kifu.WhitePlayer)
+	escapedResult := html.EscapeString(kifu.Result)
+	description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", escapedBlack, escapedWhite)
+	if kifu.Result != "" {
+		description += fmt.Sprintf(" (結果: %s)", escapedResult)
+	}
+
+	robotsTag := ""
+	if kifu.IsPrivate {
+		robotsTag = `<meta name="robots" content="noindex, nofollow" />`
+	} else {
+		robotsTag = `<meta name="robots" content="index, follow" />`
+	}
+
+	ogImageUrl := ""
+	if kifu.ShareToken != nil && *kifu.ShareToken != "" {
+		ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, *kifu.ShareToken, kifu.UpdatedAt.Unix())
+	} else if !kifu.IsPrivate {
+		ogImageUrl = fmt.Sprintf("%s://%s/api/u/%s/kifus/%s/og-image?t=%d", scheme, host, userId, kifuId, kifu.UpdatedAt.Unix())
+	}
+
+	ogpMeta := fmt.Sprintf(`
+	%s
+	<meta property="og:title" content="%s | %s" />
+	<meta property="og:description" content="%s" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="%s | %s" />
+	<meta name="twitter:description" content="%s" />`,
+		robotsTag, title, escapedTabName, description,
+		title, escapedTabName, description,
+	)
+
+	if ogImageUrl != "" {
+		ogpMeta += fmt.Sprintf(`
+		<meta property="og:image" content="%s" />
+		<meta name="twitter:image" content="%s" />`, ogImageUrl, ogImageUrl)
+	}
+	return ogpMeta
+}
+
+func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, host string, escapedTabName string) string {
+	title := html.EscapeString(kifu.Title)
+	escapedBlack := html.EscapeString(kifu.BlackPlayer)
+	escapedWhite := html.EscapeString(kifu.WhitePlayer)
+	escapedResult := html.EscapeString(kifu.Result)
+	description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", escapedBlack, escapedWhite)
+	if kifu.Result != "" {
+		description += fmt.Sprintf(" (結果: %s)", escapedResult)
+	}
+
+	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, shareToken, kifu.UpdatedAt.Unix())
+
+	return fmt.Sprintf(`
+	<meta property="og:title" content="%s | %s" />
+	<meta property="og:description" content="%s" />
+	<meta property="og:image" content="%s" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="%s | %s" />
+	<meta name="twitter:description" content="%s" />
+	<meta name="twitter:image" content="%s" />`,
+		title, escapedTabName, description, ogImageUrl,
+		title, escapedTabName, description, ogImageUrl,
+	)
+}
+
+func BuildUserListOgpMeta(escapedTabName string) string {
+	return fmt.Sprintf(`
+	<meta name="robots" content="index, follow" />
+	<meta property="og:title" content="公開棋譜一覧 | %s" />
+	<meta property="og:description" content="ユーザーの一般公開棋譜一覧です。" />
+	<meta property="og:type" content="website" />`, escapedTabName)
+}
+
 // RootHandler handles serving the index.html and dynamically injecting site settings and OGP tags
 func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	// Retrieve site settings
@@ -614,99 +708,19 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	if kifuId != "" && userId != "" {
 		kifu, err := h.repo.FindByIDAndUser(kifuId, userId)
 		if err == nil && kifu != nil {
-			title := html.EscapeString(kifu.Title)
-			escapedBlack := html.EscapeString(kifu.BlackPlayer)
-			escapedWhite := html.EscapeString(kifu.WhitePlayer)
-			escapedResult := html.EscapeString(kifu.Result)
-			description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", escapedBlack, escapedWhite)
-			if kifu.Result != "" {
-				description += fmt.Sprintf(" (結果: %s)", escapedResult)
-			}
-
-			scheme := "http"
-			if r.TLS != nil {
-				scheme = "https"
-			}
-			if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-				scheme = proto
-			}
-			host := r.Host
-
-			robotsTag := ""
-			if kifu.IsPrivate {
-				robotsTag = `<meta name="robots" content="noindex, nofollow" />`
-			} else {
-				robotsTag = `<meta name="robots" content="index, follow" />`
-			}
-
-			ogImageUrl := ""
-			if kifu.ShareToken != nil && *kifu.ShareToken != "" {
-				ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, *kifu.ShareToken, kifu.UpdatedAt.Unix())
-			} else if !kifu.IsPrivate {
-				ogImageUrl = fmt.Sprintf("%s://%s/api/u/%s/kifus/%s/og-image?t=%d", scheme, host, userId, kifuId, kifu.UpdatedAt.Unix())
-			}
-
-			ogpMeta = fmt.Sprintf(`
-			%s
-			<meta property="og:title" content="%s | %s" />
-			<meta property="og:description" content="%s" />
-			<meta property="og:type" content="website" />
-			<meta name="twitter:card" content="summary_large_image" />
-			<meta name="twitter:title" content="%s | %s" />
-			<meta name="twitter:description" content="%s" />`,
-				robotsTag, title, escapedTabName, description,
-				title, escapedTabName, description,
-			)
-
-			if ogImageUrl != "" {
-				ogpMeta += fmt.Sprintf(`
-				<meta property="og:image" content="%s" />
-				<meta name="twitter:image" content="%s" />`, ogImageUrl, ogImageUrl)
-			}
+			scheme, host := resolveSchemeAndHost(r)
+			ogpMeta = BuildKifuOgpMeta(kifu, userId, kifuId, scheme, host, escapedTabName)
 		}
 	} else if userId != "" {
-		ogpMeta = fmt.Sprintf(`
-		<meta name="robots" content="index, follow" />
-		<meta property="og:title" content="公開棋譜一覧 | %s" />
-		<meta property="og:description" content="ユーザーの一般公開棋譜一覧です。" />
-		<meta property="og:type" content="website" />`, escapedTabName)
+		ogpMeta = BuildUserListOgpMeta(escapedTabName)
 	} else {
 		// Fallback to share token if any
 		shareToken := r.URL.Query().Get("share")
 		if shareToken != "" {
 			kifu, err := h.repo.FindByShareToken(shareToken)
 			if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.Before(time.Now())) {
-				title := html.EscapeString(kifu.Title)
-				escapedBlack := html.EscapeString(kifu.BlackPlayer)
-				escapedWhite := html.EscapeString(kifu.WhitePlayer)
-				escapedResult := html.EscapeString(kifu.Result)
-				description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", escapedBlack, escapedWhite)
-				if kifu.Result != "" {
-					description += fmt.Sprintf(" (結果: %s)", escapedResult)
-				}
-
-				scheme := "http"
-				if r.TLS != nil {
-					scheme = "https"
-				}
-				if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-					scheme = proto
-				}
-				host := r.Host
-				ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, shareToken, kifu.UpdatedAt.Unix())
-
-				ogpMeta = fmt.Sprintf(`
-				<meta property="og:title" content="%s | %s" />
-				<meta property="og:description" content="%s" />
-				<meta property="og:image" content="%s" />
-				<meta property="og:type" content="website" />
-				<meta name="twitter:card" content="summary_large_image" />
-				<meta name="twitter:title" content="%s | %s" />
-				<meta name="twitter:description" content="%s" />
-				<meta name="twitter:image" content="%s" />`,
-					title, escapedTabName, description, ogImageUrl,
-					title, escapedTabName, description, ogImageUrl,
-				)
+				scheme, host := resolveSchemeAndHost(r)
+				ogpMeta = BuildSharedKifuOgpMeta(kifu, shareToken, scheme, host, escapedTabName)
 			}
 		}
 	}
