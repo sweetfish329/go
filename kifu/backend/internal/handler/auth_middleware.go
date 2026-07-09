@@ -19,6 +19,7 @@ type contextKey string
 
 const UserIDKey contextKey = "userID"
 const UsernameKey contextKey = "username"
+const IsAdminKey contextKey = "isAdmin"
 
 var jwtSecret []byte
 
@@ -118,6 +119,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, UsernameKey, claims.Username)
+		ctx = context.WithValue(ctx, IsAdminKey, claims.IsAdmin)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -135,6 +137,7 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 		if err == nil {
 			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 			ctx = context.WithValue(ctx, UsernameKey, claims.Username)
+			ctx = context.WithValue(ctx, IsAdminKey, claims.IsAdmin)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
@@ -165,6 +168,7 @@ func AdminMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, UsernameKey, claims.Username)
+		ctx = context.WithValue(ctx, IsAdminKey, claims.IsAdmin)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

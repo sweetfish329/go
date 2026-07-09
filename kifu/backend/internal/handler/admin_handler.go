@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 	"github.com/sweetfish329/go/kifu/backend/internal/repository"
 )
@@ -89,11 +88,13 @@ func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate a stable and unique UserID by hashing the admin username
-	// This avoids hardcoding "admin" while remaining stable without relying on database persistence.
-	hasher := sha256.New()
-	hasher.Write([]byte(adminUser))
-	adminUserID := hex.EncodeToString(hasher.Sum(nil))
+	// Generate a dynamic and unique UserID using UUIDv7
+	uID, err := uuid.NewV7()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate UUIDv7: "+err.Error())
+		return
+	}
+	adminUserID := uID.String()
 
 	token, err := GenerateAdminToken(adminUserID, adminUser)
 	if err != nil {

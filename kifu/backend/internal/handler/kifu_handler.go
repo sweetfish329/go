@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -108,10 +107,10 @@ func (h *KifuHandler) Get(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, kifu)
 }
 
-func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string) (*model.Kifu, error) {
+func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string, isAdmin bool) (*model.Kifu, error) {
 	rootNode, err := sgf.Parse(sgfData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse SGF: %w", err)
 	}
 
 	meta := rootNode.ExtractMetadata()
@@ -122,17 +121,6 @@ func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string) (*model.
 		if title == " vs " {
 			title = "Untitled Game"
 		}
-	}
-
-	// Determine if the user is the admin by hashing the ADMIN_USERNAME env var
-	// and comparing it with the userID.
-	adminUser := os.Getenv("ADMIN_USERNAME")
-	isAdmin := false
-	if adminUser != "" {
-		hasher := sha256.New()
-		hasher.Write([]byte(adminUser))
-		adminUserID := hex.EncodeToString(hasher.Sum(nil))
-		isAdmin = userID == adminUserID
 	}
 
 	var uploadedBy *string
@@ -177,7 +165,9 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kifu, err := PrepareKifuFromSgf(req.SgfData, req.Title, userID)
+	isAdmin, _ := r.Context().Value(IsAdminKey).(bool)
+
+	kifu, err := PrepareKifuFromSgf(req.SgfData, req.Title, userID, isAdmin)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid SGF format: "+err.Error())
 		return
