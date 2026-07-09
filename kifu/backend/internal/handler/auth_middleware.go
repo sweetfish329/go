@@ -51,10 +51,10 @@ func GenerateToken(userID string, username string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-func GenerateAdminToken(username string) (string, error) {
+func GenerateAdminToken(userID string, username string) (string, error) {
 	expirationTime := time.Now().Add(12 * time.Hour) // 12 hours
 	claims := &Claims{
-		UserID:   "admin",
+		UserID:   userID,
 		Username: username,
 		IsAdmin:  true,
 		RegisteredClaims: jwt.RegisteredClaims{

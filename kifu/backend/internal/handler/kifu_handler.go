@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -123,8 +124,19 @@ func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string) (*model.
 		}
 	}
 
+	// Determine if the user is the admin by hashing the ADMIN_USERNAME env var
+	// and comparing it with the userID.
+	adminUser := os.Getenv("ADMIN_USERNAME")
+	isAdmin := false
+	if adminUser != "" {
+		hasher := sha256.New()
+		hasher.Write([]byte(adminUser))
+		adminUserID := hex.EncodeToString(hasher.Sum(nil))
+		isAdmin = userID == adminUserID
+	}
+
 	var uploadedBy *string
-	if userID != "admin" {
+	if !isAdmin {
 		uploadedBy = &userID
 	}
 

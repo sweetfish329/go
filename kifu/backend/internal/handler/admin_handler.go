@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -87,7 +89,13 @@ func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := GenerateAdminToken(adminUser)
+	// Generate a stable and unique UserID by hashing the admin username
+	// This avoids hardcoding "admin" while remaining stable without relying on database persistence.
+	hasher := sha256.New()
+	hasher.Write([]byte(adminUser))
+	adminUserID := hex.EncodeToString(hasher.Sum(nil))
+
+	token, err := GenerateAdminToken(adminUserID, adminUser)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate admin token")
 		return
