@@ -54,7 +54,7 @@
     return player.history[idx].board;
   });
 
-  async function handleOgpMoveChange() {
+  async function handleUpdateOgpOnly() {
     if (loading) return;
     loading = true;
     try {
@@ -572,7 +572,6 @@
               min="0"
               max={maxOgpIndex}
               bind:value={ogpMoveNumber}
-              onchange={handleOgpMoveChange}
               disabled={loading}
               class="ogp-range"
             />
@@ -583,7 +582,6 @@
               min="0"
               max={maxOgpIndex}
               bind:value={ogpMoveNumber}
-              onchange={handleOgpMoveChange}
               disabled={loading}
               class="ogp-number-input font-mono"
             />
@@ -591,10 +589,15 @@
           </div>
         </div>
         
+        <button class="regenerate-btn font-sans" onclick={handleUpdateOgpOnly} disabled={loading} style="margin-top: 12px; width: 100%;">
+          <i class="material-icons btn-icon" class:spin={loading}>photo_camera</i>
+          この局面でOGP画像を更新
+        </button>
+
         {#if ogpMoveNumber !== currentPlayIndex}
           <div class="ogp-apply-tip font-sans">
             <i class="material-icons" style="font-size: 0.9rem; vertical-align: middle; margin-right: 4px;">info_outline</i>
-            手数を変更すると、自動的にOGP画像がアップロードされます。
+            「OGP画像を更新」ボタンを押すと変更が適用されます。
           </div>
         {/if}
       </div>
