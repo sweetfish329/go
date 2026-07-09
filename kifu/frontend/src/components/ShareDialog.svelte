@@ -2,10 +2,13 @@
   import { onMount } from 'svelte';
   import QRCode from 'qrcode';
   import { auth } from '../lib/auth.svelte';
+  import Board from './Board.svelte';
+  import { SgfPlayer } from '../lib/sgfPlayer';
 
   interface Kifu {
     id: string;
     title: string;
+    sgf_data?: string;
     is_private?: boolean;
     share_token?: string;
     black_player?: string;
@@ -16,8 +19,9 @@
     game_date?: string;
   }
 
-  let { kifu, onClose, onUpdate } = $props<{
+  let { kifu, currentPlayIndex = 0, onClose, onUpdate } = $props<{
     kifu: Kifu;
+    currentPlayIndex?: number;
     onClose: () => void;
     onUpdate: (updatedKifu: Kifu) => void;
   }>();
@@ -26,6 +30,48 @@
   let qrCodeSvg = $state("");
   let copySuccess = $state(false);
   let isPrivate = $state(false);
+
+  let ogpMoveNumber = $state(0);
+  let player = $state<SgfPlayer | null>(null);
+  let maxOgpIndex = $state(0);
+
+  $effect(() => {
+    if (kifu.sgf_data) {
+      const boardSize = kifu.handicap > 0 || kifu.sgf_data.includes("SZ[19]") ? 19 : 19;
+      player = new SgfPlayer(kifu.sgf_data, boardSize);
+      maxOgpIndex = player.history.length - 1;
+      
+      // Ensure initial selection is within valid bounds
+      if (ogpMoveNumber > maxOgpIndex) {
+        ogpMoveNumber = maxOgpIndex;
+      }
+    }
+  });
+
+  const ogpBoardState = $derived.by(() => {
+    if (!player || player.history.length === 0) return [];
+    const idx = Math.min(Math.max(0, ogpMoveNumber), maxOgpIndex);
+    return player.history[idx].board;
+  });
+
+  async function handleOgpMoveChange() {
+    if (loading) return;
+    loading = true;
+    try {
+      await generateAndUploadOgp();
+      const M = getM();
+      if (M) {
+        M.toast({ html: `${ogpMoveNumber}手目の局面をOGP画像に設定しました！`, classes: 'green darken-1' });
+      }
+    } catch (err: any) {
+      const M = getM();
+      if (M) {
+        M.toast({ html: 'OGP画像の更新に失敗しました: ' + err.message, classes: 'red darken-1' });
+      }
+    } finally {
+      loading = false;
+    }
+  }
 
   $effect(() => {
     isPrivate = kifu.is_private !== false;
@@ -73,14 +119,15 @@
 
   // Automatically render and upload OGP image when shared dialog is mounted
   onMount(() => {
+    ogpMoveNumber = currentPlayIndex;
     // Delay slightly to ensure Board SVG is rendered in DOM
     setTimeout(generateAndUploadOgp, 500);
   });
 
   function generateAndUploadOgp(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Prioritize the hidden final state board so OGP is always generated from the finished game state
-      const svgEl = (document.querySelector(".final-board-hidden svg") || document.querySelector(".go-board")) as SVGSVGElement;
+      // Prioritize the hidden selected state board so OGP is generated from the chosen game state
+      const svgEl = (document.querySelector(".ogp-board-hidden svg") || document.querySelector(".go-board")) as SVGSVGElement;
       if (!svgEl) {
         console.warn("Go board SVG not found");
         resolve(); // Resolve silently if board is not visible
@@ -441,6 +488,13 @@
   }
 </script>
 
+<!-- Hidden board of the selected state for OGP generation -->
+<div style="position: absolute; left: -9999px; top: -9999px; visibility: hidden; pointer-events: none;">
+  <div class="ogp-board-hidden">
+    <Board board={ogpBoardState} size={kifu.handicap > 0 || (kifu.sgf_data && kifu.sgf_data.includes("SZ[19]")) ? 19 : 19} interactive={false} />
+  </div>
+</div>
+
 <!-- Backdrop click triggers onClose -->
 <div class="share-modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
   <!-- Content click propagation stopped to avoid closing -->
@@ -491,6 +545,58 @@
           <i class="material-icons btn-icon" class:spin={loading}>{loading ? 'sync' : 'refresh'}</i>
           URL再発行 & OGP画像再生成
         </button>
+      </div>
+
+      <!-- OGP Customization Section -->
+      <div class="ogp-custom-section">
+        <h6 class="ogp-section-title font-mincho">
+          <i class="material-icons ogp-icon">image</i>
+          OGP画像の局面指定（サムネイル）
+        </h6>
+        <p class="ogp-section-desc">
+          SNS等でシェアした際に表示される対局の局面（手数）をカスタマイズできます。
+        </p>
+
+        <!-- Preview Board Container -->
+        <div class="ogp-preview-container">
+          <div class="ogp-preview-board">
+            <Board board={ogpBoardState} size={kifu.handicap > 0 || (kifu.sgf_data && kifu.sgf_data.includes("SZ[19]")) ? 19 : 19} interactive={false} />
+          </div>
+        </div>
+
+        <!-- Slider and input row -->
+        <div class="ogp-control-row">
+          <div class="ogp-slider-field">
+            <input
+              type="range"
+              min="0"
+              max={maxOgpIndex}
+              bind:value={ogpMoveNumber}
+              onchange={handleOgpMoveChange}
+              disabled={loading}
+              class="ogp-range"
+            />
+          </div>
+          <div class="ogp-number-field">
+            <input
+              type="number"
+              min="0"
+              max={maxOgpIndex}
+              bind:value={ogpMoveNumber}
+              onchange={handleOgpMoveChange}
+              disabled={loading}
+              class="ogp-number-input font-mono"
+            />
+            <span class="ogp-move-unit">手目</span>
+          </div>
+        </div>
+        
+        {#if ogpMoveNumber !== currentPlayIndex}
+          <div class="ogp-apply-tip font-sans">
+            <i class="material-icons" style="font-size: 0.9rem; vertical-align: middle; margin-right: 4px;">info_outline</i>
+            手数を変更すると、自動的にOGP画像がアップロードされます。
+          </div>
+        {/if}
       </div>
 
       <!-- Privacy Selector: Segmented editorial block -->
@@ -861,6 +967,110 @@
 
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* OGP Custom Section Styling */
+  .ogp-custom-section {
+    margin-bottom: 24px;
+    border: 1.5px solid var(--wc-border);
+    background: var(--wc-surface-alt);
+    padding: 16px;
+    text-align: left;
+    box-shadow: 3px 3px 0px var(--wc-shadow-dark);
+  }
+
+  .ogp-section-title {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--wc-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  .ogp-icon {
+    font-size: 1.1rem;
+    color: var(--wc-accent);
+  }
+
+  .ogp-section-desc {
+    margin: 0 0 16px 0;
+    font-size: 0.75rem;
+    color: var(--wc-text-muted);
+    line-height: 1.4;
+  }
+
+  .ogp-preview-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .ogp-preview-board {
+    width: 160px;
+    margin: 0 auto;
+  }
+  
+  .ogp-preview-board :global(.board-container) {
+    max-width: 160px !important;
+    padding: 6px !important;
+    box-shadow: 3px 3px 0px var(--wc-text) !important;
+  }
+
+  .ogp-control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .ogp-slider-field {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .ogp-range {
+    width: 100%;
+    margin: 0 !important;
+  }
+
+  .ogp-number-field {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .ogp-number-input {
+    width: 60px !important;
+    height: 32px !important;
+    margin: 0 !important;
+    padding: 0 4px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    background: var(--wc-surface) !important;
+    color: var(--wc-text) !important;
+    text-align: center;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+  }
+
+  .ogp-move-unit {
+    font-size: 0.8rem;
+    color: var(--wc-text);
+    font-weight: 700;
+  }
+
+  .ogp-apply-tip {
+    font-size: 0.72rem;
+    color: var(--wc-accent);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-weight: 600;
   }
 
   /* Animation and responsive styles */
