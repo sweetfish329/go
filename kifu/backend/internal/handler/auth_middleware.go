@@ -172,6 +172,8 @@ func AdminMiddleware(next http.Handler) http.Handler {
 // CSRFMiddleware handles CSRF protection using Double-Submit Cookie pattern for stateful API endpoints
 func CSRFMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || os.Getenv("COOKIE_SECURE") == "true"
+
 		// Skip CSRF check for safe methods
 		if r.Method == "GET" || r.Method == "OPTIONS" || r.Method == "HEAD" {
 			// Generate or reuse CSRF token and set in cookie if not present or empty
@@ -186,6 +188,7 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 						Value:    csrfToken,
 						Path:     "/",
 						HttpOnly: false, // Must be readable by frontend JavaScript
+						Secure:   secure,
 						SameSite: http.SameSiteLaxMode,
 					})
 				}

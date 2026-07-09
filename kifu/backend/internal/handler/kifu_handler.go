@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html"
+	"image/jpeg"
 	"image/png"
 	"io"
 	"net/http"
@@ -496,6 +498,24 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	contentType := http.DetectContentType(imgData)
+	if contentType == "image/png" {
+		// Verify that it can be decoded as a valid PNG
+		if _, err := png.Decode(bytes.NewReader(imgData)); err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid PNG image data: "+err.Error())
+			return
+		}
+	} else if contentType == "image/jpeg" {
+		// Verify that it can be decoded as a valid JPEG
+		if _, err := jpeg.Decode(bytes.NewReader(imgData)); err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid JPEG image data: "+err.Error())
+			return
+		}
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Invalid image format. Only PNG and JPEG are allowed.")
+		return
+	}
+
 	err = h.repo.UpdateOgpImage(id, imgData)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP image: "+err.Error())
@@ -583,9 +603,9 @@ func BuildKifuOgpMeta(kifu *model.Kifu, userId string, kifuId string, scheme str
 
 	ogImageUrl := ""
 	if kifu.ShareToken != nil && *kifu.ShareToken != "" {
-		ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, *kifu.ShareToken, kifu.UpdatedAt.Unix())
+		ogImageUrl = fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, html.EscapeString(host), *kifu.ShareToken, kifu.UpdatedAt.Unix())
 	} else if !kifu.IsPrivate {
-		ogImageUrl = fmt.Sprintf("%s://%s/api/u/%s/kifus/%s/og-image?t=%d", scheme, host, userId, kifuId, kifu.UpdatedAt.Unix())
+		ogImageUrl = fmt.Sprintf("%s://%s/api/u/%s/kifus/%s/og-image?t=%d", scheme, html.EscapeString(host), userId, kifuId, kifu.UpdatedAt.Unix())
 	}
 
 	ogpMeta := fmt.Sprintf(`
@@ -618,7 +638,7 @@ func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, 
 		description += fmt.Sprintf(" (結果: %s)", escapedResult)
 	}
 
-	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, host, shareToken, kifu.UpdatedAt.Unix())
+	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, html.EscapeString(host), shareToken, kifu.UpdatedAt.Unix())
 
 	return fmt.Sprintf(`
 	<meta property="og:title" content="%s | %s" />
@@ -674,6 +694,11 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	// Replace favicon if configured
 	favicon := settings["favicon"]
 	if favicon != "" {
+		// Validate that the favicon starts with http://, https://, or a safe relative path (e.g. /) to prevent javascript: XSS
+		isSafeFavicon := strings.HasPrefix(favicon, "http://") || strings.HasPrefix(favicon, "https://") || strings.HasPrefix(favicon, "/")
+		if !isSafeFavicon {
+			favicon = "/kifu-favicon.ico"
+		}
 		escapedFavicon := html.EscapeString(favicon)
 		htmlContent = strings.Replace(htmlContent, `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`, `<link rel="icon" href="`+escapedFavicon+`" />`, 1)
 	}
@@ -718,7 +743,7 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		shareToken := r.URL.Query().Get("share")
 		if shareToken != "" {
 			kifu, err := h.repo.FindByShareToken(shareToken)
-			if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.Before(time.Now())) {
+			if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.After(time.Now())) {
 				scheme, host := resolveSchemeAndHost(r)
 				ogpMeta = BuildSharedKifuOgpMeta(kifu, shareToken, scheme, host, escapedTabName)
 			}

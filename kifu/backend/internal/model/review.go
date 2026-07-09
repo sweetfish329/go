@@ -6,6 +6,7 @@ import "time"
 type Review struct {
 	ID           string    `json:"id"`
 	KifuID       string    `json:"kifu_id"`
+	UserID       *string   `json:"user_id,omitempty"` // ID of the reviewer (null if anonymous/guest)
 	MoveNumber   int       `json:"move_number"`
 	NodePath     string    `json:"node_path"`
 	ReviewerName string    `json:"reviewer_name"`

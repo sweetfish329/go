@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -9,6 +10,10 @@ import (
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 	"github.com/sweetfish329/go/kifu/backend/internal/repository"
 )
+
+func subtleConstantTimeCompare(a, b string) int {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b))
+}
 
 type AdminHandler struct {
 	oauthRepo       *repository.OAuthRepository
@@ -72,7 +77,12 @@ func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Username != adminUser || req.Password != adminPass {
+	// Convert strings to byte slices for subtle comparison
+	// Note: username check is also done in constant-time to avoid revealing username existence via timing
+	usernameMatch := subtleConstantTimeCompare(req.Username, adminUser)
+	passwordMatch := subtleConstantTimeCompare(req.Password, adminPass)
+
+	if usernameMatch != 1 || passwordMatch != 1 {
 		respondWithError(w, http.StatusUnauthorized, "Invalid admin credentials")
 		return
 	}
@@ -82,6 +92,16 @@ func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate admin token")
 		return
 	}
+
+	secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || os.Getenv("COOKIE_SECURE") == "true"
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	respondWithJSON(w, http.StatusOK, AdminLoginResponse{Token: token})
 }

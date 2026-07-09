@@ -49,10 +49,8 @@ func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/register", h.Register)
 	mux.HandleFunc("POST /api/auth/login", h.Login)
 	mux.HandleFunc("POST /api/auth/logout", h.Logout)
-	mux.HandleFunc("POST /api/auth/oauth", h.OAuthLogin)
 	mux.HandleFunc("GET /api/auth/providers", h.GetEnabledProviders)
 	mux.HandleFunc("GET /api/users/{userId}/username", h.GetUsername)
-
 	// Real OAuth2 flow endpoints
 	mux.HandleFunc("GET /api/auth/oauth/redirect/{provider}", h.OAuth2Redirect)
 	mux.HandleFunc("GET /api/auth/oauth/callback/{provider}", h.OAuth2Callback)
@@ -68,61 +66,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusForbidden, "Password login is disabled. Please use OAuth.")
-}
-
-func (h *AuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
-	var req OAuthLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	if req.Provider == "" || req.ProviderUserID == "" {
-		respondWithError(w, http.StatusBadRequest, "provider and provider_user_id are required")
-		return
-	}
-
-	// 1. Check if user already registered this oauth
-	user, err := h.repo.FindByOAuth(req.Provider, req.ProviderUserID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if user == nil {
-		// 2. Register new user for this oauth identity
-		baseUsername := req.DefaultUsername
-		if baseUsername == "" {
-			baseUsername = req.Provider + "_user"
-		}
-
-		uniqueName := h.getUniqueUsername(baseUsername)
-
-		user = &model.User{
-			Username: uniqueName,
-		}
-		oauth := &model.UserOAuth{
-			Provider:       req.Provider,
-			ProviderUserID: req.ProviderUserID,
-		}
-
-		if err := h.repo.CreateWithOAuth(user, oauth); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
-
-	// 3. Generate token
-	token, err := GenerateToken(user.ID, user.Username)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
-		return
-	}
-
-	respondWithJSON(w, http.StatusOK, AuthResponse{
-		Token: token,
-		User:  user,
-	})
 }
 
 func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
@@ -288,42 +231,50 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	state := r.FormValue("state")
 
+	// Helper to clear oauth cookies
+	clearOAuthCookies := func() {
+		if provider != "" {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "oauth_state_" + provider,
+				Value:    "",
+				Path:     "/",
+				MaxAge:   -1,
+				HttpOnly: true,
+			})
+			http.SetCookie(w, &http.Cookie{
+				Name:     "oauth_verifier_" + provider,
+				Value:    "",
+				Path:     "/",
+				MaxAge:   -1,
+				HttpOnly: true,
+			})
+		}
+	}
+
 	if provider == "" || code == "" || state == "" {
+		clearOAuthCookies()
 		respondWithError(w, http.StatusBadRequest, "Missing parameters")
 		return
 	}
 
 	cookie, err := r.Cookie("oauth_state_" + provider)
 	if err != nil || cookie.Value != state {
+		clearOAuthCookies()
 		respondWithError(w, http.StatusBadRequest, "Invalid OAuth state")
 		return
 	}
 
-	// Clear state cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "oauth_state_" + provider,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
-
 	// Retrieve PKCE verifier
 	verifierCookie, err := r.Cookie("oauth_verifier_" + provider)
 	if err != nil {
+		clearOAuthCookies()
 		respondWithError(w, http.StatusBadRequest, "Missing OAuth verifier")
 		return
 	}
 	verifier := verifierCookie.Value
 
-	// Clear verifier cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "oauth_verifier_" + provider,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
+	// Clear cookies now that we successfully read them
+	clearOAuthCookies()
 
 	setting, err := h.oauthRepo.FindByProvider(provider)
 	if err != nil || setting == nil || !setting.Enabled {
@@ -428,6 +379,20 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 	})
+
+	// Rotate CSRF token upon successful OAuth authentication
+	newCsrfBytes := make([]byte, 16)
+	if _, err := rand.Read(newCsrfBytes); err == nil {
+		newCsrfToken := hex.EncodeToString(newCsrfBytes)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "csrf_token",
+			Value:    newCsrfToken,
+			Path:     "/",
+			HttpOnly: false, // Must be readable by frontend JavaScript
+			Secure:   secure,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
 
 	// Redirect to frontend with success query parameter
 	redirectURL := "/?oauth_success=true"

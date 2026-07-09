@@ -23,6 +23,10 @@ func main() {
 		log.Fatalf("ADMIN_USERNAME and ADMIN_PASSWORD environment variables must be set")
 	}
 
+	if os.Getenv("ALLOWED_ORIGIN") == "" {
+		log.Fatalf("ALLOWED_ORIGIN environment variable must be set (wildcard * is disabled for security)")
+	}
+
 	// Initialize database
 	database, err := db.InitDB()
 	if err != nil {
@@ -71,17 +75,14 @@ func main() {
 func enableCORS(next http.Handler) http.Handler {
 	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set headers
 		origin := r.Header.Get("Origin")
 		if allowedOrigin != "" {
 			if origin == allowedOrigin {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 			}
-		} else {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token")
 
 		// Handle preflight requests
 		if r.Method == "OPTIONS" {

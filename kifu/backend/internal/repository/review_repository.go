@@ -26,14 +26,15 @@ func (r *ReviewRepository) Save(review *model.Review) error {
 
 	query := `
 	INSERT INTO reviews (
-		id, kifu_id, move_number, node_path, reviewer_name, comment, variations
-	) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		id, kifu_id, user_id, move_number, node_path, reviewer_name, comment, variations
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	RETURNING created_at, updated_at`
 
 	err = r.db.QueryRow(
 		query,
 		review.ID,
 		review.KifuID,
+		review.UserID,
 		review.MoveNumber,
 		review.NodePath,
 		review.ReviewerName,
@@ -50,7 +51,7 @@ func (r *ReviewRepository) Save(review *model.Review) error {
 
 func (r *ReviewRepository) FindByKifuID(kifuID string) ([]*model.Review, error) {
 	query := `
-	SELECT id, kifu_id, move_number, node_path, reviewer_name, comment, variations, created_at, updated_at
+	SELECT id, kifu_id, user_id, move_number, node_path, reviewer_name, comment, variations, created_at, updated_at
 	FROM reviews
 	WHERE kifu_id = $1
 	ORDER BY move_number ASC, created_at ASC`
@@ -65,7 +66,7 @@ func (r *ReviewRepository) FindByKifuID(kifuID string) ([]*model.Review, error) 
 	for rows.Next() {
 		rev := &model.Review{}
 		err := rows.Scan(
-			&rev.ID, &rev.KifuID, &rev.MoveNumber, &rev.NodePath,
+			&rev.ID, &rev.KifuID, &rev.UserID, &rev.MoveNumber, &rev.NodePath,
 			&rev.ReviewerName, &rev.Comment, &rev.Variations,
 			&rev.CreatedAt, &rev.UpdatedAt,
 		)
@@ -81,8 +82,8 @@ func (r *ReviewRepository) FindByKifuID(kifuID string) ([]*model.Review, error) 
 func (r *ReviewRepository) Update(review *model.Review) error {
 	query := `
 	UPDATE reviews
-	SET reviewer_name = $1, comment = $2, variations = $3, updated_at = CURRENT_TIMESTAMP
-	WHERE id = $4
+	SET reviewer_name = $1, comment = $2, variations = $3, user_id = $4, updated_at = CURRENT_TIMESTAMP
+	WHERE id = $5
 	RETURNING updated_at`
 
 	err := r.db.QueryRow(
@@ -90,6 +91,7 @@ func (r *ReviewRepository) Update(review *model.Review) error {
 		review.ReviewerName,
 		review.Comment,
 		review.Variations,
+		review.UserID,
 		review.ID,
 	).Scan(&review.UpdatedAt)
 
@@ -114,13 +116,13 @@ func (r *ReviewRepository) Delete(id string) error {
 
 func (r *ReviewRepository) FindByID(id string) (*model.Review, error) {
 	query := `
-	SELECT id, kifu_id, move_number, node_path, reviewer_name, comment, variations, created_at, updated_at
+	SELECT id, kifu_id, user_id, move_number, node_path, reviewer_name, comment, variations, created_at, updated_at
 	FROM reviews
 	WHERE id = $1`
 
 	rev := &model.Review{}
 	err := r.db.QueryRow(query, id).Scan(
-		&rev.ID, &rev.KifuID, &rev.MoveNumber, &rev.NodePath,
+		&rev.ID, &rev.KifuID, &rev.UserID, &rev.MoveNumber, &rev.NodePath,
 		&rev.ReviewerName, &rev.Comment, &rev.Variations,
 		&rev.CreatedAt, &rev.UpdatedAt,
 	)

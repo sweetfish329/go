@@ -119,6 +119,7 @@ func runMigrations(db *sql.DB) error {
 	CREATE TABLE IF NOT EXISTS reviews (
 		id TEXT PRIMARY KEY,
 		kifu_id TEXT NOT NULL REFERENCES kifus(id) ON DELETE CASCADE,
+		user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
 		move_number INTEGER NOT NULL,
 		node_path VARCHAR(255) NOT NULL,
 		reviewer_name VARCHAR(100) NOT NULL,
@@ -185,6 +186,33 @@ func runMigrations(db *sql.DB) error {
 	_, err = db.Exec(siteSettingsTableQuery)
 	if err != nil {
 		return fmt.Errorf("failed to create site_settings table: %w", err)
+	}
+
+	// Run migration to add user_id to reviews if it doesn't exist
+	var hasUserID bool
+	rows, err := db.Query("PRAGMA table_info(reviews)")
+	if err != nil {
+		return fmt.Errorf("failed to check reviews table info: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name string
+		var ctype string
+		var notnull int
+		var dfltValue interface{}
+		var pk int
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err == nil {
+			if name == "user_id" {
+				hasUserID = true
+			}
+		}
+	}
+	if !hasUserID {
+		_, err = db.Exec("ALTER TABLE reviews ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL")
+		if err != nil {
+			log.Printf("Warning: failed to add user_id column to reviews table (might already exist): %v", err)
+		}
 	}
 
 	// Insert default settings

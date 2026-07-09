@@ -170,6 +170,7 @@ func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	review := &model.Review{
 		KifuID:       kifuID,
+		UserID:       &userID,
 		MoveNumber:   req.MoveNumber,
 		NodePath:     req.NodePath,
 		ReviewerName: req.ReviewerName,
@@ -235,8 +236,14 @@ func (h *ReviewHandler) CreateForShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var rUserID *string
+	if loggedInUID, exists := r.Context().Value(UserIDKey).(string); exists {
+		rUserID = &loggedInUID
+	}
+
 	review := &model.Review{
 		KifuID:       kifu.ID,
+		UserID:       rUserID,
 		MoveNumber:   req.MoveNumber,
 		NodePath:     req.NodePath,
 		ReviewerName: reviewerName,
@@ -266,8 +273,6 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, _ := r.Context().Value(UsernameKey).(string)
-
 	review, err := h.repo.FindByID(reviewID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -293,7 +298,7 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isKifuOwner := kifu.UploadedBy != nil && *kifu.UploadedBy == userID
-	isReviewCreator := username != "" && review.ReviewerName == username
+	isReviewCreator := review.UserID != nil && *review.UserID == userID
 
 	if !isKifuOwner && !isReviewCreator {
 		respondWithError(w, http.StatusForbidden, "Forbidden")
@@ -341,8 +346,6 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, _ := r.Context().Value(UsernameKey).(string)
-
 	review, err := h.repo.FindByID(reviewID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -368,7 +371,7 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isKifuOwner := kifu.UploadedBy != nil && *kifu.UploadedBy == userID
-	isReviewCreator := username != "" && review.ReviewerName == username
+	isReviewCreator := review.UserID != nil && *review.UserID == userID
 
 	if !isKifuOwner && !isReviewCreator {
 		respondWithError(w, http.StatusForbidden, "Forbidden")
@@ -453,8 +456,14 @@ func (h *ReviewHandler) CreateForPublic(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	var rUserID *string
+	if loggedInUID, exists := r.Context().Value(UserIDKey).(string); exists {
+		rUserID = &loggedInUID
+	}
+
 	review := &model.Review{
 		KifuID:       kifuID,
+		UserID:       rUserID,
 		MoveNumber:   req.MoveNumber,
 		NodePath:     req.NodePath,
 		ReviewerName: reviewerName,
