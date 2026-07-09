@@ -29,7 +29,6 @@
   let loading = $state(false);
   let qrCodeSvg = $state("");
   let copySuccess = $state(false);
-  let isPrivate = $state(false);
 
   let showOgpConfig = $state(false);
   let ogpMoveNumber = $state(0);
@@ -37,14 +36,21 @@
   let maxOgpIndex = $state(0);
   let ogpBoardState = $state<number[][]>([]);
 
+  // Derived states
+  const isPrivate = $derived(kifu.is_private !== false);
+  const boardSize = $derived(kifu.handicap > 0 || (kifu.sgf_data && kifu.sgf_data.includes("SZ[19]")) ? 19 : 19);
+
   $effect(() => {
-    if (kifu.sgf_data) {
-      const boardSize = kifu.handicap > 0 || kifu.sgf_data.includes("SZ[19]") ? 19 : 19;
-      player = new SgfPlayer(kifu.sgf_data, boardSize);
-      maxOgpIndex = player.history.length - 1;
-      
-      // Default to final board state (max index)
-      ogpMoveNumber = maxOgpIndex;
+    if (kifu && kifu.sgf_data) {
+      try {
+        player = new SgfPlayer(kifu.sgf_data, boardSize);
+        maxOgpIndex = player.history.length - 1;
+        
+        // Default to final board state (max index)
+        ogpMoveNumber = maxOgpIndex;
+      } catch (e) {
+        console.error("Failed to initialize SgfPlayer in ShareDialog:", e);
+      }
     }
   });
 
@@ -77,10 +83,6 @@
   function setCurrentPlayIndex() {
     ogpMoveNumber = currentPlayIndex;
   }
-
-  $effect(() => {
-    isPrivate = kifu.is_private !== false;
-  });
 
   const getM = () => (window as any).M;
 
@@ -125,7 +127,11 @@
   // Automatically render and upload OGP image when shared dialog is mounted
   onMount(() => {
     // Delay slightly to ensure Board SVG is rendered in DOM
-    setTimeout(generateAndUploadOgp, 500);
+    setTimeout(() => {
+      generateAndUploadOgp().catch(err => {
+        console.error("Failed to automatically generate OGP on mount:", err);
+      });
+    }, 500);
   });
 
   function generateAndUploadOgp(): Promise<void> {
@@ -209,7 +215,8 @@
 
         const image = new Image();
         image.onload = () => {
-          // Create canvas to draw the board image in X OGP standards (1.91:1)
+          try {
+            // Create canvas to draw the board image in X OGP standards (1.91:1)
           const canvas = document.createElement('canvas');
           const ogpWidth = 1200;
           const ogpHeight = 630;
@@ -361,6 +368,11 @@
               URL.revokeObjectURL(blobURL);
             }
           }, 'image/png');
+          } catch (e: any) {
+            console.error("Error drawing OGP canvas:", e);
+            URL.revokeObjectURL(blobURL);
+            reject(e);
+          }
         };
 
         image.onloadstart = () => {};
@@ -453,7 +465,6 @@
         throw new Error(data.error || "公開設定の更新に失敗しました。");
       }
 
-      isPrivate = nextIsPrivate;
       onUpdate({ ...kifu, is_private: nextIsPrivate });
 
       // Generate and upload new OGP image immediately on privacy toggle
