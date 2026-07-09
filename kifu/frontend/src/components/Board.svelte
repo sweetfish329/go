@@ -12,6 +12,8 @@
   }>();
   let svgElement: SVGSVGElement;
   let hoverIntersection: { x: number; y: number } | null = null; // { x, y } under mouse pointer
+  const isMobileDevice = typeof window !== 'undefined' && 
+    (window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches);
 
   const padding = 25;
   const boardSize = 500;
@@ -78,7 +80,7 @@
 
   // Calculate coordinates on mouse move for hover effect
   function handleMouseMove(event: MouseEvent): void {
-    if (!interactive || !svgElement) return;
+    if (!interactive || !svgElement || isMobileDevice) return;
 
     const rect = svgElement.getBoundingClientRect();
     const clientX = event.clientX - rect.left;

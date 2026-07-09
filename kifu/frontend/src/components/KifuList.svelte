@@ -26,7 +26,7 @@
   let publicMode = $derived(!!userId);
 
   // Reactive states using Svelte 5 Runes
-  let kifus = $state<KifuItem[]>([]);
+  let kifus = $state.raw<KifuItem[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let ownerUsername = $state<string | null>(null);

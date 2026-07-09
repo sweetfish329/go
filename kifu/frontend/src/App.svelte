@@ -23,9 +23,11 @@
     theme_color: '#4e342e'
   });
   
+  let isMobile = $state(false);
   let scrollY = $state(0);
 
   function handleScroll() {
+    if (isMobile) return;
     scrollY = window.scrollY;
   }
 
@@ -150,9 +152,12 @@
 
     // Setup OS theme change listener and scroll listener
     if (typeof window !== 'undefined') {
+      isMobile = window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches;
       mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       mediaQuery.addEventListener('change', handleSystemThemeChange);
-      window.addEventListener('scroll', handleScroll, { passive: true });
+      if (!isMobile) {
+        window.addEventListener('scroll', handleScroll, { passive: true });
+      }
     }
 
     // 3. Fetch site settings in the background without blocking render flow
@@ -175,7 +180,9 @@
   onDestroy(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('popstate', handleRouting);
-      window.removeEventListener('scroll', handleScroll);
+      if (!isMobile) {
+        window.removeEventListener('scroll', handleScroll);
+      }
       if (mediaQuery) {
         mediaQuery.removeEventListener('change', handleSystemThemeChange);
       }

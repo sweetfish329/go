@@ -59,19 +59,19 @@
     originalIndex: number;
   }
 
-  let kifu = $state<KifuDetailData | null>(null);
+  let kifu = $state.raw<KifuDetailData | null>(null);
   let loading = $state(true);
   let error = $state<string | null>(null);
 
   // Player state
-  let player = $state<SgfPlayer | null>(null);
-  let boardState = $state<number[][]>([]);
+  let player = $state.raw<SgfPlayer | null>(null);
+  let boardState = $state.raw<number[][]>([]);
   let lastMove = $state<{ x: number; y: number } | null>(null);
   let captives = $state({ B: 0, W: 0 });
   let currentIndex = $state(0);
   let maxIndex = $state(0);
-  let comments = $state<CommentItem[]>([]); // Comments at current move
-  let alternativeBranches = $state<BranchItem[]>([]); // Sibling nodes (alternative moves)
+  let comments = $state.raw<CommentItem[]>([]); // Comments at current move
+  let alternativeBranches = $state.raw<BranchItem[]>([]); // Sibling nodes (alternative moves)
 
 
 
@@ -85,7 +85,7 @@
   let reviewerName = $state("");
   let reviewComment = $state("");
   let isAddingReview = $state(false);
-  let reviewList = $state<ReviewItem[]>([]); // Review items fetched from database
+  let reviewList = $state.raw<ReviewItem[]>([]); // Review items fetched from database
   let isViewingVariation = $state(false);
   let activeReviewer = $state("");
   let isGameInfoExpanded = $state(false);

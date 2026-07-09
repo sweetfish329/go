@@ -1231,6 +1231,7 @@ textarea.nm-textarea:focus {
 .em-board-pulse-ring {
   transform-origin: center;
   animation: svg-pulse 1.8s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes svg-pulse {
@@ -1249,6 +1250,7 @@ textarea.nm-textarea:focus {
 /* 4. タブやボタンの呼吸のような微小な拡大・回転アニメーション */
 .em-pulse-button {
   animation: pulse-btn 3.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes pulse-btn {
