@@ -1025,7 +1025,7 @@
     kifu={kifu} 
     currentPlayIndex={currentIndex}
     onClose={() => showShareDialog = false} 
-    onUpdate={(updatedKifu) => {
+    onUpdate={(updatedKifu: any) => {
       if (kifu) {
         kifu = { ...kifu, ...updatedKifu } as KifuDetailData;
       }

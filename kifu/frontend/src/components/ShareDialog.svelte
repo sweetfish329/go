@@ -31,9 +31,11 @@
   let copySuccess = $state(false);
   let isPrivate = $state(false);
 
+  let showOgpConfig = $state(false);
   let ogpMoveNumber = $state(0);
   let player = $state<SgfPlayer | null>(null);
   let maxOgpIndex = $state(0);
+  let ogpBoardState = $state<number[][]>([]);
 
   $effect(() => {
     if (kifu.sgf_data) {
@@ -41,17 +43,16 @@
       player = new SgfPlayer(kifu.sgf_data, boardSize);
       maxOgpIndex = player.history.length - 1;
       
-      // Ensure initial selection is within valid bounds
-      if (ogpMoveNumber > maxOgpIndex) {
-        ogpMoveNumber = maxOgpIndex;
-      }
+      // Default to final board state (max index)
+      ogpMoveNumber = maxOgpIndex;
     }
   });
 
-  const ogpBoardState = $derived.by(() => {
-    if (!player || player.history.length === 0) return [];
-    const idx = Math.min(Math.max(0, ogpMoveNumber), maxOgpIndex);
-    return player.history[idx].board;
+  $effect(() => {
+    if (player && player.history.length > 0) {
+      const idx = Math.min(Math.max(0, ogpMoveNumber), maxOgpIndex);
+      ogpBoardState = player.history[idx].board;
+    }
   });
 
   async function handleUpdateOgpOnly() {
@@ -71,6 +72,10 @@
     } finally {
       loading = false;
     }
+  }
+
+  function setCurrentPlayIndex() {
+    ogpMoveNumber = currentPlayIndex;
   }
 
   $effect(() => {
@@ -119,7 +124,6 @@
 
   // Automatically render and upload OGP image when shared dialog is mounted
   onMount(() => {
-    ogpMoveNumber = currentPlayIndex;
     // Delay slightly to ensure Board SVG is rendered in DOM
     setTimeout(generateAndUploadOgp, 500);
   });
@@ -547,60 +551,81 @@
         </button>
       </div>
 
-      <!-- OGP Customization Section -->
-      <div class="ogp-custom-section">
-        <h6 class="ogp-section-title font-mincho">
-          <i class="material-icons ogp-icon">image</i>
-          OGP画像の局面指定（サムネイル）
-        </h6>
-        <p class="ogp-section-desc">
-          SNS等でシェアした際に表示される対局の局面（手数）をカスタマイズできます。
-        </p>
-
-        <!-- Preview Board Container -->
-        <div class="ogp-preview-container">
-          <div class="ogp-preview-board">
-            <Board board={ogpBoardState} size={kifu.handicap > 0 || (kifu.sgf_data && kifu.sgf_data.includes("SZ[19]")) ? 19 : 19} interactive={false} />
-          </div>
-        </div>
-
-        <!-- Slider and input row -->
-        <div class="ogp-control-row">
-          <div class="ogp-slider-field">
-            <input
-              type="range"
-              min="0"
-              max={maxOgpIndex}
-              bind:value={ogpMoveNumber}
-              disabled={loading}
-              class="ogp-range"
-            />
-          </div>
-          <div class="ogp-number-field">
-            <input
-              type="number"
-              min="0"
-              max={maxOgpIndex}
-              bind:value={ogpMoveNumber}
-              disabled={loading}
-              class="ogp-number-input font-mono"
-            />
-            <span class="ogp-move-unit">手目</span>
-          </div>
-        </div>
-        
-        <button class="regenerate-btn font-sans" onclick={handleUpdateOgpOnly} disabled={loading} style="margin-top: 12px; width: 100%;">
-          <i class="material-icons btn-icon" class:spin={loading}>photo_camera</i>
-          この局面でOGP画像を更新
+      <!-- OGP Toggle Container -->
+      <div class="ogp-toggle-container">
+        <button 
+          type="button"
+          class="ogp-toggle-btn font-sans" 
+          onclick={() => showOgpConfig = !showOgpConfig}
+        >
+          <i class="material-icons toggle-icon">{showOgpConfig ? 'expand_less' : 'expand_more'}</i>
+          OGP画像の局面指定（オプション）
         </button>
-
-        {#if ogpMoveNumber !== currentPlayIndex}
-          <div class="ogp-apply-tip font-sans">
-            <i class="material-icons" style="font-size: 0.9rem; vertical-align: middle; margin-right: 4px;">info_outline</i>
-            「OGP画像を更新」ボタンを押すと変更が適用されます。
-          </div>
-        {/if}
       </div>
+
+      {#if showOgpConfig}
+        <!-- OGP Customization Section -->
+        <div class="ogp-custom-section animate-fade-in">
+          <p class="ogp-section-desc">
+            SNS等でシェアした際に表示される対局の局面（手数）をカスタマイズできます。
+          </p>
+
+          <!-- Preview Board Container -->
+          <div class="ogp-preview-container">
+            <div class="ogp-preview-board">
+              <Board board={ogpBoardState} size={kifu.handicap > 0 || (kifu.sgf_data && kifu.sgf_data.includes("SZ[19]")) ? 19 : 19} interactive={false} />
+            </div>
+          </div>
+
+          <!-- Slider and input row -->
+          <div class="ogp-control-row">
+            <div class="ogp-slider-field">
+              <input
+                type="range"
+                min="0"
+                max={maxOgpIndex}
+                bind:value={ogpMoveNumber}
+                disabled={loading}
+                class="ogp-range"
+              />
+            </div>
+            <div class="ogp-number-field">
+              <input
+                type="number"
+                min="0"
+                max={maxOgpIndex}
+                bind:value={ogpMoveNumber}
+                disabled={loading}
+                class="ogp-number-input font-mono"
+              />
+              <span class="ogp-move-unit">手目</span>
+            </div>
+          </div>
+
+          <div class="ogp-quick-apply" style="margin-top: 8px; text-align: right; display: flex; justify-content: flex-end; width: 100%;">
+            <button 
+              type="button" 
+              class="nm-btn-flat font-sans" 
+              onclick={setCurrentPlayIndex}
+              style="font-size: 0.72rem; padding: 4px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; height: auto; line-height: 1.5; background: var(--wc-surface) !important; color: var(--wc-text) !important; cursor: pointer; box-shadow: 2px 2px 0px var(--wc-text) !important;"
+            >
+              現在の再生手数（第 {currentPlayIndex} 手）をセット
+            </button>
+          </div>
+          
+          <button class="regenerate-btn font-sans" onclick={handleUpdateOgpOnly} disabled={loading} style="margin-top: 12px; width: 100%;">
+            <i class="material-icons btn-icon" class:spin={loading}>photo_camera</i>
+            この局面でOGP画像を更新
+          </button>
+
+          {#if ogpMoveNumber !== maxOgpIndex}
+            <div class="ogp-apply-tip font-sans">
+              <i class="material-icons" style="font-size: 0.9rem; vertical-align: middle; margin-right: 4px;">info_outline</i>
+              「OGP画像を更新」ボタンを押すと変更が適用されます。
+            </div>
+          {/if}
+        </div>
+      {/if}
 
       <!-- Privacy Selector: Segmented editorial block -->
       <div class="privacy-section">
@@ -972,6 +997,47 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
+  /* OGP Toggle Styles */
+  .ogp-toggle-container {
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  .ogp-toggle-btn {
+    width: 100%;
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    background: var(--wc-surface) !important;
+    color: var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: var(--wc-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+  }
+
+  .ogp-toggle-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    background: var(--wc-surface-alt) !important;
+  }
+
+  .ogp-toggle-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-text) !important;
+  }
+
+  .toggle-icon {
+    font-size: 1.2rem;
+  }
+
   /* OGP Custom Section Styling */
   .ogp-custom-section {
     margin-bottom: 24px;
@@ -982,21 +1048,7 @@
     box-shadow: 3px 3px 0px var(--wc-shadow-dark);
   }
 
-  .ogp-section-title {
-    margin: 0 0 8px 0;
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: var(--wc-text);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    letter-spacing: 0.03em;
-  }
 
-  .ogp-icon {
-    font-size: 1.1rem;
-    color: var(--wc-accent);
-  }
 
   .ogp-section-desc {
     margin: 0 0 16px 0;
@@ -1186,6 +1238,47 @@
     .close-btn {
       padding: 6px 18px;
       font-size: 0.8rem;
+      box-shadow: 2px 2px 0px var(--wc-text) !important;
+    }
+
+    /* OGP customization responsive styles */
+    .ogp-custom-section {
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 2px 2px 0px var(--wc-shadow-dark);
+    }
+
+    .ogp-preview-board {
+      width: 120px;
+    }
+    
+    .ogp-preview-board :global(.board-container) {
+      max-width: 120px !important;
+      padding: 4px !important;
+      box-shadow: 2px 2px 0px var(--wc-text) !important;
+    }
+
+    .ogp-control-row {
+      gap: 8px;
+    }
+
+    .ogp-range {
+      margin: 0 !important;
+    }
+
+    .ogp-number-input {
+      width: 50px !important;
+      height: 28px !important;
+      font-size: 0.78rem;
+    }
+    
+    .ogp-toggle-container {
+      margin-bottom: 12px;
+    }
+
+    .ogp-toggle-btn {
+      padding: 8px 12px;
+      font-size: 0.75rem;
       box-shadow: 2px 2px 0px var(--wc-text) !important;
     }
   }
