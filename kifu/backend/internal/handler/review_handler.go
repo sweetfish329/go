@@ -148,6 +148,10 @@ func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusForbidden, "Forbidden")
 		return
 	}
+	if !kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Cannot add reviews to public kifu")
+		return
+	}
 
 	var req CreateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -202,6 +206,11 @@ func (h *ReviewHandler) CreateForShare(w http.ResponseWriter, r *http.Request) {
 	// Check expiration
 	if kifu.ShareExpiresAt != nil && kifu.ShareExpiresAt.Before(time.Now()) {
 		respondWithError(w, http.StatusGone, "Shared link has expired")
+		return
+	}
+
+	if !kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Cannot add reviews to public kifu")
 		return
 	}
 
@@ -278,6 +287,10 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusNotFound, "Kifu not found")
 		return
 	}
+	if !kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Cannot update reviews for public kifu")
+		return
+	}
 
 	isKifuOwner := kifu.UploadedBy != nil && *kifu.UploadedBy == userID
 	isReviewCreator := username != "" && review.ReviewerName == username
@@ -349,6 +362,10 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusNotFound, "Kifu not found")
 		return
 	}
+	if !kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Cannot delete reviews for public kifu")
+		return
+	}
 
 	isKifuOwner := kifu.UploadedBy != nil && *kifu.UploadedBy == userID
 	isReviewCreator := username != "" && review.ReviewerName == username
@@ -409,6 +426,10 @@ func (h *ReviewHandler) CreateForPublic(w http.ResponseWriter, r *http.Request) 
 	}
 	if kifu == nil {
 		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+	if !kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Cannot add reviews to public kifu")
 		return
 	}
 

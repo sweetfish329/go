@@ -97,6 +97,13 @@
 
   const isPublicProfileMode = $derived(!!userId && !!kifuId);
   const isOwner = $derived(!!kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId);
+  const isPublic = $derived(!!kifu && kifu.is_private === false);
+
+  $effect(() => {
+    if (isPublic) {
+      reviewMode = false;
+    }
+  });
 
   // Type helper for Materialize global object
   const getM = () => (window as any).M;
@@ -938,7 +945,7 @@
                     </span>
                     <p style="margin: 0; padding-left: 2px; font-size: 0.92rem; white-space: pre-wrap; color: var(--wc-text); line-height: 1.6; font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">{comment.text}</p>
                   </div>
-                  {#if comment.reviewId && (isOwner || auth.username === comment.reviewerName)}
+                  {#if comment.reviewId && !isPublic && (isOwner || auth.username === comment.reviewerName)}
                     <div style="display: flex; gap: 6px; margin-left: 12px;">
                       <!-- svelte-ignore a11y_missing_attribute -->
                       <button class="nm-btn-flat" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
@@ -958,10 +965,17 @@
 
         <!-- Mode Toggle & Edit Panel Footer -->
         <div class="card-action" style="border-top: 1.5px solid var(--wc-text); padding: 16px 0 0 0; margin-top: 16px; background: transparent;">
+          {#if isPublic}
+            <div class="wc-info-banner animate-fade-in" style="margin-bottom: 16px; background: rgba(37,53,48,0.05); border: 1.5px solid var(--wc-border); padding: 12px; font-size: 0.78rem; color: var(--wc-text-muted); display: flex; align-items: center; gap: 6px; box-shadow: 2px 2px 0px var(--wc-text); margin-top: 8px;">
+              <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm); vertical-align: middle;">info_outline</i>
+              <span>一般公開中の棋譜は添削できません。添削を追加・編集するには限定公開に変更してください。</span>
+            </div>
+          {/if}
+
           <div class="switch" style="margin-bottom: 12px;">
             <label style="font-weight: 500; display: inline-flex; align-items: center; gap: 8px; color: var(--wc-text); font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
               <span style="color: var(--wc-text-muted); font-size: 0.88rem;">通常再生</span>
-              <input type="checkbox" bind:checked={reviewMode}>
+              <input type="checkbox" bind:checked={reviewMode} disabled={isPublic}>
               <span class="lever" style="background-color: var(--wc-border); border: 1px solid var(--wc-text);"></span>
               <span style="color: var(--wc-text); font-weight: 700; font-size: 0.88rem;">添削モード (盤面入力)</span>
             </label>
