@@ -1,0 +1,15 @@
+services:
+  kifu:
+    image: ghcr.io/sweetfish329/go-kifu:latest
+    container_name: kifu-app
+    ports:
+      - "8822:8080"
+    environment:
+      PORT: 8080
+      DB_PATH: /data/kifu.db
+    volumes:
+      - kifu-db-data:/data
+    restart: unless-stopped
+
+volumes:
+  kifu-db-data:
