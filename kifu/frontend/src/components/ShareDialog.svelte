@@ -19,12 +19,15 @@
     game_date?: string;
   }
 
-  let { kifu, currentPlayIndex = 0, onClose, onUpdate } = $props<{
+  let props = $props<{
     kifu: Kifu;
     currentPlayIndex?: number;
     onClose: () => void;
     onUpdate: (updatedKifu: Kifu) => void;
   }>();
+
+  const kifu = $derived(props.kifu);
+  const currentPlayIndex = $derived(props.currentPlayIndex ?? 0);
 
   let loading = $state(false);
   let qrCodeSvg = $state("");
@@ -35,19 +38,22 @@
   let player = $state<SgfPlayer | null>(null);
   let maxOgpIndex = $state(0);
   let ogpBoardState = $state<number[][]>([]);
+  let initializedSgf = $state("");
 
   // Derived states
   const isPrivate = $derived(kifu.is_private !== false);
   const boardSize = $derived(kifu.handicap > 0 || (kifu.sgf_data && kifu.sgf_data.includes("SZ[19]")) ? 19 : 19);
 
   $effect(() => {
-    if (kifu && kifu.sgf_data) {
+    const sgfData = kifu.sgf_data;
+    if (sgfData && sgfData !== initializedSgf) {
       try {
-        player = new SgfPlayer(kifu.sgf_data, boardSize);
+        player = new SgfPlayer(sgfData, boardSize);
         maxOgpIndex = player.history.length - 1;
         
         // Default to final board state (max index)
         ogpMoveNumber = maxOgpIndex;
+        initializedSgf = sgfData;
       } catch (e) {
         console.error("Failed to initialize SgfPlayer in ShareDialog:", e);
       }
@@ -110,7 +116,7 @@
       if (!res.ok) {
         throw new Error(updated.error || "トークンの自動生成に失敗しました。");
       }
-      onUpdate(updated);
+      props.onUpdate(updated);
     } catch (err: any) {
       console.error("Failed to auto-generate share token:", err);
     } finally {
@@ -414,7 +420,7 @@
       await generateAndUploadOgp();
 
       // 3. Update parent state
-      onUpdate(updated);
+      props.onUpdate(updated);
 
       const M = getM();
       if (M) {
@@ -432,16 +438,21 @@
 
   // Generate QR code when shareUrl changes
   $effect(() => {
-    if (shareUrl) {
-      // Use clean settings, high contrast for reliable scanning
-      QRCode.toString(shareUrl, { type: 'svg', width: 180, margin: 1 }, (err, string) => {
-        if (err) {
-          console.error(err);
-          qrCodeSvg = "";
-        } else {
-          qrCodeSvg = string;
-        }
-      });
+    if (shareUrl && QRCode && typeof QRCode.toString === 'function') {
+      try {
+        // Use clean settings, high contrast for reliable scanning
+        QRCode.toString(shareUrl, { type: 'svg', width: 180, margin: 1 }, (err, string) => {
+          if (err) {
+            console.error(err);
+            qrCodeSvg = "";
+          } else {
+            qrCodeSvg = string;
+          }
+        });
+      } catch (e) {
+        console.error("Failed to generate QR Code:", e);
+        qrCodeSvg = "";
+      }
     } else {
       qrCodeSvg = "";
     }
@@ -465,7 +476,7 @@
         throw new Error(data.error || "公開設定の更新に失敗しました。");
       }
 
-      onUpdate({ ...kifu, is_private: nextIsPrivate });
+      props.onUpdate({ ...kifu, is_private: nextIsPrivate });
 
       // Generate and upload new OGP image immediately on privacy toggle
       await generateAndUploadOgp();
@@ -511,7 +522,7 @@
 </div>
 
 <!-- Backdrop click triggers onClose -->
-<div class="share-modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
+<div class="share-modal-backdrop animate-fade-in" onclick={props.onClose} aria-hidden="true">
   <!-- Content click propagation stopped to avoid closing -->
   <div class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
     
@@ -545,7 +556,7 @@
       <!-- Copy Link Container: One-piece Ticket style URL box -->
       <div class="url-ticket-box">
         <div class="url-ticket-text font-mono">{shareUrl}</div>
-        <button class="url-ticket-btn font-sans" onclick={handleCopy} disabled={copySuccess}>
+        <button type="button" class="url-ticket-btn font-sans" onclick={handleCopy} disabled={copySuccess}>
           {#if copySuccess}
             <i class="material-icons" style="font-size: 0.9rem; margin-right: 4px; vertical-align: middle;">check</i>COPIED
           {:else}
@@ -556,7 +567,7 @@
 
       <!-- Regenerate Action Button: Matches Vogue solid button, fits below URL box -->
       <div class="regenerate-action-container">
-        <button class="regenerate-btn font-sans" onclick={handleRegenerate} disabled={loading}>
+        <button type="button" class="regenerate-btn font-sans" onclick={handleRegenerate} disabled={loading}>
           <i class="material-icons btn-icon" class:spin={loading}>{loading ? 'sync' : 'refresh'}</i>
           URL再発行 & OGP画像再生成
         </button>
@@ -624,7 +635,7 @@
             </button>
           </div>
           
-          <button class="regenerate-btn font-sans" onclick={handleUpdateOgpOnly} disabled={loading} style="margin-top: 12px; width: 100%;">
+          <button type="button" class="regenerate-btn font-sans" onclick={handleUpdateOgpOnly} disabled={loading} style="margin-top: 12px; width: 100%;">
             <i class="material-icons btn-icon" class:spin={loading}>photo_camera</i>
             この局面でOGP画像を更新
           </button>
@@ -679,7 +690,7 @@
 
     <!-- Actions Footer -->
     <div class="share-modal-footer">
-      <button class="close-btn" onclick={onClose}>閉じる</button>
+      <button type="button" class="close-btn" onclick={props.onClose}>閉じる</button>
     </div>
   </div>
 </div>
