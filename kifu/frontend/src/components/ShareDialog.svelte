@@ -352,12 +352,21 @@
               return;
             }
             try {
+              // Extract csrf_token cookie value
+              const headers: Record<string, string> = {
+                'Authorization': auth.getHeaders()['Authorization'] || '',
+                'Content-Type': 'image/png'
+              };
+              if (typeof document !== "undefined") {
+                const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+                if (match && match[1]) {
+                  headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+                }
+              }
+
               const res = await fetch(`/api/kifus/${kifu.id}/ogp`, {
                 method: 'PUT',
-                headers: {
-                  'Authorization': auth.getHeaders()['Authorization'] || '',
-                  'Content-Type': 'image/png'
-                },
+                headers,
                 body: blob
               });
               if (res.ok) {
