@@ -136,7 +136,7 @@
     box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
     padding: 32px 28px !important;
     max-height: calc(100vh - 40px);
-    overflow-y: auto;
+    overflow-y: auto !important;
   }
 
   .modal-header {
