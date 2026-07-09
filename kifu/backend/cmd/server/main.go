@@ -18,6 +18,11 @@ func main() {
 
 	log.Println("Starting server...")
 
+	// Validate admin credentials env vars at startup to avoid runtime DoS
+	if os.Getenv("ADMIN_USERNAME") == "" || os.Getenv("ADMIN_PASSWORD") == "" {
+		log.Fatalf("ADMIN_USERNAME and ADMIN_PASSWORD environment variables must be set")
+	}
+
 	// Initialize database
 	database, err := db.InitDB()
 	if err != nil {

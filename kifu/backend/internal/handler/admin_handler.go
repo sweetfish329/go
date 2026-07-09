@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -46,6 +45,13 @@ func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *AdminHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
 }
 
@@ -62,7 +68,8 @@ func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
 	adminUser := os.Getenv("ADMIN_USERNAME")
 	adminPass := os.Getenv("ADMIN_PASSWORD")
 	if adminUser == "" || adminPass == "" {
-		log.Fatalf("ADMIN_USERNAME or ADMIN_PASSWORD environment variable is not set")
+		respondWithError(w, http.StatusInternalServerError, "Admin credentials not configured")
+		return
 	}
 
 	if req.Username != adminUser || req.Password != adminPass {
@@ -130,6 +137,25 @@ func (h *AdminHandler) SaveSiteSettings(w http.ResponseWriter, r *http.Request) 
 
 	for k, v := range req {
 		if k == "title" || k == "tab_name" || k == "favicon" || k == "theme_color" || k == "external_url" {
+			if k == "theme_color" {
+				isValidColor := false
+				if len(v) > 0 && v[0] == '#' {
+					isValidColor = true
+					for _, c := range v[1:] {
+						if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+							isValidColor = false
+							break
+						}
+					}
+					if len(v) != 4 && len(v) != 7 {
+						isValidColor = false
+					}
+				}
+				if !isValidColor {
+					respondWithError(w, http.StatusBadRequest, "Invalid theme color format")
+					return
+				}
+			}
 			if err := h.siteSettingRepo.Save(k, v); err != nil {
 				respondWithError(w, http.StatusInternalServerError, err.Error())
 				return

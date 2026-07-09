@@ -112,9 +112,12 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce maximum request body size (2MB) for SGF uploads to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024)
+
 	var req UploadKifuRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload or body too large")
 		return
 	}
 
@@ -577,12 +580,27 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	// Replace favicon if configured
 	favicon := settings["favicon"]
 	if favicon != "" {
-		htmlContent = strings.Replace(htmlContent, `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`, `<link rel="icon" href="`+favicon+`" />`, 1)
+		escapedFavicon := html.EscapeString(favicon)
+		htmlContent = strings.Replace(htmlContent, `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`, `<link rel="icon" href="`+escapedFavicon+`" />`, 1)
 	}
 
 	// Inject CSS variable for theme color
 	themeColor := settings["theme_color"]
-	if themeColor == "" {
+	// Strictly validate themeColor hex format to prevent XSS
+	isValidColor := false
+	if len(themeColor) > 0 && themeColor[0] == '#' {
+		isValidColor = true
+		for _, c := range themeColor[1:] {
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				isValidColor = false
+				break
+			}
+		}
+		if len(themeColor) != 4 && len(themeColor) != 7 {
+			isValidColor = false
+		}
+	}
+	if !isValidColor {
 		themeColor = "#4e342e"
 	}
 	themeStyle := fmt.Sprintf("\n\t<style>:root { --theme-color: %s; }</style>", themeColor)
