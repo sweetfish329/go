@@ -17,9 +17,18 @@
     error = null;
 
     try {
+      // Extract csrf_token cookie value
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+        if (match && match[1]) {
+          headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+        }
+      }
+
       const res = await fetch("/api/admin/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ username, password })
       });
 

@@ -52,9 +52,19 @@ class AuthStore {
   }
 
   getHeaders(): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
+
+    // Extract csrf_token cookie value
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+      if (match && match[1]) {
+        headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+      }
+    }
+
+    return headers;
   }
 }
 

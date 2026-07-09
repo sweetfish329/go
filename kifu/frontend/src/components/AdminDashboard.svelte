@@ -82,13 +82,22 @@
     settings[provider].redirect_url = computedRedirectUrl(provider);
     const data = settings[provider];
 
+    // Extract csrf_token cookie value
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    };
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+      if (match && match[1]) {
+        headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+      }
+    }
+
     try {
       const res = await fetch("/api/admin/oauth-settings", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify(data)
       });
 
@@ -143,13 +152,22 @@
     saving = true;
     const token = localStorage.getItem("admin_token");
 
+    // Extract csrf_token cookie value
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    };
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+      if (match && match[1]) {
+        headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+      }
+    }
+
     try {
       const res = await fetch("/api/admin/site-settings", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify(siteSettingsForm)
       });
 
@@ -178,10 +196,19 @@
   async function handleLogout() {
     const token = localStorage.getItem("admin_token");
     if (token) {
+      // Extract csrf_token cookie value
+      const headers: Record<string, string> = { "Authorization": `Bearer ${token}` };
+      if (typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+        if (match && match[1]) {
+          headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+        }
+      }
+
       try {
         await fetch("/api/admin/logout", {
           method: "POST",
-          headers: { "Authorization": `Bearer ${token}` }
+          headers
         });
       } catch (err) {
         console.error("管理者ログアウトに失敗しました", err);
