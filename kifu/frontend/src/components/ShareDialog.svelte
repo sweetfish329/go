@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fade, scale } from 'svelte/transition';
   import QRCode from 'qrcode';
   import { auth } from '../lib/auth.svelte';
   import Board from './Board.svelte';
@@ -522,9 +523,9 @@
 </div>
 
 <!-- Backdrop click triggers onClose -->
-<div class="share-modal-backdrop animate-fade-in" onclick={props.onClose} aria-hidden="true">
+<div transition:fade={{ duration: 180 }} class="share-modal-backdrop" onclick={props.onClose} aria-hidden="true">
   <!-- Content click propagation stopped to avoid closing -->
-  <div class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
+  <div transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
     
     <!-- Header with Washi Clay Design Style -->
     <div class="share-modal-header">

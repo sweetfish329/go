@@ -715,7 +715,7 @@
       {/if}
     </div>
     {#if kifu && isOwner}
-      <button class="nm-btn em-pulse-button" onclick={() => showShareDialog = true} style="border-radius: 0 !important; font-family: 'JetBrains Mono', sans-serif; font-size: 0.72rem; text-transform: uppercase; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; font-weight: bold; padding: 4px 14px !important; color: var(--wc-text) !important;">
+      <button class="share-settings-btn nm-btn em-pulse-button" onclick={() => showShareDialog = true}>
         <i class="material-icons" style="font-size: 0.95rem; vertical-align: middle; margin-right: 4px;">share</i>Share settings
       </button>
     {/if}
@@ -1137,8 +1137,34 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    box-shadow: var(--nm-shadow-outset-sm);
-    pointer-events: none;
     font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  }
+
+  /* Share Settings Button custom hover and active animations */
+  .share-settings-btn {
+    border-radius: 0 !important;
+    font-family: 'JetBrains Mono', sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    border: 1.5px solid var(--wc-text) !important;
+    background: var(--wc-surface) !important;
+    box-shadow: 2.5px 2.5px 0px var(--wc-text) !important;
+    font-weight: bold;
+    padding: 4px 14px !important;
+    color: var(--wc-text) !important;
+    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.15s ease !important;
+    will-change: transform, box-shadow;
+  }
+
+  .share-settings-btn:hover {
+    animation-play-state: paused !important; /* Pause pulse-btn animation on hover */
+    transform: translate(-1.5px, -1.5px) scale(1.03) !important;
+    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    background-color: var(--wc-surface-alt) !important;
+  }
+
+  .share-settings-btn:active {
+    transform: translate(1px, 1px) scale(0.97) !important;
+    box-shadow: 1px 1px 0px var(--wc-text) !important;
   }
 </style>

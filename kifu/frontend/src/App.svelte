@@ -22,6 +22,12 @@
     favicon: '',
     theme_color: '#4e342e'
   });
+  
+  let scrollY = $state(0);
+
+  function handleScroll() {
+    scrollY = window.scrollY;
+  }
 
   // Dark mode state: "light" | "dark" | "system"
   let themeMode = $state<"light" | "dark" | "system">("system");
@@ -142,10 +148,11 @@
     }
     applyTheme(themeMode);
 
-    // Setup OS theme change listener
+    // Setup OS theme change listener and scroll listener
     if (typeof window !== 'undefined') {
       mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       mediaQuery.addEventListener('change', handleSystemThemeChange);
+      window.addEventListener('scroll', handleScroll, { passive: true });
     }
 
     // 3. Fetch site settings in the background without blocking render flow
@@ -168,6 +175,7 @@
   onDestroy(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('popstate', handleRouting);
+      window.removeEventListener('scroll', handleScroll);
       if (mediaQuery) {
         mediaQuery.removeEventListener('change', handleSystemThemeChange);
       }
@@ -250,12 +258,20 @@
   }}
 />
 
-<div class="app-shell em-bg-pulse-dots" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
+<div class="app-shell" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
+  <!-- Parallax Scrolling Dots Background: Moves slightly slower than content to create depth -->
+  <div 
+    class="em-bg-pulse-dots" 
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; transform: translateY({scrollY * 0.12}px); will-change: transform;"
+  ></div>
 
   <!-- Newspaper/Portfolio Masthead Header -->
   <header class="container" style="margin-top: 3rem; margin-bottom: 2rem; position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast -->
-    <div class="em-huge-title masthead-bg-title">
+    <div 
+      class="em-huge-title masthead-bg-title" 
+      style="transform: translate(-50%, calc(-20px + {scrollY * 0.25}px)); will-change: transform;"
+    >
       RECORDINGS
     </div>
 
