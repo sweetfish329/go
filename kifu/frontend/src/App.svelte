@@ -259,28 +259,30 @@
 />
 
 <div class="app-shell" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
-  <!-- Parallax Scrolling Dots Background: Moves slightly slower than content to create depth -->
+  <!-- Parallax Scrolling Dots Background: Moves slower than content to create depth -->
   <div 
     class="em-bg-pulse-dots" 
-    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; transform: translateY({scrollY * 0.12}px); will-change: transform;"
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; transform: translateY({scrollY * 0.3}px); will-change: transform;"
   ></div>
 
   <!-- Newspaper/Portfolio Masthead Header -->
   <header class="container" style="margin-top: 3rem; margin-bottom: 2rem; position: relative;">
-    <!-- Huge background decoration text for extreme editorial contrast -->
+    <!-- Huge background decoration text for extreme editorial contrast (gorgous deep parallax) -->
     <div 
       class="em-huge-title masthead-bg-title" 
-      style="transform: translate(-50%, calc(-20px + {scrollY * 0.25}px)); will-change: transform;"
+      style="transform: translate(-50%, calc(-20px + {scrollY * 0.65}px)); will-change: transform;"
     >
       RECORDINGS
     </div>
 
     <div class="em-newspaper-masthead" style="position: relative; padding: 20px 0 10px 0;">
       <div class="masthead-flex-row">
-        <!-- Left decoration: collage tag -->
-        <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
-          EDITION II // TOKYO
-        </span>
+        <!-- Left decoration: collage tag (Parallax layered) -->
+        <div style="transform: translateY({scrollY * -0.15}px); will-change: transform; display: inline-block;">
+          <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
+            EDITION II // TOKYO
+          </span>
+        </div>
 
         <!-- Center Title (Giant jump-rate) -->
         <!-- svelte-ignore a11y_missing_attribute -->
@@ -296,10 +298,12 @@
           </span>
         </a>
 
-        <!-- Right decoration: collage tag (slanted yellow) -->
-        <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; border-width: 2px; animation-delay: -2s;">
-          ISSUE // 2026
-        </span>
+        <!-- Right decoration: collage tag (slanted yellow, Parallax layered) -->
+        <div style="transform: translateY({scrollY * -0.22}px); will-change: transform; display: inline-block;">
+          <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; border-width: 2px; animation-delay: -2s;">
+            ISSUE // 2026
+          </span>
+        </div>
       </div>
 
       <!-- Meta Bar: Slanted/Collaged actions -->
