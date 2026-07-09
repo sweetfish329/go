@@ -2,10 +2,13 @@ package handler
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 	"github.com/sweetfish329/go/kifu/backend/internal/repository"
@@ -45,6 +48,7 @@ type AuthResponse struct {
 func (h *AuthHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/register", h.Register)
 	mux.HandleFunc("POST /api/auth/login", h.Login)
+	mux.HandleFunc("POST /api/auth/logout", h.Logout)
 	mux.HandleFunc("POST /api/auth/oauth", h.OAuthLogin)
 	mux.HandleFunc("GET /api/auth/providers", h.GetEnabledProviders)
 	mux.HandleFunc("GET /api/users/{userId}/username", h.GetUsername)
@@ -245,16 +249,37 @@ func (h *AuthHandler) OAuth2Redirect(w http.ResponseWriter, r *http.Request) {
 	_, _ = rand.Read(stateBytes)
 	state := hex.EncodeToString(stateBytes)
 
+	secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || os.Getenv("COOKIE_SECURE") == "true"
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state_" + provider,
 		Value:    state,
 		Path:     "/",
 		MaxAge:   300, // 5 minutes
 		HttpOnly: true,
-		Secure:   false, // Set true in production (requires https)
+		Secure:   secure,
 	})
 
-	url := config.AuthCodeURL(state)
+	// PKCE
+	verifier, err := generateVerifier()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate verifier")
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_verifier_" + provider,
+		Value:    verifier,
+		Path:     "/",
+		MaxAge:   300, // 5 minutes
+		HttpOnly: true,
+		Secure:   secure,
+	})
+
+	challenge := generateChallenge(verifier)
+	url := config.AuthCodeURL(state,
+		oauth2.SetAuthURLParam("code_challenge", challenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -283,6 +308,23 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
+	// Retrieve PKCE verifier
+	verifierCookie, err := r.Cookie("oauth_verifier_" + provider)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Missing OAuth verifier")
+		return
+	}
+	verifier := verifierCookie.Value
+
+	// Clear verifier cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_verifier_" + provider,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+
 	setting, err := h.oauthRepo.FindByProvider(provider)
 	if err != nil || setting == nil || !setting.Enabled {
 		respondWithError(w, http.StatusBadRequest, "Provider settings error")
@@ -295,7 +337,8 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := config.Exchange(r.Context(), code)
+	// Exchange using PKCE verifier
+	token, err := config.Exchange(r.Context(), code, oauth2.SetAuthURLParam("code_verifier", verifier))
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to exchange token: "+err.Error())
 		return
@@ -376,8 +419,18 @@ func (h *AuthHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect to frontend with query parameters
-	redirectURL := fmt.Sprintf("/?oauth_token=%s&oauth_username=%s&oauth_id=%s", jwtToken, user.Username, user.ID)
+	secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || os.Getenv("COOKIE_SECURE") == "true"
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    jwtToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Redirect to frontend with success query parameter
+	redirectURL := "/?oauth_success=true"
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
@@ -457,6 +510,30 @@ func getUserInfoURL(provider string) string {
 	default:
 		return ""
 	}
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+}
+
+func generateVerifier() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+func generateChallenge(verifier string) string {
+	sha := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sha[:])
 }
 
 func (h *AuthHandler) GetUsername(w http.ResponseWriter, r *http.Request) {

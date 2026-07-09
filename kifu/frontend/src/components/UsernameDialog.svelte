@@ -37,7 +37,7 @@
       }
 
       // Update auth store local state
-      auth.setLogin(auth.token || "", data.username, data.id);
+      auth.setLogin(data.username, data.id);
 
       const M = getM();
       if (M) {

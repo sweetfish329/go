@@ -63,9 +63,17 @@ func main() {
 
 // CORS Middleware
 func enableCORS(next http.Handler) http.Handler {
+	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if allowedOrigin != "" {
+			if origin == allowedOrigin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 

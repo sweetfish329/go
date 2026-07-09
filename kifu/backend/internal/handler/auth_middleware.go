@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -15,7 +16,15 @@ type contextKey string
 const UserIDKey contextKey = "userID"
 const UsernameKey contextKey = "username"
 
-var jwtSecret = []byte("kifu-secret-key-1234") // In production, use environment variable
+var jwtSecret []byte
+
+func init() {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "kifu-secret-key-1234"
+	}
+	jwtSecret = []byte(secret)
+}
 
 type Claims struct {
 	UserID   string `json:"user_id"`
@@ -73,19 +82,26 @@ func ValidateToken(tokenStr string) (*Claims, error) {
 // AuthMiddleware protects routes that require authentication
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			respondWithError(w, http.StatusUnauthorized, "Authorization header required")
+		var tokenStr string
+		cookie, err := r.Cookie("session_token")
+		if err == nil && cookie.Value != "" {
+			tokenStr = cookie.Value
+		} else {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenStr = parts[1]
+				}
+			}
+		}
+
+		if tokenStr == "" {
+			respondWithError(w, http.StatusUnauthorized, "Authorization required")
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			respondWithError(w, http.StatusUnauthorized, "Authorization header format must be Bearer <token>")
-			return
-		}
-
-		claims, err := ValidateToken(parts[1])
+		claims, err := ValidateToken(tokenStr)
 		if err != nil {
 			respondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
 			return
@@ -100,19 +116,26 @@ func AuthMiddleware(next http.Handler) http.Handler {
 // OptionalAuthMiddleware parses the token if present, but does not reject requests if missing
 func OptionalAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
+		var tokenStr string
+		cookie, err := r.Cookie("session_token")
+		if err == nil && cookie.Value != "" {
+			tokenStr = cookie.Value
+		} else {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenStr = parts[1]
+				}
+			}
+		}
+
+		if tokenStr == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		claims, err := ValidateToken(parts[1])
+		claims, err := ValidateToken(tokenStr)
 		if err == nil {
 			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 			ctx = context.WithValue(ctx, UsernameKey, claims.Username)
@@ -127,19 +150,26 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 // AdminMiddleware protects routes that require admin privileges
 func AdminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			respondWithError(w, http.StatusUnauthorized, "Authorization header required")
+		var tokenStr string
+		cookie, err := r.Cookie("session_token")
+		if err == nil && cookie.Value != "" {
+			tokenStr = cookie.Value
+		} else {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenStr = parts[1]
+				}
+			}
+		}
+
+		if tokenStr == "" {
+			respondWithError(w, http.StatusUnauthorized, "Authorization required")
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			respondWithError(w, http.StatusUnauthorized, "Authorization header format must be Bearer <token>")
-			return
-		}
-
-		claims, err := ValidateToken(parts[1])
+		claims, err := ValidateToken(tokenStr)
 		if err != nil {
 			respondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
 			return

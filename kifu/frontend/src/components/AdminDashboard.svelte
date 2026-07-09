@@ -175,7 +175,18 @@
     }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+      try {
+        await fetch("/api/admin/logout", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error("管理者ログアウトに失敗しました", err);
+      }
+    }
     localStorage.removeItem("admin_token");
     onLogout();
   }

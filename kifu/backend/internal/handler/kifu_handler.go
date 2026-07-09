@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html"
 	"image/png"
 	"io"
 	"net/http"
@@ -392,6 +393,11 @@ func (h *KifuHandler) GetPublicKifu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, kifu)
 }
 
@@ -558,19 +564,20 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	html := string(htmlBytes)
+	htmlContent := string(htmlBytes)
 
 	// Replace title tag
 	tabName := settings["tab_name"]
 	if tabName == "" {
 		tabName = "kifu_store"
 	}
-	html = strings.Replace(html, "<title>kifu_store</title>", "<title>"+tabName+"</title>", 1)
+	escapedTabName := html.EscapeString(tabName)
+	htmlContent = strings.Replace(htmlContent, "<title>kifu_store</title>", "<title>"+escapedTabName+"</title>", 1)
 
 	// Replace favicon if configured
 	favicon := settings["favicon"]
 	if favicon != "" {
-		html = strings.Replace(html, `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`, `<link rel="icon" href="`+favicon+`" />`, 1)
+		htmlContent = strings.Replace(htmlContent, `<link rel="icon" type="image/svg+xml" href="/vite.svg" />`, `<link rel="icon" href="`+favicon+`" />`, 1)
 	}
 
 	// Inject CSS variable for theme color
@@ -579,7 +586,7 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		themeColor = "#4e342e"
 	}
 	themeStyle := fmt.Sprintf("\n\t<style>:root { --theme-color: %s; }</style>", themeColor)
-	html = strings.Replace(html, "</head>", themeStyle+"\n</head>", 1)
+	htmlContent = strings.Replace(htmlContent, "</head>", themeStyle+"\n</head>", 1)
 
 	userId := r.PathValue("userId")
 	kifuId := r.PathValue("kifuId")
@@ -589,10 +596,13 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	if kifuId != "" && userId != "" {
 		kifu, err := h.repo.FindByIDAndUser(kifuId, userId)
 		if err == nil && kifu != nil {
-			title := kifu.Title
-			description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
+			title := html.EscapeString(kifu.Title)
+			escapedBlack := html.EscapeString(kifu.BlackPlayer)
+			escapedWhite := html.EscapeString(kifu.WhitePlayer)
+			escapedResult := html.EscapeString(kifu.Result)
+			description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", escapedBlack, escapedWhite)
 			if kifu.Result != "" {
-				description += fmt.Sprintf(" (結果: %s)", kifu.Result)
+				description += fmt.Sprintf(" (結果: %s)", escapedResult)
 			}
 
 			scheme := "http"
@@ -626,8 +636,8 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 			<meta name="twitter:card" content="summary_large_image" />
 			<meta name="twitter:title" content="%s | %s" />
 			<meta name="twitter:description" content="%s" />`,
-				robotsTag, title, tabName, description,
-				title, tabName, description,
+				robotsTag, title, escapedTabName, description,
+				title, escapedTabName, description,
 			)
 
 			if ogImageUrl != "" {
@@ -641,17 +651,20 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		<meta name="robots" content="index, follow" />
 		<meta property="og:title" content="公開棋譜一覧 | %s" />
 		<meta property="og:description" content="ユーザーの一般公開棋譜一覧です。" />
-		<meta property="og:type" content="website" />`, tabName)
+		<meta property="og:type" content="website" />`, escapedTabName)
 	} else {
 		// Fallback to share token if any
 		shareToken := r.URL.Query().Get("share")
 		if shareToken != "" {
 			kifu, err := h.repo.FindByShareToken(shareToken)
 			if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.Before(time.Now())) {
-				title := kifu.Title
-				description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", kifu.BlackPlayer, kifu.WhitePlayer)
+				title := html.EscapeString(kifu.Title)
+				escapedBlack := html.EscapeString(kifu.BlackPlayer)
+				escapedWhite := html.EscapeString(kifu.WhitePlayer)
+				escapedResult := html.EscapeString(kifu.Result)
+				description := fmt.Sprintf("対局者: 黒 %s vs 白 %s", escapedBlack, escapedWhite)
 				if kifu.Result != "" {
-					description += fmt.Sprintf(" (結果: %s)", kifu.Result)
+					description += fmt.Sprintf(" (結果: %s)", escapedResult)
 				}
 
 				scheme := "http"
@@ -673,17 +686,17 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 				<meta name="twitter:title" content="%s | %s" />
 				<meta name="twitter:description" content="%s" />
 				<meta name="twitter:image" content="%s" />`,
-					title, tabName, description, ogImageUrl,
-					title, tabName, description, ogImageUrl,
+					title, escapedTabName, description, ogImageUrl,
+					title, escapedTabName, description, ogImageUrl,
 				)
 			}
 		}
 	}
 
 	if ogpMeta != "" {
-		html = strings.Replace(html, "</head>", ogpMeta+"\n</head>", 1)
+		htmlContent = strings.Replace(htmlContent, "</head>", ogpMeta+"\n</head>", 1)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(html))
+	_, _ = w.Write([]byte(htmlContent))
 }

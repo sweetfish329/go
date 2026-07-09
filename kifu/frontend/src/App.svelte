@@ -78,21 +78,12 @@
     const admin = params.has('admin');
 
     // Handle OAuth2 callback redirect parameters
-    const oauthToken = params.get('oauth_token');
-    const oauthUsername = params.get('oauth_username');
-    const oauthId = params.get('oauth_id');
-
-    if (oauthToken && oauthUsername && oauthId) {
-      auth.setLogin(oauthToken, oauthUsername, oauthId);
+    const oauthSuccess = params.get('oauth_success');
+    if (oauthSuccess) {
       // Clean query parameters from URL without reloading
       const url = new URL(window.location.href);
-      url.searchParams.delete('oauth_token');
-      url.searchParams.delete('oauth_username');
-      url.searchParams.delete('oauth_id');
+      url.searchParams.delete('oauth_success');
       window.history.replaceState({}, '', url.pathname + url.search);
-      // ログイン成功 → 即座にリスト表示（以降のルーティング判定をスキップ）
-      currentView = "list";
-      return;
     }
 
     // Pattern: /u/:userId/:kifuId
@@ -140,7 +131,10 @@
 
   // Determine view on mount based on URL query params & auth state
   onMount(async () => {
-    // 1. Run routing first to capture OAuth parameters & establish session immediately
+    // 1. Fetch current authentication status first
+    await auth.checkAuth();
+
+    // 2. Run routing to navigate to appropriate view
     handleRouting();
 
     // 2. Load theme from localStorage

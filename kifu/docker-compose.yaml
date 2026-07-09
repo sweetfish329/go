@@ -11,6 +11,12 @@ services:
     environment:
       PORT: 8080
       DB_PATH: /data/kifu.db
+      JWT_SECRET: kifu-secret-key-1234
+      ALLOWED_ORIGIN: http://localhost:8822
+      ADMIN_USERNAME: Admin
+      ADMIN_PASSWORD: admin-secure-password-here
+      ENCRYPTION_KEY: kifu-default-encryption-key-for-oauth
+      COOKIE_SECURE: "false"
     volumes:
       - kifu-db-data:/data
 

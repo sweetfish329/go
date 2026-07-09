@@ -2,8 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 	"github.com/sweetfish329/go/kifu/backend/internal/repository"
@@ -32,6 +34,7 @@ type AdminLoginResponse struct {
 
 func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/admin/login", h.Login)
+	mux.Handle("POST /api/admin/logout", AdminMiddleware(http.HandlerFunc(h.Logout)))
 
 	// Public site settings read API
 	mux.HandleFunc("GET /api/site-settings", h.GetSiteSettings)
@@ -42,7 +45,14 @@ func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("PUT /api/admin/site-settings", AdminMiddleware(http.HandlerFunc(h.SaveSiteSettings)))
 }
 
+func (h *AdminHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+}
+
 func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
+	// Add simple delay to mitigate brute force
+	time.Sleep(500 * time.Millisecond)
+
 	var req AdminLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
@@ -50,12 +60,9 @@ func (h *AdminHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	adminUser := os.Getenv("ADMIN_USERNAME")
-	if adminUser == "" {
-		adminUser = "Admin"
-	}
 	adminPass := os.Getenv("ADMIN_PASSWORD")
-	if adminPass == "" {
-		adminPass = "admin"
+	if adminUser == "" || adminPass == "" {
+		log.Fatalf("ADMIN_USERNAME or ADMIN_PASSWORD environment variable is not set")
 	}
 
 	if req.Username != adminUser || req.Password != adminPass {

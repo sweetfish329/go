@@ -148,6 +148,10 @@ func Parse(sgf string) (*Node, error) {
 		return nil, errors.New("no root node found in SGF")
 	}
 
+	if len(stack) > 0 {
+		return nil, errors.New("unclosed parenthesis '('")
+	}
+
 	return root, nil
 }
 
