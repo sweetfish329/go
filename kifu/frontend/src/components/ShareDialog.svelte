@@ -623,6 +623,16 @@
     box-shadow: 6px 6px 0px var(--wc-shadow-dark) !important;
   }
 
+  /* Make QR Code SVG scale smoothly */
+  .qr-container :global(svg) {
+    display: block;
+    width: 180px;
+    height: 180px;
+    max-width: 100%;
+    max-height: 100%;
+    transition: var(--wc-transition-fast);
+  }
+
   .qr-placeholder {
     width: 180px;
     height: 180px;
@@ -871,6 +881,99 @@
       border-left: none;
       border-top: 1.5px solid var(--wc-text);
       padding: 10px 0;
+    }
+  }
+
+  /* 高さまたは幅が狭い場合のスタイル微調整（縦レスポンシブ） */
+  @media (max-height: 640px) or (max-width: 480px) {
+    .share-modal-content {
+      padding: 16px 20px !important;
+    }
+
+    .share-modal-header {
+      margin-bottom: 12px;
+    }
+
+    .share-modal-title {
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+
+    .share-modal-subtitle {
+      font-size: 0.75rem;
+    }
+
+    .qr-container-wrapper {
+      margin-bottom: 12px;
+    }
+
+    .qr-container {
+      padding: 8px;
+    }
+
+    .qr-placeholder {
+      width: 120px;
+      height: 120px;
+      font-size: 0.75rem;
+    }
+
+    .qr-container :global(svg) {
+      width: 120px;
+      height: 120px;
+    }
+
+    .url-ticket-box {
+      margin-bottom: 12px;
+      box-shadow: 2px 2px 0px var(--wc-shadow-dark);
+    }
+
+    .url-ticket-text {
+      padding: 8px 12px;
+      font-size: 0.75rem;
+    }
+
+    .url-ticket-btn {
+      padding: 0 12px;
+      font-size: 0.72rem;
+    }
+
+    .regenerate-action-container {
+      margin-bottom: 12px;
+    }
+
+    .regenerate-btn {
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      box-shadow: 2px 2px 0px var(--wc-text) !important;
+    }
+
+    .privacy-section {
+      margin-bottom: 4px;
+    }
+
+    .visibility-tab {
+      padding: 8px 12px;
+      font-size: 0.78rem;
+    }
+
+    .privacy-explanation-box {
+      padding: 10px 12px;
+    }
+
+    .privacy-desc {
+      font-size: 0.72rem;
+      line-height: 1.4;
+    }
+
+    .share-modal-footer {
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+
+    .close-btn {
+      padding: 6px 18px;
+      font-size: 0.8rem;
+      box-shadow: 2px 2px 0px var(--wc-text) !important;
     }
   }
 </style>
