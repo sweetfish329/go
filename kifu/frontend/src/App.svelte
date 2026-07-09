@@ -259,7 +259,7 @@
       RECORDINGS
     </div>
 
-    <div class="em-newspaper-masthead" style="position: relative; z-index: 2; padding: 20px 0 10px 0;">
+    <div class="em-newspaper-masthead" style="position: relative; padding: 20px 0 10px 0;">
       <div class="masthead-flex-row">
         <!-- Left decoration: collage tag -->
         <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
@@ -377,6 +377,7 @@
     white-space: nowrap;
     overflow: hidden;
     pointer-events: none;
+    z-index: -1;
   }
 
   .masthead-flex-row {
@@ -488,7 +489,6 @@
   main {
     min-height: 80vh;
     position: relative;
-    z-index: 1;
   }
 
   .cursor-pointer {
