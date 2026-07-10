@@ -121,7 +121,7 @@
 
     <!-- Grid lines -->
     <!-- Horizontal lines -->
-    {#each Array(size) as _, i}
+    {#each Array(size) as _, i (i)}
       <line
         x1={padding}
         y1={getPos(i)}
@@ -133,7 +133,7 @@
       />
     {/each}
     <!-- Vertical lines -->
-    {#each Array(size) as _, i}
+    {#each Array(size) as _, i (i)}
       <line
         x1={getPos(i)}
         y1={padding}
@@ -146,7 +146,7 @@
     {/each}
 
     <!-- Star Points -->
-    {#each starPoints as pt}
+    {#each starPoints as pt, idx (idx)}
       <circle
         cx={getPos(pt.x)}
         cy={getPos(pt.y)}
@@ -169,8 +169,8 @@
     {/if}
 
     <!-- Placed Stones -->
-    {#each board as row, y}
-      {#each row as cell, x}
+    {#each board as row, y (y)}
+      {#each row as cell, x (x)}
         {#if cell === 1}
           <!-- Black stone with a radial gradient and outline -->
           <circle
@@ -246,7 +246,7 @@
 <style>
   .board-container {
     width: 100%;
-    max-width: 550px;
+    max-width: min(78vh, 720px);
     margin: 0 auto;
     border-radius: 0px !important;
     background-color: var(--wc-surface);
@@ -255,11 +255,21 @@
     padding: 12px;
     box-sizing: border-box;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    touch-action: none; /* タップ遅延防止 */
   }
 
   .board-container:hover {
     transform: translate(-1px, -1px);
     box-shadow: 7px 7px 0px var(--wc-text) !important;
+  }
+
+  /* モバイル画面用の最適化 */
+  @media only screen and (max-width: 600px) {
+    .board-container {
+      padding: 6px;
+      box-shadow: 4px 4px 0px var(--wc-text) !important;
+      max-width: 100%;
+    }
   }
 
   .go-board {

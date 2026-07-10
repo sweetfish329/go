@@ -1407,3 +1407,43 @@ textarea.nm-textarea:focus {
 .em-vogue-editorial-item .open-label span {
   transition: transform 0.3s ease;
 }
+
+/* ================================================================
+   Mobile Touch & Speed Optimization (タップ遅延防止・ホバー解除)
+   ================================================================ */
+button,
+a,
+[role="button"],
+.nm-btn,
+.nm-btn-primary,
+.nm-btn-flat,
+.nm-btn-round,
+.nav-link,
+.share-settings-btn {
+  touch-action: manipulation; /* スマホでの300msタップ遅延を完全に排除 */
+}
+
+@media (hover: none) {
+  /* タッチパネル環境でのホバー粘着（フォーカス保持によるスタイル残存）を防止 */
+  .nm-btn:hover,
+  .nm-btn-primary:hover,
+  .nm-btn-flat:hover,
+  .nm-btn-round:hover,
+  .nav-link:hover,
+  .share-settings-btn:hover {
+    transform: none !important;
+    background-color: var(--wc-surface) !important;
+    box-shadow: var(--nm-shadow-outset-sm) !important;
+    color: var(--wc-text) !important;
+  }
+  .nm-btn-primary:hover {
+    background: linear-gradient(145deg, #D4A882, #C8956C) !important;
+    box-shadow: var(--clay-shadow) !important;
+    color: #FFFFFF !important;
+  }
+  .nm-btn-flat:hover {
+    background: transparent !important;
+    color: var(--wc-text-muted) !important;
+  }
+}
+

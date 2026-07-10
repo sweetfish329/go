@@ -252,8 +252,8 @@
   </div>
 
   <!-- Left: Interactive Board -->
-  <div class="col s12 l7 center-align" style="margin-bottom: 2rem;">
-    <div style="display: inline-block; position: relative;">
+  <div class="col s12 l7 center-align kifu-board-column" style="margin-bottom: 2rem;">
+    <div class="board-wrapper" style="display: inline-block; position: relative;">
       <Board 
         board={currentBoard} 
         {size} 
@@ -375,5 +375,36 @@
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Layout alignment and sizing */
+  .kifu-board-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .board-wrapper {
+    border: 4px solid transparent;
+    border-radius: 12px;
+    padding: 4px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: inline-block;
+    width: 100%;
+    max-width: min(78vh, 720px);
+    box-sizing: border-box;
+  }
+
+  /* Mobile responsive adjustments */
+  @media only screen and (max-width: 600px) {
+    .kifu-board-column {
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+    }
+    .board-wrapper {
+      border-width: 2px !important;
+      padding: 2px !important;
+      border-radius: 6px !important;
+    }
   }
 </style>

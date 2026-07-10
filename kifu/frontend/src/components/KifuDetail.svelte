@@ -742,7 +742,7 @@
   {:else}
     <!-- Main UI Grid -->
     <!-- Left Column: Go Board & Controls -->
-    <div class="col s12 l7 center-align" style="margin-bottom: 2rem; position: relative;">
+    <div class="col s12 l7 center-align kifu-board-column" style="margin-bottom: 2rem; position: relative;">
       <div class="board-wrapper {isViewingVariation ? 'viewing-variation' : ''}" style="position: relative; display: inline-block;">
         {#if isViewingVariation}
           <div class="wc-variation-badge animate-fade-in" style="position: absolute; top: 15px; left: 15px; z-index: 10;">
@@ -1064,29 +1064,70 @@
   .buttons-row button {
     background-color: var(--wc-surface) !important;
     color: var(--wc-text) !important;
-    transition: var(--wc-transition-fast) !important;
+    transition: transform 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease !important;
     border: 1px solid var(--wc-border) !important;
     box-shadow: var(--nm-shadow-outset-sm) !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation; /* タップ遅延防止 */
   }
 
-  /* Hover micro-animations */
-  .buttons-row button:hover {
-    background-color: var(--wc-surface-alt) !important;
-    color: var(--wc-accent) !important;
-    transform: scale(1.08) translateY(-1px) !important;
-    box-shadow: var(--nm-shadow-outset-sm-hover) !important;
+  /* Hover micro-animations (PC/マウスホバー環境のみ) */
+  @media (hover: hover) {
+    .buttons-row button:hover {
+      background-color: var(--wc-surface-alt) !important;
+      color: var(--wc-accent) !important;
+      transform: scale(1.08) translateY(-1px) !important;
+      box-shadow: var(--nm-shadow-outset-sm-hover) !important;
+    }
   }
 
   .buttons-row button:active {
-    transform: scale(0.97) translateY(0) !important;
+    transform: scale(0.95) !important;
     box-shadow: var(--nm-shadow-inset) !important;
+    background-color: var(--wc-surface-alt) !important;
+  }
+
+  /* Layout alignment and sizing */
+  .kifu-board-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .board-wrapper {
+    border: 4px solid transparent;
+    border-radius: 12px;
+    padding: 4px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: inline-block;
+    width: 100%;
+    max-width: min(78vh, 720px);
+    box-sizing: border-box;
+  }
+
+  .em-portfolio-section {
+    width: 100%;
+    max-width: min(78vh, 720px);
+    box-sizing: border-box;
   }
 
   /* Mobile responsive adjustments */
   @media only screen and (max-width: 600px) {
+    .kifu-board-column {
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+    }
+    .board-wrapper {
+      border-width: 2px !important;
+      padding: 2px !important;
+      border-radius: 6px !important;
+    }
+    .em-portfolio-section {
+      padding: 20px 10px 14px 10px !important;
+      margin-top: 1rem !important;
+    }
     .buttons-row button {
       width: 36px !important;
       height: 36px !important;
@@ -1108,15 +1149,6 @@
     h5 {
       font-size: 1.25rem !important;
     }
-  }
-
-  /* Board wrapper variation border and shading */
-  .board-wrapper {
-    border: 4px solid transparent;
-    border-radius: 12px;
-    padding: 4px;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    display: inline-block;
   }
 
   .board-wrapper.viewing-variation {
@@ -1154,13 +1186,16 @@
     color: var(--wc-text) !important;
     transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.15s ease !important;
     will-change: transform, box-shadow;
+    touch-action: manipulation; /* タップ遅延防止 */
   }
 
-  .share-settings-btn:hover {
-    animation-play-state: paused !important; /* Pause pulse-btn animation on hover */
-    transform: translate(-1.5px, -1.5px) scale(1.03) !important;
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
-    background-color: var(--wc-surface-alt) !important;
+  @media (hover: hover) {
+    .share-settings-btn:hover {
+      animation-play-state: paused !important; /* Pause pulse-btn animation on hover */
+      transform: translate(-1.5px, -1.5px) scale(1.03) !important;
+      box-shadow: 4px 4px 0px var(--wc-text) !important;
+      background-color: var(--wc-surface-alt) !important;
+    }
   }
 
   .share-settings-btn:active {
