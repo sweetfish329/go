@@ -339,4 +339,26 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* モバイル・タッチデバイスでのログインボタン・ソーシャルボタンの拡大 */
+  @media (pointer: coarse), only screen and (max-width: 1024px) {
+    .social-btn {
+      padding: 14px 24px !important;
+      font-size: 1.05rem !important;
+      min-height: 48px !important;
+      border-radius: 0px !important;
+    }
+    .social-btn-icon {
+      width: 32px !important;
+      height: 32px !important;
+      font-size: 1.2rem !important;
+      line-height: 32px !important;
+    }
+    .social-btn span:last-child {
+      font-size: 0.95rem !important;
+    }
+    .auth-title {
+      font-size: 2.2rem !important;
+    }
+  }
 </style>
