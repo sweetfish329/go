@@ -410,18 +410,8 @@
     justify-content: center;
   }
 
-  /* Mobile responsive adjustments */
-  @media only screen and (max-width: 600px) {
-    .kifu-board-column {
-      padding-left: 6px !important;
-      padding-right: 6px !important;
-    }
-    .board-wrapper {
-      border-width: 2px !important;
-      padding: 2px !important;
-      border-radius: 6px !important;
-      max-width: 100% !important;
-    }
+  /* Touch and Tablet responsive adjustments (拡大ボタン) */
+  @media (pointer: coarse), only screen and (max-width: 1024px) {
     .control-buttons {
       gap: 12px !important;
     }
@@ -434,6 +424,20 @@
     .control-buttons button i {
       font-size: 1.6rem !important;
       line-height: 46px !important;
+    }
+  }
+
+  /* Mobile screen responsive adjustments (狭い画面での余白・碁盤枠線調整) */
+  @media only screen and (max-width: 600px) {
+    .kifu-board-column {
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+    }
+    .board-wrapper {
+      border-width: 2px !important;
+      padding: 2px !important;
+      border-radius: 6px !important;
+      max-width: 100% !important;
     }
   }
 </style>

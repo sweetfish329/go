@@ -1447,8 +1447,8 @@ a,
   }
 }
 
-/* モバイル表示での操作ボタン・トグル・スライダーの拡大 (Tap Target Size Rebalancing) */
-@media only screen and (max-width: 600px) {
+/* モバイル・タッチ表示での操作ボタン・トグル・スライダーの拡大 (Tap Target Size Rebalancing) */
+@media (pointer: coarse), only screen and (max-width: 1024px) {
   /* ボタン全般のサイズ拡大（最小高さ 48px の確保とタップ領域拡張） */
   .nm-btn,
   .nm-btn-primary,
