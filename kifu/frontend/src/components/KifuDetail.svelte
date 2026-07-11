@@ -791,25 +791,25 @@
 
           <!-- Buttons Row -->
           <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={goFirst} title="最初へ">
+            <button class="nm-btn-flat" onclick={goFirst} title="最初へ">
               <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">first_page</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepBack(10)} title="10手戻る">
+            <button class="nm-btn-flat" onclick={() => stepBack(10)} title="10手戻る">
               <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">fast_rewind</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepBack(1)} title="1手戻る">
+            <button class="nm-btn-flat" onclick={() => stepBack(1)} title="1手戻る">
               <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">navigate_before</i>
             </button>
-            <button class="nm-btn-primary em-pulse-button" style="width: 38px !important; height: 38px !important; min-width: 38px; padding: 0; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important;" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
+            <button class="nm-btn-primary em-pulse-button" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
               <i class="material-icons" style="font-size: 1.25rem;">{isAutoplay ? 'pause' : 'play_arrow'}</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepForward(1)} title="1手進む">
+            <button class="nm-btn-flat" onclick={() => stepForward(1)} title="1手進む">
               <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">navigate_next</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={() => stepForward(10)} title="10手進む">
+            <button class="nm-btn-flat" onclick={() => stepForward(10)} title="10手進む">
               <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">fast_forward</i>
             </button>
-            <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={goLast} title="最後へ">
+            <button class="nm-btn-flat" onclick={goLast} title="最後へ">
               <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
             </button>
           </div>
@@ -1062,15 +1062,20 @@
 
   /* Playback controls buttons styling */
   .buttons-row button {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    padding: 0 !important;
     background-color: var(--wc-surface) !important;
     color: var(--wc-text) !important;
     transition: transform 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease !important;
-    border: 1px solid var(--wc-border) !important;
-    box-shadow: var(--nm-shadow-outset-sm) !important;
+    border: 1.5px solid var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
     touch-action: manipulation; /* タップ遅延防止 */
+    border-radius: 0px !important;
   }
 
   /* Hover micro-animations (PC/マウスホバー環境のみ) */

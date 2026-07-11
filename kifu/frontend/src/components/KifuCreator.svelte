@@ -343,16 +343,16 @@
 
         <!-- Navigation Buttons -->
         <div class="control-buttons center-align" style="margin-bottom: 15px; display: flex; justify-content: center; gap: 8px;">
-          <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={jumpToStart} disabled={currentMoveIndex === -1} title="最初へ">
+          <button class="nm-btn-flat" onclick={jumpToStart} disabled={currentMoveIndex === -1} title="最初へ">
             <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">first_page</i>
           </button>
-          <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={undo} disabled={currentMoveIndex === -1} title="戻る">
+          <button class="nm-btn-flat" onclick={undo} disabled={currentMoveIndex === -1} title="戻る">
             <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">chevron_left</i>
           </button>
-          <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={redo} disabled={currentMoveIndex === moves.length - 1} title="進む">
+          <button class="nm-btn-flat" onclick={redo} disabled={currentMoveIndex === moves.length - 1} title="進む">
             <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">chevron_right</i>
           </button>
-          <button class="nm-btn-flat" style="border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; min-width: 38px; height: 38px; padding: 0; background: var(--wc-surface) !important; box-shadow: 2px 2px 0px var(--wc-text);" onclick={jumpToEnd} disabled={currentMoveIndex === moves.length - 1} title="最後へ">
+          <button class="nm-btn-flat" onclick={jumpToEnd} disabled={currentMoveIndex === moves.length - 1} title="最後へ">
             <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">last_page</i>
           </button>
         </div>
@@ -393,6 +393,21 @@
     width: 100%;
     max-width: min(78vh, 720px);
     box-sizing: border-box;
+  }
+
+  .control-buttons button {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    padding: 0 !important;
+    background: var(--wc-surface) !important;
+    color: var(--wc-text) !important;
+    border: 1.5px solid var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    border-radius: 0px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Mobile responsive adjustments */
