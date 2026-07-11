@@ -18,7 +18,9 @@
   let svgElement = $state<SVGSVGElement>();
   let hoverIntersection = $state<{ x: number; y: number } | null>(null); // { x, y } under mouse pointer
   const isMobileDevice = $derived(typeof window !== 'undefined' && 
-    (window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches));
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+     window.innerWidth < 768 || 
+     window.matchMedia('(pointer: coarse)').matches));
 
   const padding = 25;
   const boardSize = 500;
