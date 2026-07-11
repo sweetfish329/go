@@ -1447,3 +1447,83 @@ a,
   }
 }
 
+/* モバイル表示での操作ボタン・トグル・スライダーの拡大 (Tap Target Size Rebalancing) */
+@media only screen and (max-width: 600px) {
+  /* ボタン全般のサイズ拡大（最小高さ 48px の確保とタップ領域拡張） */
+  .nm-btn,
+  .nm-btn-primary,
+  .share-settings-btn,
+  .wc-btn {
+    padding: 12px 24px !important;
+    font-size: 1rem !important;
+    min-height: 48px !important; /* タップターゲット最小サイズ48pxの確保 */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* 戻るボタンのサイズ拡大 */
+  button.em-collage-tag-pastel.em-float-badge {
+    padding: 12px 20px !important;
+    font-size: 0.85rem !important;
+    min-height: 46px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  /* トグルスイッチのタップ領域およびノブの超拡大 (Materialize Switch override) */
+  .switch label {
+    font-size: 1rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 12px 0 !important; /* タップ用の反応範囲を広げる */
+    cursor: pointer;
+  }
+  .switch label .lever {
+    width: 56px !important; /* レール幅の拡大 */
+    height: 24px !important; /* レール高さの拡大 */
+    border-radius: 14px !important;
+    margin: 0 16px !important; /* テキストとの間に十分な余白を設定 */
+  }
+  .switch label .lever:after {
+    width: 32px !important; /* 丸ノブ直径の拡大 */
+    height: 32px !important; /* 丸ノブ直径の拡大 */
+    border-radius: 50% !important;
+    left: -4px !important;
+    top: -4px !important; /* レール中央に配置 */
+    box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12) !important;
+  }
+  .switch label input[type=checkbox]:checked+.lever:after {
+    left: 28px !important; /* オン時のノブ位置調整 */
+  }
+
+  /* レンジスライダーのつまみ（Thumb）の超拡大 (操作性向上のため掴みやすく) */
+  input[type=range] {
+    height: 38px !important; /* スライダー自体のタッチ反応範囲を拡大 */
+  }
+  input[type=range]::-webkit-slider-thumb {
+    width: 28px !important; /* つまみの直径を拡大 */
+    height: 28px !important;
+    margin-top: -12px !important; /* スライドレールの中央に揃える */
+    border-radius: 50% !important;
+    background-color: var(--wc-accent) !important;
+    border: 2px solid var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+  input[type=range]:active::-webkit-slider-thumb {
+    transform: scale(1.2) !important; /* スライド操作中につまみを拡大してフィードバック */
+  }
+  /* Firefox 用のスライダーつまみ調整 */
+  input[type=range]::-moz-range-thumb {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background-color: var(--wc-accent) !important;
+    border: 2px solid var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    cursor: pointer;
+  }
+}
+
