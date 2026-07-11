@@ -1135,6 +1135,19 @@
       margin-top: 1rem !important;
       max-width: 100% !important;
     }
+    .range-field {
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 12px !important;
+    }
+    .range-field input[type=range] {
+      width: 100% !important;
+      margin: 0 !important;
+    }
+    .range-field span {
+      font-size: 1.05rem !important;
+      padding: 4px 16px !important;
+    }
     .buttons-row {
       gap: 12px !important;
     }

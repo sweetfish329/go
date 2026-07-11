@@ -223,7 +223,7 @@
 <!-- Vogue Editorial Drawer Panel -->
 <div 
   class="em-vogue-drawer {isDrawerOpen ? 'open' : ''}"
-  style="position: fixed; top: 0; left: 0; width: 380px; height: 100vh; background: var(--wc-surface); border-right: 2px solid var(--wc-text); z-index: 999; transform: translateX({isDrawerOpen ? '0' : '-100%'}); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); padding: 40px 24px; overflow-y: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.15); text-align: left;"
+  style="position: fixed; top: 0; left: 0; height: 100vh; background: var(--wc-surface); border-right: 2px solid var(--wc-text); z-index: 999; transform: translateX({isDrawerOpen ? '0' : '-100%'}); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); padding: 40px 24px; overflow-y: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.15); text-align: left;"
 >
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px;">
     <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 800; margin: 0; color: var(--wc-text); text-transform: uppercase; letter-spacing: 0.08em;">
@@ -408,7 +408,7 @@
                 </div>
 
                 <!-- Headline (Title) - High jump-rate style -->
-                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-weight: 900; font-size: 2.5rem; line-height: 1.05; margin-top: 10px; margin-bottom: 18px; letter-spacing: -0.02em; color: var(--wc-text); word-break: break-word;">
+                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-weight: 900; line-height: 1.05; margin-top: 10px; margin-bottom: 18px; letter-spacing: -0.02em; color: var(--wc-text); word-break: break-word;">
                   {k.title}
                 </h3>
 
@@ -673,6 +673,15 @@
     letter-spacing: 0.04em;
   }
 
+  /* Drawer styles */
+  .em-vogue-drawer {
+    width: 380px;
+  }
+
+  .em-newspaper-headline {
+    font-size: 2.5rem;
+  }
+
   /* Mobile responsive */
   @media only screen and (max-width: 600px) {
     :global(.card-content) {
@@ -681,8 +690,34 @@
     .list-page-title {
       font-size: 1.5rem !important;
     }
-    .players-info {
-      margin: 0.5rem 0 !important;
+    .em-vogue-drawer {
+      width: 100% !important;
+      padding: 30px 16px !important;
+    }
+    .em-newspaper-headline {
+      font-size: 1.6rem !important;
+      margin-bottom: 12px !important;
+    }
+    
+    /* Stack players and metadata vertically on mobile to prevent overflow */
+    .em-vogue-editorial-item > .card-content > div:last-child {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+    }
+    .kifu-meta {
+      text-align: left !important;
+      border-top: 1px dashed var(--wc-border) !important;
+      width: 100% !important;
+      padding-top: 8px !important;
+      margin-top: 4px !important;
+    }
+
+    /* Expand filter drawer ribbon toggle for easier tapping */
+    .em-vogue-drawer-toggle {
+      padding: 18px 10px !important;
+      font-size: 0.8rem !important;
+      top: 30% !important;
     }
   }
 
