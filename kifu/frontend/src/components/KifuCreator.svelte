@@ -420,6 +420,7 @@
       border-width: 2px !important;
       padding: 2px !important;
       border-radius: 6px !important;
+      max-width: 100% !important;
     }
     .control-buttons {
       gap: 12px !important;

@@ -267,7 +267,7 @@
   ></div>
 
   <!-- Newspaper/Portfolio Masthead Header -->
-  <header class="container" style="margin-top: 3rem; margin-bottom: 2rem; position: relative;">
+  <header class="container" class:compact-header={currentView === 'detail' || currentView === 'create'} style="position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast (gorgous deep parallax) -->
     <div 
       class="em-huge-title masthead-bg-title" 
@@ -377,6 +377,38 @@
 {/if}
 
 <style>
+  /* ---- Masthead Header Styling ---- */
+  header.container {
+    margin-top: 3rem !important;
+    margin-bottom: 2rem !important;
+    transition: margin 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  /* 棋譜詳細・作成画面の時にヘッダーを小さくして碁盤の表示領域を最大化 */
+  header.container.compact-header {
+    margin-top: 1rem !important;
+    margin-bottom: 0.8rem !important;
+  }
+  header.container.compact-header .masthead-bg-title {
+    display: none !important;
+  }
+  header.container.compact-header .masthead-site-title {
+    font-size: 2.2rem !important;
+  }
+  header.container.compact-header .em-newspaper-masthead {
+    padding: 10px 0 5px 0 !important;
+  }
+  header.container.compact-header .masthead-flex-row {
+    margin-bottom: 10px !important;
+  }
+  header.container.compact-header .em-newspaper-meta-bar {
+    margin-bottom: 5px !important;
+    padding: 6px 12px !important;
+  }
+  header.container.compact-header .masthead-title-link > span:first-child {
+    display: none !important;
+  }
+
   .app-shell {
     min-height: 100vh;
     position: relative;

@@ -1128,10 +1128,12 @@
       border-width: 2px !important;
       padding: 2px !important;
       border-radius: 6px !important;
+      max-width: 100% !important;
     }
     .em-portfolio-section {
       padding: 20px 10px 14px 10px !important;
       margin-top: 1rem !important;
+      max-width: 100% !important;
     }
     .buttons-row {
       gap: 12px !important;
