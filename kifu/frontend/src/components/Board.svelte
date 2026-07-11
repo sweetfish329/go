@@ -1,24 +1,29 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  export let board: number[][] = []; // 2D array representing board state
-  export let size: number = 19;  // Board size (9, 13, 19)
-  export let lastMove: { x: number; y: number } | null = null; // { x, y } of the last placed stone
-  export let interactive: boolean = true; // Can place stones by clicking
-  export let turnColor: number = 1; // Current player color (1: Black, 2: White) for hover ghost stone
-
-  const dispatch = createEventDispatcher<{
-    intersectionClick: { x: number; y: number };
+  let {
+    board = [],
+    size = 19,
+    lastMove = null,
+    interactive = true,
+    turnColor = 1,
+    onIntersectionClick
+  } = $props<{
+    board?: number[][];
+    size?: number;
+    lastMove?: { x: number; y: number } | null;
+    interactive?: boolean;
+    turnColor?: number;
+    onIntersectionClick?: (detail: { x: number; y: number }) => void;
   }>();
-  let svgElement: SVGSVGElement;
-  let hoverIntersection: { x: number; y: number } | null = null; // { x, y } under mouse pointer
-  const isMobileDevice = typeof window !== 'undefined' && 
-    (window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches);
+
+  let svgElement = $state<SVGSVGElement>();
+  let hoverIntersection = $state<{ x: number; y: number } | null>(null); // { x, y } under mouse pointer
+  const isMobileDevice = $derived(typeof window !== 'undefined' && 
+    (window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches));
 
   const padding = 25;
   const boardSize = 500;
   const usableSize = boardSize - padding * 2;
-  $: step = usableSize / (size - 1);
+  const step = $derived(usableSize / (size - 1));
 
   interface StarPoint {
     x: number;
@@ -26,7 +31,7 @@
   }
 
   // Generate star point coordinates
-  $: starPoints = getStarPoints(size);
+  const starPoints = $derived(getStarPoints(size));
 
   function getStarPoints(s: number): StarPoint[] {
     if (s === 19) {
@@ -74,7 +79,7 @@
     const y = Math.round((svgY - padding) / step);
 
     if (x >= 0 && x < size && y >= 0 && y < size) {
-      dispatch('intersectionClick', { x, y });
+      onIntersectionClick?.({ x, y });
     }
   }
 
@@ -92,7 +97,7 @@
     const x = Math.round((svgX - padding) / step);
     const y = Math.round((svgY - padding) / step);
 
-    if (x >= 0 && x < size && y >= 0 && y < size && board[y][x] === 0) {
+    if (x >= 0 && x < size && y >= 0 && y < size && board[y]?.[x] === 0) {
       hoverIntersection = { x, y };
     } else {
       hoverIntersection = null;
@@ -105,15 +110,15 @@
 </script>
 
 <div class="board-container">
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svg
     bind:this={svgElement}
     viewBox="0 0 {boardSize} {boardSize}"
     class="go-board"
-    on:click={handleSvgClick}
-    on:mousemove={handleMouseMove}
-    on:mouseleave={handleMouseLeave}
+    onclick={handleSvgClick}
+    onmousemove={handleMouseMove}
+    onmouseleave={handleMouseLeave}
   >
     <!-- Board background (Nordic pastel flat style) -->
     <rect width={boardSize} height={boardSize} fill="var(--wc-board)" />

@@ -66,8 +66,8 @@
 
   const getM = () => (window as any).M;
 
-  function handleIntersectionClick(e: CustomEvent<{ x: number, y: number }>) {
-    const { x, y } = e.detail;
+  function handleIntersectionClick(detail: { x: number, y: number }) {
+    const { x, y } = detail;
 
     // Check if move is valid using rules engine
     const res = placeStone(currentBoard, x, y, nextColor, size);
@@ -260,7 +260,7 @@
         {lastMove} 
         interactive={true} 
         turnColor={nextColor} 
-        on:intersectionClick={handleIntersectionClick} 
+        onIntersectionClick={handleIntersectionClick} 
       />
     </div>
   </div>

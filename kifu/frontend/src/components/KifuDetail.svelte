@@ -408,8 +408,8 @@
   }
 
   // Handle board click (Review / Edit mode)
-  async function handleIntersectionClick(e: CustomEvent<{ x: number; y: number }>) {
-    const { x, y } = e.detail;
+  async function handleIntersectionClick(detail: { x: number; y: number }) {
+    const { x, y } = detail;
 
     if (!reviewMode) {
       const M = getM();
@@ -763,7 +763,7 @@
             lastMove={lastMove}
             interactive={reviewMode}
             turnColor={currentTurn}
-            on:intersectionClick={handleIntersectionClick}
+            onIntersectionClick={handleIntersectionClick}
           />
         </div>
       </div>
