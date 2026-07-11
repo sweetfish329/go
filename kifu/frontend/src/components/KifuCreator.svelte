@@ -406,5 +406,18 @@
       padding: 2px !important;
       border-radius: 6px !important;
     }
+    .control-buttons {
+      gap: 12px !important;
+    }
+    .control-buttons button {
+      width: 46px !important;
+      height: 46px !important;
+      line-height: 46px !important;
+      min-width: 46px !important;
+    }
+    .control-buttons button i {
+      font-size: 1.6rem !important;
+      line-height: 46px !important;
+    }
   }
 </style>

@@ -1128,14 +1128,17 @@
       padding: 20px 10px 14px 10px !important;
       margin-top: 1rem !important;
     }
+    .buttons-row {
+      gap: 12px !important;
+    }
     .buttons-row button {
-      width: 36px !important;
-      height: 36px !important;
-      line-height: 36px !important;
+      width: 46px !important;
+      height: 46px !important;
+      line-height: 46px !important;
     }
     .buttons-row button i {
-      font-size: 1.3rem !important;
-      line-height: 36px !important;
+      font-size: 1.6rem !important;
+      line-height: 46px !important;
     }
     :global(.card-content) {
       padding: 12px !important;
