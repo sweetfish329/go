@@ -1134,16 +1134,39 @@
       padding: 4px 16px !important;
     }
     .buttons-row {
-      gap: 12px !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      justify-content: center !important;
+      gap: 6px !important;
     }
     .buttons-row button {
-      width: 46px !important;
-      height: 46px !important;
-      line-height: 46px !important;
+      width: 44px !important;
+      height: 44px !important;
+      line-height: 44px !important;
+      min-width: 44px !important;
+      padding: 0 !important;
+      flex: 0 1 auto !important;
     }
     .buttons-row button i {
-      font-size: 1.6rem !important;
-      line-height: 46px !important;
+      font-size: 1.5rem !important;
+      line-height: 44px !important;
+    }
+  }
+
+  /* 極小スマホ画面 (width: 360px以下) でのさらなる微調整 */
+  @media only screen and (max-width: 360px) {
+    .buttons-row {
+      gap: 4px !important;
+    }
+    .buttons-row button {
+      width: 38px !important;
+      height: 38px !important;
+      line-height: 38px !important;
+      min-width: 38px !important;
+    }
+    .buttons-row button i {
+      font-size: 1.3rem !important;
+      line-height: 38px !important;
     }
   }
 
