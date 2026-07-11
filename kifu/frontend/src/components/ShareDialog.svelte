@@ -832,6 +832,8 @@
     white-space: nowrap;
     text-align: left;
     user-select: all;
+    display: flex;
+    align-items: center;
   }
 
   .url-ticket-btn {
@@ -1170,25 +1172,14 @@
     to { opacity: 1; }
   }
 
-  @media only screen and (max-width: 480px) {
-    .url-ticket-box {
-      flex-direction: column;
-    }
-    .url-ticket-btn {
-      border-left: none;
-      border-top: 1.5px solid var(--wc-text);
-      padding: 10px 0;
-    }
-  }
-
-  /* 高さまたは幅が狭い場合のスタイル微調整（縦レスポンシブ） */
+  /* 高さまたは幅が狭い場合のスタイル微調整（モバイル・レスポンシブ） */
   @media (max-height: 640px) or (max-width: 480px) {
     .share-modal-content {
-      padding: 16px 20px !important;
+      padding: 20px 18px !important;
     }
 
     .share-modal-header {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .share-modal-title {
@@ -1201,7 +1192,7 @@
     }
 
     .qr-container-wrapper {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .qr-container {
@@ -1219,42 +1210,51 @@
       height: 120px;
     }
 
+    /* URLチケットボックス：スマホでも横一列に並ぶように維持 */
     .url-ticket-box {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       box-shadow: 2px 2px 0px var(--wc-shadow-dark);
+      min-height: 48px;
+      display: flex;
+      flex-direction: row !important;
     }
 
     .url-ticket-text {
-      padding: 8px 12px;
-      font-size: 0.75rem;
+      padding: 0 12px;
+      font-size: 0.78rem;
     }
 
     .url-ticket-btn {
-      padding: 0 12px;
-      font-size: 0.72rem;
+      padding: 0 20px;
+      font-size: 0.8rem;
+      min-height: 48px;
+      border-left: 1.5px solid var(--wc-text);
+      border-top: none;
     }
 
     .regenerate-action-container {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .regenerate-btn {
-      padding: 8px 12px;
-      font-size: 0.75rem;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      min-height: 48px;
       box-shadow: 2px 2px 0px var(--wc-text) !important;
     }
 
     .privacy-section {
-      margin-bottom: 4px;
+      margin-bottom: 8px;
     }
 
     .visibility-tab {
-      padding: 8px 12px;
-      font-size: 0.78rem;
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      min-height: 46px;
     }
 
     .privacy-explanation-box {
-      padding: 10px 12px;
+      padding: 12px;
     }
 
     .privacy-desc {
@@ -1263,20 +1263,21 @@
     }
 
     .share-modal-footer {
-      margin-top: 12px;
-      padding-top: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
     }
 
     .close-btn {
-      padding: 6px 18px;
-      font-size: 0.8rem;
+      padding: 12px 28px;
+      font-size: 0.85rem;
+      min-height: 48px;
       box-shadow: 2px 2px 0px var(--wc-text) !important;
     }
 
     /* OGP customization responsive styles */
     .ogp-custom-section {
       padding: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       box-shadow: 2px 2px 0px var(--wc-shadow-dark);
     }
 
@@ -1305,12 +1306,13 @@
     }
     
     .ogp-toggle-container {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .ogp-toggle-btn {
-      padding: 8px 12px;
-      font-size: 0.75rem;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      min-height: 48px;
       box-shadow: 2px 2px 0px var(--wc-text) !important;
     }
   }
