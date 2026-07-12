@@ -51,6 +51,7 @@
     text: string;
     reviewId?: string;
     reviewerName?: string;
+    isFromVariationRoot?: boolean;
   }
 
   interface BranchItem {
@@ -255,16 +256,36 @@
     currentIndex = player.currentIndex;
     maxIndex = player.history.length - 1;
 
+    // Check if currently on a variation branch and locate its root
+    const currentNode = state.node;
+    let variationFound = false;
+    let reviewer = "";
+    let variationRootNode: SgfNode | null = null;
+
+    if (currentNode) {
+      let temp: SgfNode | null = currentNode;
+      while (temp) {
+        if ((temp as any).is_variation) {
+          variationFound = true;
+          reviewer = (temp as any).reviewer_name || "";
+          variationRootNode = temp; // Keep traversing up to find the highest variation node (the root)
+        }
+        temp = temp.parent;
+      }
+    }
+    isViewingVariation = variationFound;
+    activeReviewer = reviewer;
+
     // Get current comment from node
     comments = [];
-    if (state.node && state.node.properties["C"]) {
+    if (currentNode) {
       // Find review ID associated with this node or parent (if we are in a variation, the review ID is on the variation root)
-      let associatedReviewId = (state.node as any).review_id || "";
-      let associatedReviewer = (state.node as any).reviewer_name || "";
+      let associatedReviewId = (currentNode as any).review_id || "";
+      let associatedReviewer = (currentNode as any).reviewer_name || "";
       
       // If we don't have review_id on current node, traverse up to find it in the variation path
       if (!associatedReviewId && isViewingVariation) {
-        let temp: SgfNode | null = state.node;
+        let temp: SgfNode | null = currentNode;
         while (temp) {
           if ((temp as any).review_id) {
             associatedReviewId = (temp as any).review_id;
@@ -275,21 +296,53 @@
         }
       }
 
-      for (const rawComment of state.node.properties["C"]) {
-        const colonIndex = rawComment.indexOf(":");
-        let author = "コメント";
-        let text = rawComment;
-        if (colonIndex !== -1) {
-          author = rawComment.substring(0, colonIndex).trim();
-          text = rawComment.substring(colonIndex + 1).trim();
+      // 1. Add current node's comments
+      if (currentNode.properties["C"]) {
+        for (const rawComment of currentNode.properties["C"]) {
+          const colonIndex = rawComment.indexOf(":");
+          let author = "コメント";
+          let text = rawComment;
+          if (colonIndex !== -1) {
+            author = rawComment.substring(0, colonIndex).trim();
+            text = rawComment.substring(colonIndex + 1).trim();
+          }
+          
+          comments.push({
+            author: author,
+            text: text,
+            reviewId: associatedReviewId,
+            reviewerName: associatedReviewer,
+            isFromVariationRoot: false
+          });
         }
-        
-        comments.push({
-          author: author,
-          text: text,
-          reviewId: associatedReviewId,
-          reviewerName: associatedReviewer
-        });
+      }
+
+      // 2. If in a variation and current node is not the variation root,
+      // bring the variation root comment forward so it stays visible.
+      if (isViewingVariation && variationRootNode && variationRootNode !== currentNode) {
+        if (variationRootNode.properties["C"]) {
+          for (const rawComment of variationRootNode.properties["C"]) {
+            const colonIndex = rawComment.indexOf(":");
+            let author = "コメント";
+            let text = rawComment;
+            if (colonIndex !== -1) {
+              author = rawComment.substring(0, colonIndex).trim();
+              text = rawComment.substring(colonIndex + 1).trim();
+            }
+            
+            // Avoid duplicate text
+            const exists = comments.some(c => c.text === text && c.author === author);
+            if (!exists) {
+              comments.push({
+                author: author,
+                text: text,
+                reviewId: associatedReviewId,
+                reviewerName: associatedReviewer,
+                isFromVariationRoot: true
+              });
+            }
+          }
+        }
       }
     }
 
@@ -300,25 +353,6 @@
     if (kifu && kifu.handicap > 0) {
       currentTurn = currentIndex % 2 === 0 ? 2 : 1; // White on even index (0 is AB, 1 is White first move)
     }
-
-    // Check if currently on a variation branch
-    const currentNode = state.node;
-    let variationFound = false;
-    let reviewer = "";
-
-    if (currentNode) {
-      let temp: SgfNode | null = currentNode;
-      while (temp) {
-        if ((temp as any).is_variation) {
-          variationFound = true;
-          reviewer = (temp as any).reviewer_name || "";
-          break;
-        }
-        temp = temp.parent;
-      }
-    }
-    isViewingVariation = variationFound;
-    activeReviewer = reviewer;
 
     // Get alternative branches (siblings)
     // Filter out primary path nodes (only show actual variation review branches)
@@ -897,24 +931,26 @@
 
       <!-- Branches & Variations Card -->
       {#if alternativeBranches.length > 0}
-        <div class="nm-card animate-fade-in" style="margin-bottom: 1.5rem; border: 1px solid rgba(255, 152, 0, 0.3) !important;">
-          <div class="card-content" style="padding: 16px 20px;">
-            <span class="valign-wrapper orange-text text-darken-4" style="font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-              <i class="material-icons" style="font-size: 1.2rem;">call_split</i> 変化図があります
-            </span>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+        <div class="em-vogue-editorial-section animate-fade-in" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
+          <!-- Slanted Collage Tag -->
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important;">
+            Variations — 変化図
+          </span>
+          <div class="card-content" style="padding: 16px 0 0 0;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
               <!-- Main branch return button if not on primary branch -->
               {#if isViewingVariation}
                 <!-- svelte-ignore a11y_missing_attribute -->
-                <button class="nm-btn" onclick={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; font-weight: 500;">
-                  <i class="material-icons" style="font-size: 1.1rem;">assignment_return</i>
+                <button class="share-settings-btn" onclick={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important;">
+                  <i class="material-icons" style="font-size: 1.05rem; vertical-align: middle;">assignment_return</i>
                   本線に戻る
                 </button>
               {/if}
               <!-- Display other branch buttons -->
               {#each alternativeBranches as branch}
-                <button class="nm-btn" onclick={() => selectBranch(branch.originalIndex)}>
-                  {branch.label} に切り替え
+                <button class="share-settings-btn" onclick={() => selectBranch(branch.originalIndex)} style="background: var(--wc-surface-alt) !important; border: 1.5px solid var(--wc-text) !important; display: inline-flex; align-items: center; gap: 4px;">
+                  <i class="material-icons" style="font-size: 1.05rem; vertical-align: middle;">call_split</i>
+                  {branch.label}
                 </button>
               {/each}
             </div>
@@ -943,6 +979,11 @@
                     <span class="wc-tag" style="font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">
                       {comment.author}
                     </span>
+                    {#if comment.isFromVariationRoot}
+                      <span class="wc-tag animate-fade-in" style="margin-left: 6px; font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface); color: var(--wc-accent); box-shadow: 1.5px 1.5px 0px var(--wc-text); display: inline-block;">
+                        変化図の開始コメント
+                      </span>
+                    {/if}
                     <p style="margin: 0; padding-left: 2px; font-size: 0.92rem; white-space: pre-wrap; color: var(--wc-text); line-height: 1.6; font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">{comment.text}</p>
                   </div>
                   {#if comment.reviewId && !isPublic && (isOwner || auth.username === comment.reviewerName)}
@@ -1202,9 +1243,9 @@
   }
 
   .board-wrapper.viewing-variation {
-    border-color: #ffb74d !important;
-    background-color: #ffe0b2;
-    box-shadow: 0 10px 30px rgba(255, 152, 0, 0.18) !important;
+    border-color: var(--wc-accent-warm) !important;
+    background-color: var(--wc-surface-alt) !important;
+    box-shadow: 6px 6px 0px var(--wc-text) !important;
   }
 
   /* Washi Clay Variation Badge */
