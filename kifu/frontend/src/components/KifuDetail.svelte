@@ -862,7 +862,7 @@
     </div>
 
     <!-- Right Column: Game Info, Comments & Variations -->
-    <div class="col s12 l5 text-left em-magazine-overlap-left" style="text-align: left; position: relative;">
+    <div class="col s12 l5 text-left kifu-right-column" style="text-align: left; position: relative;">
       <!-- Game Info Card (Collapsible) -->
       {#if kifu}
       <div class="em-vogue-editorial-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
@@ -1292,5 +1292,12 @@
   .share-settings-btn:active {
     transform: translate(1px, 1px) scale(0.97) !important;
     box-shadow: 1px 1px 0px var(--wc-text) !important;
+  }
+
+  @media (min-width: 993px) {
+    .kifu-right-column {
+      padding-left: 2rem !important;
+      border-left: 1.5px dashed var(--wc-border);
+    }
   }
 </style>
