@@ -1,9 +1,15 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [svelte()],
+  resolve: {
+    alias: {
+      "@wasm-kifu": path.resolve(__dirname, "../wasm-kifu"),
+    },
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
@@ -29,6 +35,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: "0.0.0.0",
+    fs: {
+      allow: [".", "../wasm-kifu"],
+    },
     proxy: {
       "/api": {
         target: "http://backend:8080",

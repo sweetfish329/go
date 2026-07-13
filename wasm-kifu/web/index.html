@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>wasm-kifu デモ</title>
+    <meta name="description" content="Go WASM による棋譜記録ライブラリのデモページ。スマホブラウザで碁盤をタップして棋譜を記録し、SGFエクスポートやカメラ画像認識が可能です。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/demo.css">
+</head>
+<body>
+    <header id="app-header">
+        <h1>♟ wasm-kifu</h1>
+        <p id="status" class="status-loading">⏳ Loading...</p>
+    </header>
+
+    <main>
+        <!-- 碁盤表示 -->
+        <section id="board-section">
+            <canvas id="board-canvas" width="570" height="570"></canvas>
+            <div id="game-info">
+                <div class="info-item">
+                    <span id="current-player" class="player-indicator black">●</span>
+                    <span id="turn-label">黒番</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">手目</span>
+                    <span id="move-number" class="info-value">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">アゲハマ</span>
+                    <span id="captures-info" class="info-value">⚫0 ⚪0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- カメラ入力 -->
+        <section id="camera-section" class="hidden">
+            <div id="camera-container">
+                <video id="camera-video" playsinline autoplay></video>
+                <canvas id="corner-overlay-canvas"></canvas>
+            </div>
+            <div id="corner-instructions">
+                <p>碁盤の4隅をタップしてください</p>
+                <p class="corner-order">左上 → 右上 → 右下 → 左下</p>
+                <div id="corner-progress">
+                    <span class="corner-dot" data-index="0"></span>
+                    <span class="corner-dot" data-index="1"></span>
+                    <span class="corner-dot" data-index="2"></span>
+                    <span class="corner-dot" data-index="3"></span>
+                </div>
+            </div>
+            <canvas id="camera-canvas" class="hidden"></canvas>
+        </section>
+
+        <!-- コントロールボタン -->
+        <section id="controls">
+            <div class="control-group primary">
+                <button id="btn-new-game" class="btn" title="新規対局">🆕 新規</button>
+                <button id="btn-pass" class="btn" title="パス">⏭ パス</button>
+                <button id="btn-undo" class="btn" title="待った">↩ 待った</button>
+                <button id="btn-resign" class="btn btn-danger" title="投了">🏳 投了</button>
+            </div>
+            <div class="control-group secondary">
+                <button id="btn-camera" class="btn btn-accent" disabled title="カメラ">📷 カメラ</button>
+                <button id="btn-capture" class="btn btn-accent hidden" title="撮影して認識">📸 撮影</button>
+                <button id="btn-reset-corners" class="btn hidden" title="4隅リセット">🔄 4隅リセット</button>
+                <button id="btn-export" class="btn btn-success" title="SGF出力">📄 SGF出力</button>
+            </div>
+        </section>
+
+        <!-- SGF表示 -->
+        <section id="sgf-output" class="hidden">
+            <div class="sgf-header">
+                <h2>SGF 出力</h2>
+                <button id="btn-close-sgf" class="btn-icon" title="閉じる">✕</button>
+            </div>
+            <textarea id="sgf-text" readonly rows="8" spellcheck="false"></textarea>
+            <div class="sgf-actions">
+                <button id="btn-copy-sgf" class="btn btn-small">📋 コピー</button>
+                <button id="btn-download-sgf" class="btn btn-small btn-success">💾 ダウンロード</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>wasm-kifu — Go WASM 棋譜記録ライブラリ</p>
+    </footer>
+
+    <script src="wasm/wasm_exec.js"></script>
+    <script async src="https://docs.opencv.org/4.x/opencv.js"
+            onload="onOpenCVReady()" type="text/javascript"></script>
+    <script type="module" src="js/demo.js"></script>
+</body>
+</html>
