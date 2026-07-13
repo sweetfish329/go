@@ -33,7 +33,9 @@
   let loading = $state(false);
   let qrCodeSvg = $state("");
   let copySuccess = $state(false);
-
+  let isSharing = $state(false);
+  let showInstagramGuide = $state(false);
+  
   let showOgpConfig = $state(false);
   let ogpMoveNumber = $state(0);
   let player = $state<SgfPlayer | null>(null);
@@ -141,13 +143,12 @@
     }, 500);
   });
 
-  function generateAndUploadOgp(): Promise<void> {
+  function generateOgpBlob(): Promise<Blob> {
     return new Promise((resolve, reject) => {
       // Prioritize the hidden selected state board so OGP is generated from the chosen game state
       const svgEl = (document.querySelector(".ogp-board-hidden svg") || document.querySelector(".go-board")) as SVGSVGElement;
       if (!svgEl) {
-        console.warn("Go board SVG not found");
-        resolve(); // Resolve silently if board is not visible
+        reject(new Error("Go board SVG not found"));
         return;
       }
 
@@ -224,166 +225,135 @@
         image.onload = () => {
           try {
             // Create canvas to draw the board image in X OGP standards (1.91:1)
-          const canvas = document.createElement('canvas');
-          const ogpWidth = 1200;
-          const ogpHeight = 630;
-          canvas.width = ogpWidth;
-          canvas.height = ogpHeight;
+            const canvas = document.createElement('canvas');
+            const ogpWidth = 1200;
+            const ogpHeight = 630;
+            canvas.width = ogpWidth;
+            canvas.height = ogpHeight;
 
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            URL.revokeObjectURL(blobURL);
-            resolve();
-            return;
-          }
-
-          // 1. Fill background with Washi Sage Gray (#dcdfdc)
-          ctx.fillStyle = '#dcdfdc';
-          ctx.fillRect(0, 0, ogpWidth, ogpHeight);
-
-          // --- サイトのデザイン意匠のあしらい（碁盤の邪魔をしない薄い描写） ---
-          ctx.lineWidth = 1.5;
-          ctx.strokeStyle = 'rgba(37, 53, 48, 0.08)'; // --wc-border (#253530) に透明度をかけたもの
-
-          // 左側のあしらい：石のプレースメントや波紋をイメージした同心円
-          ctx.beginPath();
-          ctx.arc(100, 315, 180, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.arc(100, 315, 260, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.arc(100, 315, 100, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // 右側のあしらい：同心円
-          ctx.beginPath();
-          ctx.arc(1100, 315, 160, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.arc(1100, 315, 220, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.arc(1100, 315, 80, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // サイトのブランドネーム「K I F U   S T O R E」（Cormorant Garamond 縦書き風）
-          ctx.fillStyle = 'rgba(37, 53, 48, 0.35)'; // 邪魔にならないが品良く読める薄い色
-          ctx.font = "italic 600 22px 'Cormorant Garamond', 'Shippori Mincho B1', serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          
-          ctx.save();
-          ctx.translate(110, 315);
-          ctx.rotate(-Math.PI / 2);
-          ctx.fillText("K I F U   S T O R E", 0, 0);
-          ctx.restore();
-
-          // 右側に対局情報（対局者、手番、結果など）を表示
-          ctx.fillStyle = 'rgba(37, 53, 48, 0.5)';
-          ctx.font = "500 16px 'Shippori Mincho B1', 'Noto Sans JP', serif";
-          
-          let infoText = "";
-          if (kifu.black_player && kifu.white_player) {
-            const bRank = kifu.black_rank ? ` (${kifu.black_rank})` : "";
-            const wRank = kifu.white_rank ? ` (${kifu.white_rank})` : "";
-            infoText = `先番: ${kifu.black_player}${bRank}  vs  白番: ${kifu.white_player}${wRank}`;
-          } else {
-            infoText = kifu.title || "対局棋譜";
-          }
-
-          // 日付と結果があれば追加
-          let subText = "";
-          if (kifu.game_date) {
-            const dateStr = kifu.game_date.substring(0, 10);
-            subText += `${dateStr}`;
-          }
-          if (kifu.result) {
-            if (subText) subText += "  |  ";
-            subText += `結果: ${kifu.result}`;
-          }
-
-          // 右側余白に対局情報と日付・結果を上品に縦書き（回転）して配置
-          ctx.save();
-          ctx.translate(1090, 315);
-          ctx.rotate(Math.PI / 2);
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.font = "500 15px 'Shippori Mincho B1', 'Noto Sans JP', serif";
-          ctx.fillText(infoText, 0, -12); // 少し左にずらす
-          
-          if (subText) {
-            ctx.fillStyle = 'rgba(37, 53, 48, 0.35)';
-            ctx.font = "400 12px 'JetBrains Mono', 'Noto Sans JP', sans-serif";
-            ctx.fillText(subText, 0, 12); // 少し右にずらす
-          }
-          ctx.restore();
-          // -------------------------------------------------------------
-
-          // 2. Draw aesthetic Editorial solid shadow card in center (Enlarged with small margins)
-          const boardSize = 600; // Expanded to minimize outer padding
-          const boardX = (ogpWidth - boardSize) / 2;
-          const boardY = (ogpHeight - boardSize) / 2;
-
-          // Solid shadow - matches Vogue/Washi Clay theme shadows
-          ctx.fillStyle = '#253530'; // --wc-shadow-dark
-          ctx.fillRect(boardX + 10, boardY + 10, boardSize, boardSize); // Compact shadow offset
-
-          // Solid white board outer card
-          ctx.fillStyle = '#f4f6f5'; // --wc-surface
-          ctx.fillRect(boardX, boardY, boardSize, boardSize);
-          
-          ctx.strokeStyle = '#253530'; // --wc-border
-          ctx.lineWidth = 3.5; // Thicker border for better visibility
-          ctx.strokeRect(boardX, boardY, boardSize, boardSize);
-
-          // 3. Draw Go Board SVG onto the card with very small margin (6px instead of 12px)
-          ctx.drawImage(image, boardX + 6, boardY + 6, boardSize - 12, boardSize - 12);
-
-          // Convert to blob and upload to backend
-          canvas.toBlob(async (blob) => {
-            if (!blob) {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
               URL.revokeObjectURL(blobURL);
-              resolve();
+              reject(new Error("Canvas context could not be created"));
               return;
             }
-            try {
-              // Extract csrf_token cookie value
-              const headers: Record<string, string> = {
-                'Authorization': auth.getHeaders()['Authorization'] || '',
-                'Content-Type': 'image/png'
-              };
-              if (typeof document !== "undefined") {
-                const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
-                if (match && match[1]) {
-                  headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
-                }
-              }
 
-              const res = await fetch(`/api/kifus/${kifu.id}/ogp`, {
-                method: 'PUT',
-                headers,
-                body: blob
-              });
-              if (res.ok) {
-                console.log("Successfully uploaded OGP image");
-                resolve();
-              } else {
-                const data = await res.json();
-                console.error("Failed to upload OGP image:", data.error);
-                reject(new Error(data.error || "OGP画像のアップロードに失敗しました。"));
-              }
-            } catch (e: any) {
-              console.error("Error uploading OGP image:", e);
-              reject(e);
-            } finally {
-              URL.revokeObjectURL(blobURL);
+            // 1. Fill background with Washi Sage Gray (#dcdfdc)
+            ctx.fillStyle = '#dcdfdc';
+            ctx.fillRect(0, 0, ogpWidth, ogpHeight);
+
+            // --- サイトのデザイン意匠のあしらい（碁盤の邪魔をしない薄い描写） ---
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(37, 53, 48, 0.08)'; // --wc-border (#253530) に透明度をかけたもの
+
+            // 左側のあしらい：石のプレースメントや波紋をイメージした同心円
+            ctx.beginPath();
+            ctx.arc(100, 315, 180, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(100, 315, 260, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(100, 315, 100, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 右側のあしらい：同心円
+            ctx.beginPath();
+            ctx.arc(1100, 315, 160, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(1100, 315, 220, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(1100, 315, 80, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // サイトのブランドネーム「K I F U   S T O R E」（Cormorant Garamond 縦書き風）
+            ctx.fillStyle = 'rgba(37, 53, 48, 0.35)'; // 邪魔にならないが品良く読める薄い色
+            ctx.font = "italic 600 22px 'Cormorant Garamond', 'Shippori Mincho B1', serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            
+            ctx.save();
+            ctx.translate(110, 315);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText("K I F U   S T O R E", 0, 0);
+            ctx.restore();
+
+            // 右側に対局情報（対局者、手番、結果など）を表示
+            ctx.fillStyle = 'rgba(37, 53, 48, 0.5)';
+            ctx.font = "500 16px 'Shippori Mincho B1', 'Noto Sans JP', serif";
+            
+            let infoText = "";
+            if (kifu.black_player && kifu.white_player) {
+              const bRank = kifu.black_rank ? ` (${kifu.black_rank})` : "";
+              const wRank = kifu.white_rank ? ` (${kifu.white_rank})` : "";
+              infoText = `先番: ${kifu.black_player}${bRank}  vs  白番: ${kifu.white_player}${wRank}`;
+            } else {
+              infoText = kifu.title || "対局棋譜";
             }
-          }, 'image/png');
+
+            // 日付と結果があれば追加
+            let subText = "";
+            if (kifu.game_date) {
+              const dateStr = kifu.game_date.substring(0, 10);
+              subText += `${dateStr}`;
+            }
+            if (kifu.result) {
+              if (subText) subText += "  |  ";
+              subText += `結果: ${kifu.result}`;
+            }
+
+            // 右側余白に対局情報と日付・結果を上品に縦書き（回転）して配置
+            ctx.save();
+            ctx.translate(1090, 315);
+            ctx.rotate(Math.PI / 2);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "500 15px 'Shippori Mincho B1', 'Noto Sans JP', serif";
+            ctx.fillText(infoText, 0, -12); // 少し左にずらす
+            
+            if (subText) {
+              ctx.fillStyle = 'rgba(37, 53, 48, 0.35)';
+              ctx.font = "400 12px 'JetBrains Mono', 'Noto Sans JP', sans-serif";
+              ctx.fillText(subText, 0, 12); // 少し右にずらす
+            }
+            ctx.restore();
+            // -------------------------------------------------------------
+
+            // 2. Draw aesthetic Editorial solid shadow card in center (Enlarged with small margins)
+            const boardSize = 600; // Expanded to minimize outer padding
+            const boardX = (ogpWidth - boardSize) / 2;
+            const boardY = (ogpHeight - boardSize) / 2;
+
+            // Solid shadow - matches Vogue/Washi Clay theme shadows
+            ctx.fillStyle = '#253530'; // --wc-shadow-dark
+            ctx.fillRect(boardX + 10, boardY + 10, boardSize, boardSize); // Compact shadow offset
+
+            // Solid white board outer card
+            ctx.fillStyle = '#f4f6f5'; // --wc-surface
+            ctx.fillRect(boardX, boardY, boardSize, boardSize);
+            
+            ctx.strokeStyle = '#253530'; // --wc-border
+            ctx.lineWidth = 3.5; // Thicker border for better visibility
+            ctx.strokeRect(boardX, boardY, boardSize, boardSize);
+
+            // 3. Draw Go Board SVG onto the card with very small margin (6px instead of 12px)
+            ctx.drawImage(image, boardX + 6, boardY + 6, boardSize - 12, boardSize - 12);
+
+            // Convert to blob
+            canvas.toBlob((blob) => {
+              URL.revokeObjectURL(blobURL);
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error("Canvas toBlob yielded null"));
+              }
+            }, 'image/png');
           } catch (e: any) {
             console.error("Error drawing OGP canvas:", e);
             URL.revokeObjectURL(blobURL);
@@ -404,6 +374,95 @@
         reject(err);
       }
     });
+  }
+
+  async function generateAndUploadOgp(): Promise<void> {
+    const blob = await generateOgpBlob();
+    
+    // Extract csrf_token cookie value
+    const headers: Record<string, string> = {
+      'Authorization': auth.getHeaders()['Authorization'] || '',
+      'Content-Type': 'image/png'
+    };
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+      if (match && match[1]) {
+        headers["X-CSRF-Token"] = decodeURIComponent(match[1]);
+      }
+    }
+
+    const res = await fetch(`/api/kifus/${kifu.id}/ogp`, {
+      method: 'PUT',
+      headers,
+      body: blob
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "OGP画像のアップロードに失敗しました。");
+    }
+    console.log("Successfully uploaded OGP image");
+  }
+
+  function handleXShare() {
+    if (!shareUrl) return;
+    const bPlayer = kifu.black_player || '先番';
+    const wPlayer = kifu.white_rank ? `${kifu.white_player} (${kifu.white_rank})` : (kifu.white_player || '白番');
+    const bPlayerWithRank = kifu.black_rank ? `${kifu.black_player} (${kifu.black_rank})` : bPlayer;
+    const result = kifu.result ? ` (${kifu.result})` : '';
+    const text = `【囲碁棋譜】${bPlayerWithRank} vs ${wPlayer}${result} #KifuStore\n`;
+    
+    const xUrl = `https://x.com/intent/post?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+    window.open(xUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  async function handleInstagramShare() {
+    if (isSharing) return;
+    isSharing = true;
+    try {
+      const blob = await generateOgpBlob();
+      const file = new File([blob], `kifu_${kifu.id}.png`, { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Kifu Store で棋譜を共有',
+          text: `【囲碁棋譜】${kifu.black_player || '先番'} vs ${kifu.white_player || '白番'} ${kifu.result ? `(${kifu.result})` : ''} #KifuStore`,
+          url: shareUrl
+        });
+      } else {
+        triggerImageDownload(blob);
+        showInstagramGuide = true;
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error("Web Share failed:", err);
+        try {
+          const blob = await generateOgpBlob();
+          triggerImageDownload(blob);
+          showInstagramGuide = true;
+        } catch (downloadErr) {
+          console.error("Download fallback failed:", downloadErr);
+        }
+      }
+    } finally {
+      isSharing = false;
+    }
+  }
+
+  function triggerImageDownload(blob: Blob) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kifu_ogp_${kifu.id}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    const M = getM();
+    if (M) {
+      M.toast({ html: '共有用の画像をダウンロードしました！', classes: 'green darken-1' });
+    }
   }
 
   async function handleRegenerate() {
@@ -574,6 +633,60 @@
           {/if}
         </button>
       </div>
+
+      <!-- SNS Share Buttons Section -->
+      <div class="sns-share-container">
+        <button type="button" class="sns-btn x-btn font-sans" onclick={handleXShare}>
+          <svg class="sns-icon" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          Xでシェア
+        </button>
+        <button type="button" class="sns-btn instagram-btn font-sans" onclick={handleInstagramShare} disabled={isSharing}>
+          {#if isSharing}
+            <div class="nm-spinner" style="width: 16px; height: 16px; border-width: 2px; margin-right: 6px;"></div>
+            生成中...
+          {:else}
+            <svg class="sns-icon" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+            </svg>
+            ストーリーでシェア
+          {/if}
+        </button>
+      </div>
+
+      <!-- Instagram Sharing Guide (visible only when manually sharing) -->
+      {#if showInstagramGuide}
+        <div class="instagram-guide-box animate-fade-in">
+          <div class="instagram-guide-header">
+            <span class="guide-title font-mincho">
+              <i class="material-icons guide-icon">info_outline</i>
+              ストーリーへの共有方法
+            </span>
+            <button type="button" class="guide-close-btn" onclick={() => showInstagramGuide = false}>
+              <i class="material-icons" style="font-size: 1.1rem;">close</i>
+            </button>
+          </div>
+          <div class="instagram-guide-content font-sans">
+            <p class="guide-desc">
+              画像をダウンロードしました！以下の手順でInstagramのストーリーに投稿できます。
+            </p>
+            <ol class="guide-steps">
+              <li>Instagramアプリを開き、ストーリー新規作成へ進みます。</li>
+              <li>端末に保存された対局画像（<code>kifu_ogp_{kifu.id}.png</code>）を選択します。</li>
+              <li>スタンプメニューから<strong>「リンク」</strong>を選択し、以下の共有URLを貼り付けます：
+                <div class="guide-url-copy">
+                  <span class="guide-url-text font-mono">{shareUrl}</span>
+                  <button type="button" class="guide-copy-btn" onclick={handleCopy}>
+                    コピー
+                  </button>
+                </div>
+              </li>
+              <li>お好みで文字やスタンプを装飾して投稿してください！</li>
+            </ol>
+          </div>
+        </div>
+      {/if}
 
       <!-- Regenerate Action Button: Matches Vogue solid button, fits below URL box -->
       <div class="regenerate-action-container">
@@ -1172,6 +1285,177 @@
     to { opacity: 1; }
   }
 
+  /* SNS Share Buttons */
+  .sns-share-container {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .sns-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    border-radius: 0px !important;
+    border: 1.5px solid var(--wc-text) !important;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--wc-transition-fast);
+    box-sizing: border-box;
+  }
+
+  .x-btn {
+    background: var(--wc-text) !important;
+    color: var(--wc-surface) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-dark) !important;
+  }
+
+  .x-btn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px var(--wc-shadow-dark) !important;
+    background: rgba(37, 53, 48, 0.9) !important;
+  }
+
+  .x-btn:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-shadow-dark) !important;
+  }
+
+  .instagram-btn {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%) !important;
+    color: #ffffff !important;
+    border-color: #253530 !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-dark) !important;
+  }
+
+  .instagram-btn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px var(--wc-shadow-dark) !important;
+    opacity: 0.95;
+  }
+
+  .instagram-btn:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-shadow-dark) !important;
+  }
+
+  .sns-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .sns-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Instagram Guide Box */
+  .instagram-guide-box {
+    margin-bottom: 24px;
+    border: 1.5px solid var(--wc-border);
+    background: var(--wc-surface-alt);
+    padding: 16px;
+    text-align: left;
+    box-shadow: 3px 3px 0px var(--wc-shadow-dark);
+  }
+
+  .instagram-guide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(37, 53, 48, 0.1);
+    padding-bottom: 8px;
+  }
+
+  .guide-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--wc-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .guide-icon {
+    font-size: 1.2rem;
+    color: var(--wc-accent);
+  }
+
+  .guide-close-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--wc-text-muted);
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .guide-close-btn:hover {
+    color: var(--wc-text);
+  }
+
+  .guide-desc {
+    margin: 0 0 12px 0;
+    font-size: 0.78rem;
+    color: var(--wc-text);
+    line-height: 1.4;
+  }
+
+  .guide-steps {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.78rem;
+    color: var(--wc-text-muted);
+  }
+
+  .guide-steps li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .guide-url-copy {
+    display: flex;
+    margin-top: 6px;
+    border: 1px solid var(--wc-border);
+    background: var(--wc-surface);
+  }
+
+  .guide-url-text {
+    flex-grow: 1;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: all;
+  }
+
+  .guide-copy-btn {
+    background: var(--wc-surface-alt);
+    border: none;
+    border-left: 1px solid var(--wc-border);
+    padding: 0 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .guide-copy-btn:hover {
+    background: var(--wc-accent-soft);
+    color: var(--wc-accent);
+  }
+
   /* 高さまたは幅が狭い場合のスタイル微調整（モバイル・レスポンシブ） */
   @media (max-height: 640px) or (max-width: 480px) {
     .share-modal-content {
@@ -1314,6 +1598,32 @@
       font-size: 0.8rem;
       min-height: 48px;
       box-shadow: 2px 2px 0px var(--wc-text) !important;
+    }
+
+    /* SNS Share responsive styles */
+    .sns-share-container {
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+
+    .sns-btn {
+      height: 48px;
+      font-size: 0.8rem;
+      box-shadow: 2px 2px 0px var(--wc-shadow-dark) !important;
+    }
+
+    .instagram-guide-box {
+      margin-bottom: 16px;
+      padding: 12px;
+      box-shadow: 2px 2px 0px var(--wc-shadow-dark);
+    }
+
+    .guide-title {
+      font-size: 0.85rem;
+    }
+
+    .guide-desc, .guide-steps {
+      font-size: 0.72rem;
     }
   }
 </style>
