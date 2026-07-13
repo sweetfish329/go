@@ -151,8 +151,8 @@ func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce maximum request body size (2MB) for SGF uploads to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024)
+	// Enforce maximum request body size (10MB) for SGF uploads to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 
 	var req UploadKifuRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
