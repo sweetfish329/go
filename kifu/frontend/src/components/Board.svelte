@@ -5,15 +5,44 @@
     lastMove = null,
     interactive = true,
     turnColor = 1,
-    onIntersectionClick
+    candidates = [],
+    previewStones = [],
+    onIntersectionClick,
+    onCandidateHover,
+    onCandidateClick
   } = $props<{
     board?: number[][];
     size?: number;
     lastMove?: { x: number; y: number } | null;
     interactive?: boolean;
     turnColor?: number;
+    candidates?: {
+      x: number;
+      y: number;
+      scoreLead: number;
+      loss: number;
+      winrate: number;
+      rank?: number;
+      isBest?: boolean;
+      coords: string;
+    }[];
+    previewStones?: {
+      x: number;
+      y: number;
+      color: number;
+      stepNumber: number;
+    }[];
     onIntersectionClick?: (detail: { x: number; y: number }) => void;
+    onCandidateHover?: (candidate: any | null) => void;
+    onCandidateClick?: (candidate: any) => void;
   }>();
+
+  function getCandidateColor(cand: any): string {
+    if (cand.isBest) return "#2196F3"; // Blue for best
+    if (cand.loss < 0.5) return "#4CAF50"; // Green for minor loss
+    if (cand.loss < 2.0) return "#FFEB3B"; // Yellow for moderate loss
+    return "#F44336"; // Red for major loss
+  }
 
   let svgElement = $state<SVGSVGElement>();
   let hoverIntersection = $state<{ x: number; y: number } | null>(null); // { x, y } under mouse pointer
@@ -224,6 +253,76 @@
           class="em-board-pulse-ring"
         />
       {/if}
+    {/if}
+
+    <!-- AI Variation Preview Stones -->
+    {#if previewStones && previewStones.length > 0}
+      {#each previewStones as stone, idx (idx)}
+        <g opacity="0.75" filter="url(#shadow)">
+          <circle
+            cx={getPos(stone.x)}
+            cy={getPos(stone.y)}
+            r={step * 0.44}
+            fill={stone.color === 1 ? "black" : "white"}
+            stroke={stone.color === 1 ? "var(--wc-border)" : "#bbb"}
+            stroke-width="1"
+          />
+          <text
+            x={getPos(stone.x)}
+            y={getPos(stone.y)}
+            dy="0.35em"
+            text-anchor="middle"
+            fill={stone.color === 1 ? "white" : "black"}
+            font-size={step * 0.35}
+            font-weight="bold"
+            font-family="'JetBrains Mono', monospace"
+          >
+            {stone.stepNumber}
+          </text>
+        </g>
+      {/each}
+    {/if}
+
+    <!-- AI Candidate Moves -->
+    {#if candidates && candidates.length > 0}
+      {#each candidates as cand, idx (idx)}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <g
+          class="board-candidate"
+          onmouseenter={() => onCandidateHover?.(cand)}
+          onmouseleave={() => onCandidateHover?.(null)}
+          onclick={(e) => {
+            e.stopPropagation();
+            onCandidateClick?.(cand);
+          }}
+          style="cursor: pointer;"
+        >
+          <!-- Outer circle -->
+          <circle
+            cx={getPos(cand.x)}
+            cy={getPos(cand.y)}
+            r={step * 0.32}
+            fill={getCandidateColor(cand)}
+            stroke="var(--wc-text)"
+            stroke-width="1.5"
+            opacity="0.9"
+          />
+          <!-- Inside text (rank or score loss) -->
+          <text
+            x={getPos(cand.x)}
+            y={getPos(cand.y)}
+            dy="0.35em"
+            text-anchor="middle"
+            fill={cand.loss < 0.5 || cand.isBest ? "white" : "black"}
+            font-size={step * 0.28}
+            font-weight="bold"
+            font-family="'JetBrains Mono', monospace"
+          >
+            {cand.isBest ? 'A' : (cand.rank || '')}
+          </text>
+        </g>
+      {/each}
     {/if}
 
     <!-- SVG Definitions (gradients, filters) -->

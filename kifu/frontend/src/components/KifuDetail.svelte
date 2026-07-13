@@ -5,6 +5,8 @@
   import { SgfPlayer, stringifySgf } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
   import { auth } from '../lib/auth.svelte';
+  import { coordsToBoard } from '../lib/aiAnalysis';
+  import { sgfToCoords } from '../lib/goEngine';
 
   let {
     kifuId = "",
@@ -89,6 +91,16 @@
   let comments = $state.raw<CommentItem[]>([]); // Comments at current move
   let alternativeBranches = $state.raw<BranchItem[]>([]); // Sibling nodes (alternative moves)
 
+  // AI analysis state
+  let showAiAnalysis = $state(true);
+  let hasAiAnalysis = $state(false);
+  let aiCandidates = $state.raw<any[]>([]);
+  let aiPreviewStones = $state.raw<any[]>([]);
+  let activeHoveredCandidate = $state<any | null>(null);
+  let graphMode = $state<'winrate' | 'score'>('winrate');
+  let graphHoverIndex = $state<number | null>(null);
+  let aiData = $state<{ moveNumber: number; winrate: number; scoreLead: number }[]>([]);
+
 
 
   // Autoplay state
@@ -166,6 +178,10 @@
       
       // Merge review comments and variations into SGF tree
       mergeReviewsIntoPlayer();
+
+      // Extract AI Analysis data
+      extractAiData();
+      hasAiAnalysis = aiData.length > 0;
 
       updatePlayerState();
     } catch (err: any) {
@@ -392,7 +408,177 @@
           originalIndex: originalIndex
         };
       });
+
+    // AI Candidates calculation
+    let cands: any[] = [];
+    if (showAiAnalysis && player) {
+      const nextEntry = player.history[currentIndex + 1];
+      const nextNode = nextEntry?.node;
+      if (nextNode && nextNode.aiAnalysis) {
+        const ai = nextNode.aiAnalysis;
+        
+        // 1. Best Move
+        if (ai.bestMoveCoords) {
+          cands.push({
+            x: ai.bestMoveCoords.x,
+            y: ai.bestMoveCoords.y,
+            scoreLead: ai.scoreLead + (ai.loss || 0),
+            loss: 0,
+            winrate: ai.winrate,
+            isBest: true,
+            coords: ai.bestMove,
+            rank: 1,
+            variation: ai.variation
+          });
+        }
+        
+        // 2. Played Move
+        let playedMoveCoords: any = null;
+        if (nextNode.properties.B) {
+          playedMoveCoords = sgfToCoords(nextNode.properties.B[0]);
+        } else if (nextNode.properties.W) {
+          playedMoveCoords = sgfToCoords(nextNode.properties.W[0]);
+        }
+        
+        if (playedMoveCoords && !playedMoveCoords.pass && playedMoveCoords.x !== undefined && playedMoveCoords.y !== undefined) {
+          const isAlreadyBest = cands.some(c => c.x === playedMoveCoords.x && c.y === playedMoveCoords.y);
+          if (!isAlreadyBest) {
+            cands.push({
+              x: playedMoveCoords.x,
+              y: playedMoveCoords.y,
+              scoreLead: ai.scoreLead,
+              loss: ai.loss || 0,
+              winrate: ai.winrate,
+              isBest: false,
+              coords: coordsToBoard(playedMoveCoords.x, playedMoveCoords.y),
+              rank: ai.rank || 2
+            });
+          }
+        }
+      }
+    }
+    aiCandidates = cands;
+
+    // Reset preview stones on move change
+    aiPreviewStones = [];
+    activeHoveredCandidate = null;
   }
+
+  function extractAiData() {
+    if (!player) return;
+    const data: typeof aiData = [];
+    player.history.forEach((entry, idx) => {
+      if (idx > 0 && entry.node && entry.node.aiAnalysis) {
+        data.push({
+          moveNumber: idx,
+          winrate: entry.node.aiAnalysis.winrate,
+          scoreLead: entry.node.aiAnalysis.scoreLead
+        });
+      }
+    });
+    aiData = data;
+  }
+
+  function handleCandidateHover(cand: any | null) {
+    activeHoveredCandidate = cand;
+    if (cand && cand.variation && cand.variation.length > 0) {
+      aiPreviewStones = cand.variation.map((v: any, idx: number) => ({
+        x: v.x,
+        y: v.y,
+        color: v.color,
+        stepNumber: idx + 1
+      }));
+    } else {
+      aiPreviewStones = [];
+    }
+  }
+
+  function handleCandidateClick(cand: any) {
+    if (!player) return;
+
+    // Check if the clicked candidate is actually the played move
+    const nextEntry = player.history[currentIndex + 1];
+    const nextNode = nextEntry?.node;
+    let playedMoveCoords: any = null;
+    if (nextNode) {
+      if (nextNode.properties.B) playedMoveCoords = sgfToCoords(nextNode.properties.B[0]);
+      else if (nextNode.properties.W) playedMoveCoords = sgfToCoords(nextNode.properties.W[0]);
+    }
+
+    if (playedMoveCoords && playedMoveCoords.x === cand.x && playedMoveCoords.y === cand.y) {
+      stepForward();
+    } else {
+      // Create variation branch for the candidate
+      // Get the color of current turn (alternate B/W)
+      const turn = currentIndex % 2 === 0 ? 1 : 2;
+      const res = player.addMove(cand.x, cand.y, turn);
+      if (res.success) {
+        if (res.isNew && res.node) {
+          markAsVariation(res.node, "AI分析");
+        }
+        updatePlayerState();
+        
+        const M = getM();
+        if (M) {
+          M.toast({ html: 'AIの候補手変化図に入りました', classes: 'blue darken-2' });
+        }
+      }
+    }
+  }
+
+  function handleGraphMouseMove(e: MouseEvent) {
+    if (!player || aiData.length === 0) return;
+    const svg = e.currentTarget as SVGSVGElement;
+    const rect = svg.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const percentage = clientX / rect.width;
+    
+    let targetMove = Math.round(percentage * maxIndex);
+    targetMove = Math.max(1, Math.min(maxIndex, targetMove));
+    
+    graphHoverIndex = targetMove;
+  }
+
+  function handleGraphMouseLeave() {
+    graphHoverIndex = null;
+  }
+
+  function handleGraphClick() {
+    if (!player || graphHoverIndex === null) return;
+    player.goTo(graphHoverIndex);
+    updatePlayerState();
+  }
+
+  const graphWidth = 400;
+  const graphHeight = 100;
+
+  function getCandidateColor(cand: any): string {
+    if (cand.isBest) return "#2196F3"; // Blue for best
+    if (cand.loss < 0.5) return "#4CAF50"; // Green for minor loss
+    if (cand.loss < 2.0) return "#FFEB3B"; // Yellow for moderate loss
+    return "#F44336"; // Red for major loss
+  }
+
+  // Derived graph coordinates and path
+  const graphPoints = $derived.by(() => {
+    return aiData.map((d) => {
+      const x = (d.moveNumber / maxIndex) * graphWidth;
+      let y = 0;
+      if (graphMode === 'winrate') {
+        y = (1.0 - d.winrate / 100.0) * graphHeight;
+      } else {
+        const scores = aiData.map(sd => sd.scoreLead);
+        const maxScore = Math.max(10, ...scores);
+        const minScore = Math.min(-10, ...scores);
+        const scoreRange = maxScore - minScore || 1;
+        y = graphHeight - ((d.scoreLead - minScore) / scoreRange) * graphHeight;
+      }
+      return { x, y, d };
+    });
+  });
+
+  const graphPointsPath = $derived(graphPoints.map(p => `${p.x},${p.y}`).join(' '));
+  const currentX = $derived((currentIndex / (maxIndex || 1)) * graphWidth);
 
   // Navigation handlers
   function goFirst() {
@@ -812,7 +998,11 @@
             lastMove={lastMove}
             interactive={reviewMode}
             turnColor={currentTurn}
+            candidates={aiCandidates}
+            previewStones={aiPreviewStones}
             onIntersectionClick={handleIntersectionClick}
+            onCandidateHover={handleCandidateHover}
+            onCandidateClick={handleCandidateClick}
           />
         </div>
       </div>
@@ -942,6 +1132,214 @@
           </div>
         {/if}
       </div>
+      {/if}
+
+      <!-- AI Analysis Chart & Switch -->
+      {#if hasAiAnalysis && aiData.length > 0}
+        <div class="em-vogue-editorial-section animate-fade-in" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
+          <!-- Slanted Collage Tag -->
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-text); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important;">
+            AI Analysis — 分析グラフ
+          </span>
+          
+          <div class="card-content" style="padding: 16px 0 0 0;">
+            <!-- Toggle Display Mode -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; gap: 6px;">
+                <button 
+                  class="nm-btn-flat {graphMode === 'winrate' ? 'active-tab' : ''}" 
+                  onclick={() => graphMode = 'winrate'}
+                  style="padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1.5px solid var(--wc-text) !important; border-radius: 0; background: {graphMode === 'winrate' ? 'var(--wc-text)' : 'var(--wc-surface)'} !important; color: {graphMode === 'winrate' ? 'var(--wc-surface)' : 'var(--wc-text)'} !important; cursor: pointer;"
+                >
+                  勝率
+                </button>
+                <button 
+                  class="nm-btn-flat {graphMode === 'score' ? 'active-tab' : ''}" 
+                  onclick={() => graphMode = 'score'}
+                  style="padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1.5px solid var(--wc-text) !important; border-radius: 0; background: {graphMode === 'score' ? 'var(--wc-text)' : 'var(--wc-surface)'} !important; color: {graphMode === 'score' ? 'var(--wc-surface)' : 'var(--wc-text)'} !important; cursor: pointer;"
+                >
+                  目数差
+                </button>
+              </div>
+              
+              <!-- Toggle show candidates on board -->
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                <input 
+                  type="checkbox" 
+                  checked={showAiAnalysis} 
+                  onchange={(e) => {
+                    showAiAnalysis = (e.target as HTMLInputElement).checked;
+                    updatePlayerState();
+                  }}
+                  style="position: relative; opacity: 1; pointer-events: auto; width: 15px; height: 15px; margin: 0; cursor: pointer;"
+                />
+                <span style="font-size: 0.8rem; font-weight: bold; color: var(--wc-text);">候補手を盤上に表示</span>
+              </label>
+            </div>
+
+            <!-- Graph Container -->
+            <div class="ai-graph-container" style="position: relative; height: 120px; border: 2.5px solid var(--wc-text); background: var(--wc-surface-alt); padding: 8px; box-sizing: border-box; box-shadow: 3px 3px 0px var(--wc-text);">
+              <!-- Render SVG Graph -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <svg 
+                viewBox="0 0 {graphWidth} {graphHeight}" 
+                width="100%" 
+                height="100%" 
+                preserveAspectRatio="none"
+                style="display: block; overflow: visible; cursor: crosshair;"
+                onmousemove={handleGraphMouseMove}
+                onmouseleave={handleGraphMouseLeave}
+                onclick={handleGraphClick}
+              >
+                <!-- Draw zero-line for score lead -->
+                {#if graphMode === 'score'}
+                  {@const scores = aiData.map(d => d.scoreLead)}
+                  {@const maxScore = Math.max(10, ...scores)}
+                  {@const minScore = Math.min(-10, ...scores)}
+                  {@const scoreRange = maxScore - minScore}
+                  {@const zeroY = graphHeight - ((0 - minScore) / scoreRange) * graphHeight}
+                  {#if zeroY >= 0 && zeroY <= graphHeight}
+                    <line x1="0" y1={zeroY} x2={graphWidth} y2={zeroY} stroke="#aaa" stroke-width="1.2" stroke-dasharray="3,3" />
+                  {/if}
+                {/if}
+                
+                <!-- Draw winrate 50% line -->
+                {#if graphMode === 'winrate'}
+                  <line x1="0" y1={graphHeight / 2} x2={graphWidth} y2={graphHeight / 2} stroke="#aaa" stroke-width="1.2" stroke-dasharray="3,3" />
+                {/if}
+
+                <!-- Grid Lines (vertical, every 50 moves) -->
+                {#each Array(Math.ceil(maxIndex / 50)) as _, i}
+                  {@const idx = (i + 1) * 50}
+                  {@const x = (idx / maxIndex) * graphWidth}
+                  {#if x < graphWidth}
+                    <line x1={x} y1="0" x2={x} y2={graphHeight} stroke="rgba(0,0,0,0.06)" stroke-width="1" />
+                  {/if}
+                {/each}
+
+                <!-- Draw Points and Path -->
+                <!-- Fill Area under graph (Winrate) -->
+                {#if graphMode === 'winrate' && graphPoints.length > 0}
+                  <polygon 
+                    points="0,{graphHeight} {graphPointsPath} {graphWidth},{graphHeight}" 
+                    fill="rgba(33, 150, 243, 0.08)"
+                  />
+                {/if}
+
+                <!-- Line -->
+                {#if graphPoints.length > 0}
+                  <polyline 
+                    points={graphPointsPath} 
+                    fill="none" 
+                    stroke="var(--wc-text)" 
+                    stroke-width="1.8" 
+                  />
+                {/if}
+
+                <!-- Current Move Indicator (vertical accent line) -->
+                {#if currentX >= 0 && currentX <= graphWidth}
+                  <line 
+                    x1={currentX} 
+                    y1="0" 
+                    x2={currentX} 
+                    y2={graphHeight} 
+                    stroke="var(--wc-accent)" 
+                    stroke-width="1.8" 
+                  />
+                  {@const curPt = graphPoints.find(p => p.d.moveNumber === currentIndex)}
+                  {#if curPt}
+                    <circle 
+                      cx={currentX} 
+                      cy={curPt.y} 
+                      r="4" 
+                      fill="var(--wc-accent)"
+                      stroke="var(--wc-surface)"
+                      stroke-width="1.5"
+                    />
+                  {/if}
+                {/if}
+
+                <!-- Hover Indicator -->
+                {#if graphHoverIndex !== null}
+                  {@const hoverX = (graphHoverIndex / maxIndex) * graphWidth}
+                  <line 
+                    x1={hoverX} 
+                    y1="0" 
+                    x2={hoverX} 
+                    y2={graphHeight} 
+                    stroke="var(--wc-text-muted)" 
+                    stroke-width="1" 
+                    stroke-dasharray="2,2" 
+                  />
+                {/if}
+              </svg>
+            </div>
+
+            <!-- Graph Hover Tooltip / Status -->
+            <div style="margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--wc-text); display: flex; justify-content: space-between; align-items: center; border: 1.5px solid var(--wc-text); padding: 6px 12px; background: var(--wc-surface-alt); box-shadow: 2px 2px 0px var(--wc-text);">
+              {#if graphHoverIndex !== null}
+                {@const hoverD = aiData.find(d => d.moveNumber === graphHoverIndex)}
+                <span style="font-weight: 700;">{graphHoverIndex}手目 ({graphHoverIndex % 2 === 0 ? '○白' : '●黒'})</span>
+                {#if hoverD}
+                  <span>勝率: <strong>{hoverD.winrate.toFixed(1)}%</strong></span>
+                  <span>目数差: <strong>{hoverD.scoreLead > 0 ? `黒+${hoverD.scoreLead.toFixed(1)}` : `白+${Math.abs(hoverD.scoreLead).toFixed(1)}`}</strong>目</span>
+                {:else}
+                  <span style="opacity: 0.5;">データなし</span>
+                {/if}
+              {:else}
+                {@const curD = aiData.find(d => d.moveNumber === currentIndex)}
+                <span style="font-weight: 700;">現在: {currentIndex}手目 ({currentIndex % 2 === 0 ? '○白' : '●黒'})</span>
+                {#if curD}
+                  <span>勝率: <strong>{curD.winrate.toFixed(1)}%</strong></span>
+                  <span>目数差: <strong>{curD.scoreLead > 0 ? `黒+${curD.scoreLead.toFixed(1)}` : `白+${Math.abs(curD.scoreLead).toFixed(1)}`}</strong>目</span>
+                {:else}
+                  <span style="opacity: 0.5;">AI分析なし</span>
+                {/if}
+              {/if}
+            </div>
+            
+            <!-- Candidates List Detail -->
+            {#if aiCandidates && aiCandidates.length > 0}
+              <div style="margin-top: 14px; border: 1.5px solid var(--wc-text); padding: 10px; background: var(--wc-surface);">
+                <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid var(--wc-border); padding-bottom: 4px;">AI候補手リスト</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  {#each aiCandidates as cand}
+                    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div 
+                      class="candidate-row"
+                      onmouseover={() => handleCandidateHover(cand)}
+                      onmouseleave={() => handleCandidateHover(null)}
+                      onclick={() => handleCandidateClick(cand)}
+                      style="display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; padding: 4px 6px; cursor: pointer; border: 1px solid transparent; transition: background 0.15s;"
+                      class:hovered={activeHoveredCandidate === cand}
+                    >
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span 
+                          style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--wc-text); background: {getCandidateColor(cand)};"
+                        ></span>
+                        <span style="font-family: 'JetBrains Mono', monospace; font-weight: bold;">
+                          {cand.isBest ? '最善手' : `候補 ${cand.rank}`} ({cand.coords})
+                        </span>
+                      </div>
+                      <div style="font-family: 'JetBrains Mono', monospace; opacity: 0.85;">
+                        {#if cand.loss > 0}
+                          <span style="color: var(--wc-accent); font-weight: bold;">-{cand.loss.toFixed(1)}目</span>
+                        {:else}
+                          <span style="color: #4CAF50; font-weight: bold;">最善</span>
+                        {/if}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+                <div style="font-size: 0.65rem; color: var(--wc-text-muted); margin-top: 6px; text-align: right;">
+                  ※候補手をホバーすると変化図をプレビュー、クリックすると変化図へ遷移
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
       {/if}
 
       <!-- Branches & Variations Card -->
@@ -1314,5 +1712,10 @@
       padding-left: 2rem !important;
       border-left: 1.5px dashed var(--wc-border);
     }
+  }
+
+  .candidate-row:hover, .candidate-row.hovered {
+    background: var(--wc-surface-alt);
+    border-color: var(--wc-text) !important;
   }
 </style>

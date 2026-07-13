@@ -1,9 +1,11 @@
-import { createBoard, placeStone, sgfToCoords, coordsToSgf } from './goEngine';
+import { createBoard, placeStone, sgfToCoords, coordsToSgf } from "./goEngine";
+import { parseAIAnalysis } from "./aiAnalysis";
 
 export interface SgfNode {
   properties: Record<string, string[]>;
   children: SgfNode[];
   parent: SgfNode | null;
+  aiAnalysis?: any;
 }
 
 export interface HistoryEntry {
@@ -13,14 +15,14 @@ export interface HistoryEntry {
   node: SgfNode | null;
 }
 
-import { parse as sabakiParse, stringify as sabakiStringify } from '@sabaki/sgf';
+import { parse as sabakiParse, stringify as sabakiStringify } from "@sabaki/sgf";
 
 // Convert Sabaki's SGF Node to our internal SgfNode structure (with parent pointers)
 function convertSabakiNode(sabakiNode: any, parent: SgfNode | null = null): SgfNode {
   const node: SgfNode = {
     properties: sabakiNode.data || {},
     children: [],
-    parent: parent
+    parent: parent,
   };
 
   if (sabakiNode.children && sabakiNode.children.length > 0) {
@@ -37,10 +39,10 @@ function convertToSabakiNode(node: SgfNode, idCounter = { val: 1 }): any {
     id: currentId,
     data: node.properties,
     parentId: null,
-    children: []
+    children: [],
   };
 
-  sabakiNode.children = node.children.map(child => {
+  sabakiNode.children = node.children.map((child) => {
     const childNode = convertToSabakiNode(child, idCounter);
     childNode.parentId = currentId;
     return childNode;
@@ -78,7 +80,7 @@ export function stringifySgf(rootNode: SgfNode): string {
       for (const [key, values] of Object.entries(node.properties)) {
         sgf += key;
         for (const val of values) {
-          const escaped = val.replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
+          const escaped = val.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
           sgf += `[${escaped}]`;
         }
       }
@@ -110,15 +112,30 @@ export class SgfPlayer {
   constructor(sgfText: string, boardSize: number = 19) {
     this.boardSize = boardSize;
     this.root = parseSgf(sgfText);
+    if (this.root) {
+      this.attachAIAnalysis(this.root);
+    }
     this.history = []; // Array of { board, lastMove, captives: { B, W }, node }
     this.currentIndex = 0;
 
     this.initGame();
   }
 
+  attachAIAnalysis(node: SgfNode): void {
+    if (node.properties.C && node.properties.C.length > 0) {
+      const ai = parseAIAnalysis(node.properties.C[0]);
+      if (ai) {
+        node.aiAnalysis = ai;
+      }
+    }
+    for (const child of node.children) {
+      this.attachAIAnalysis(child);
+    }
+  }
+
   initGame(): void {
     const initialBoard = createBoard(this.boardSize);
-    
+
     // Process root properties (like handicap stones)
     let board = initialBoard;
     const captives = { B: 0, W: 0 };
@@ -140,12 +157,14 @@ export class SgfPlayer {
     }
 
     // Push base state (index 0)
-    this.history = [{
-      board: board,
-      lastMove: null,
-      captives: captives,
-      node: this.root
-    }];
+    this.history = [
+      {
+        board: board,
+        lastMove: null,
+        captives: captives,
+        node: this.root,
+      },
+    ];
     this.currentIndex = 0;
 
     // Pre-calculate history for the main path (or active path)
@@ -190,7 +209,7 @@ export class SgfPlayer {
         board: currentState.board,
         lastMove: currentState.lastMove,
         captives: { ...currentState.captives },
-        node: nextNode
+        node: nextNode,
       };
     }
 
@@ -200,7 +219,7 @@ export class SgfPlayer {
         board: currentState.board,
         lastMove: null, // Pass
         captives: { ...currentState.captives },
-        node: nextNode
+        node: nextNode,
       };
     }
 
@@ -216,7 +235,7 @@ export class SgfPlayer {
         board: currentState.board,
         lastMove: { x, y },
         captives: { ...currentState.captives },
-        node: nextNode
+        node: nextNode,
       };
     }
 
@@ -231,7 +250,7 @@ export class SgfPlayer {
       board: res.board,
       lastMove: { x, y },
       captives: newCaptives,
-      node: nextNode
+      node: nextNode,
     };
   }
 
@@ -269,9 +288,9 @@ export class SgfPlayer {
     const currentState = this.getCurrentState();
     const node = currentState.node;
     if (!node || !node.parent) return [];
-    
+
     // Siblings of the current node
-    return node.parent.children.filter(child => child !== node);
+    return node.parent.children.filter((child) => child !== node);
   }
 
   // Switch to another branch at the current move
@@ -300,24 +319,28 @@ export class SgfPlayer {
   }
 
   // Add a new branch/variation at the current position
-  addMove(x: number, y: number, color: number): { success: boolean; isNew?: boolean; node?: SgfNode; error?: string } {
+  addMove(
+    x: number,
+    y: number,
+    color: number,
+  ): { success: boolean; isNew?: boolean; node?: SgfNode; error?: string } {
     const currentState = this.getCurrentState();
     const currentNode = currentState.node;
 
     // Check if this move already exists in children
     const coordStr = coordsToSgf(x, y);
     const key = color === 1 ? "B" : "W";
-    
+
     let existingChild: SgfNode | undefined = undefined;
     if (currentNode) {
-      existingChild = currentNode.children.find(child => {
+      existingChild = currentNode.children.find((child) => {
         return child.properties[key] && child.properties[key][0] === coordStr;
       });
     }
 
     if (existingChild) {
       // Just navigate to existing child
-      const idx = this.history.findIndex(h => h.node === existingChild);
+      const idx = this.history.findIndex((h) => h.node === existingChild);
       if (idx !== -1) {
         this.currentIndex = idx;
       } else {
@@ -342,10 +365,10 @@ export class SgfPlayer {
     // Create new SGF node
     const newNode: SgfNode = {
       properties: {
-        [key]: [coordStr]
+        [key]: [coordStr],
       },
       children: [],
-      parent: currentNode
+      parent: currentNode,
     };
 
     if (currentNode) {
@@ -366,7 +389,7 @@ export class SgfPlayer {
       board: res.board,
       lastMove: { x, y },
       captives: nextCaptives,
-      node: newNode
+      node: newNode,
     };
 
     // Update history
@@ -393,18 +416,18 @@ export class SgfPlayer {
     const currentState = this.getCurrentState();
     const node = currentState.node;
     if (!node || !node.properties["C"]) return null;
-    
+
     const rawComment = node.properties["C"][0];
     const colonIndex = rawComment.indexOf(":");
     if (colonIndex !== -1) {
       return {
         author: rawComment.substring(0, colonIndex).trim(),
-        text: rawComment.substring(colonIndex + 1).trim()
+        text: rawComment.substring(colonIndex + 1).trim(),
       };
     }
     return {
       author: "Unknown",
-      text: rawComment
+      text: rawComment,
     };
   }
 
