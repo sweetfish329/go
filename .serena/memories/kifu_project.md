@@ -109,5 +109,17 @@
   フロントエンド全体の型安全性を担保するために、`@types/sabaki__sgf` も合わせて開発環境に追加した。
   既存コード（SgfPlayerクラスやSvelteコンポーネント）との互換性を崩さないよう、[sgfPlayer.ts](file:///D:/project/go/github.com/sweetfish329/go/kifu/frontend/src/lib/sgfPlayer.ts) の `parseSgf` と `stringifySgf` の内部のみを `@sabaki/sgf` でラップ・再設計することで、他のクラスや画面コードに破壊的変更を与えることなく SGF 解析の堅牢化を実現した。
 
+### 9. github.com/rooklift/sgf 導入によるバックエンドSGFパース・盤面再現の簡素化・堅牢化
+- **導入の背景**:
+  バックエンド側にもSGFファイルをパースしてメタデータを抽出する機能、およびDBにOGP画像がない場合のフォールバック自動生成（PNG画像レンダリング）機能が実装されていた。しかし、SGFのパースや囲碁ルール（呼吸点の計算、抜き石の判定、自殺手の禁止など）を自前で実装していたため、コードの肥大化やバグのリスク（エスケープ処理や複雑な分岐対応など）が課題となっていた。
+- **解決策と効果**:
+  GoのSGF操作ライブラリ `github.com/rooklift/sgf` を全面的に導入した。
+  - 自前のパースロジック（[sgf.go](file:///D:/project/go/github.com/sweetfish329/go/kifu/backend/internal/sgf/sgf.go)）を削除し、`sgf.LoadSGF` を用いるように簡素化。
+  - 自前の囲碁ルール・着手シミュレータコード（`go_rules.go`、約170行）を完全に削除。
+  - 画像生成時（[renderer.go](file:///D:/project/go/github.com/sweetfish329/go/kifu/backend/internal/sgf/renderer.go)）は、ライブラリの `Node.Board()` メソッドからルール処理済みの最終盤面状態 (`State [][]Colour`) を直接取得して描画する設計に変更。
+  - 手数番号 (`MoveNumbers`) のマッピングは、メインラインのノードツリーをルートから順に辿るだけの極めてシンプルなループ処理へとリファクタリング。
+  結果として、バックエンドの複雑な盤面シミュレーションコードを完全に排除し、約250行のコード削減と堅牢化を実現した。
+
+
 
 
