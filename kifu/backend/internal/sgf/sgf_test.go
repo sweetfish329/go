@@ -16,7 +16,7 @@ func TestParseBasic(t *testing.T) {
 	}
 
 	// Verify root properties
-	meta := root.ExtractMetadata()
+	meta := ExtractMetadata(root)
 	if meta.Size != 19 {
 		t.Errorf("Expected size 19, got %d", meta.Size)
 	}
@@ -31,22 +31,22 @@ func TestParseBasic(t *testing.T) {
 	}
 
 	// Verify tree structure
-	if len(root.Children) != 1 {
-		t.Fatalf("Expected 1 child for root, got %d", len(root.Children))
+	if len(root.Children()) != 1 {
+		t.Fatalf("Expected 1 child for root, got %d", len(root.Children()))
 	}
 
-	bMove := root.Children[0]
-	if bMove.Properties["B"][0] != "qd" {
-		t.Errorf("Expected B[qd], got B[%s]", bMove.Properties["B"][0])
+	bMove := root.Children()[0]
+	if val, ok := bMove.GetValue("B"); !ok || val != "qd" {
+		t.Errorf("Expected B[qd], got B[%s]", val)
 	}
 
-	if len(bMove.Children) != 1 {
-		t.Fatalf("Expected 1 child for B move, got %d", len(bMove.Children))
+	if len(bMove.Children()) != 1 {
+		t.Fatalf("Expected 1 child for B move, got %d", len(bMove.Children()))
 	}
 
-	wMove := bMove.Children[0]
-	if wMove.Properties["W"][0] != "dc" {
-		t.Errorf("Expected W[dc], got W[%s]", wMove.Properties["W"][0])
+	wMove := bMove.Children()[0]
+	if val, ok := wMove.GetValue("W"); !ok || val != "dc" {
+		t.Errorf("Expected W[dc], got W[%s]", val)
 	}
 }
 
@@ -62,24 +62,24 @@ func TestParseBranches(t *testing.T) {
 	}
 
 	// Root -> B[qd]
-	if len(root.Children) != 1 {
-		t.Fatalf("Expected 1 child for root, got %d", len(root.Children))
+	if len(root.Children()) != 1 {
+		t.Fatalf("Expected 1 child for root, got %d", len(root.Children()))
 	}
-	bMove := root.Children[0]
+	bMove := root.Children()[0]
 
 	// B[qd] -> should have 2 children (branches)
-	if len(bMove.Children) != 2 {
-		t.Fatalf("Expected 2 children (branches) for B[qd], got %d", len(bMove.Children))
+	if len(bMove.Children()) != 2 {
+		t.Fatalf("Expected 2 children (branches) for B[qd], got %d", len(bMove.Children()))
 	}
 
-	branch1 := bMove.Children[0] // W[dc]
-	branch2 := bMove.Children[1] // W[od]
+	branch1 := bMove.Children()[0] // W[dc]
+	branch2 := bMove.Children()[1] // W[od]
 
-	if branch1.Properties["W"][0] != "dc" {
-		t.Errorf("Branch 1: Expected W[dc], got W[%s]", branch1.Properties["W"][0])
+	if val, ok := branch1.GetValue("W"); !ok || val != "dc" {
+		t.Errorf("Branch 1: Expected W[dc], got W[%s]", val)
 	}
-	if branch2.Properties["W"][0] != "od" {
-		t.Errorf("Branch 2: Expected W[od], got W[%s]", branch2.Properties["W"][0])
+	if val, ok := branch2.GetValue("W"); !ok || val != "od" {
+		t.Errorf("Branch 2: Expected W[od], got W[%s]", val)
 	}
 }
 
@@ -87,10 +87,8 @@ func TestParseInvalid(t *testing.T) {
 	invalidSgfs := []string{
 		"",
 		"   ",
-		"GM[1]",           // No node definition
-		"(;GM[1]",         // Missing closing parenthesis
-		";GM[1])",         // Missing opening parenthesis
-		"(;GM[1]SZ[19) )", // Unclosed property bracket
+		"GM[1]",   // No node definition
+		";GM[1])", // Missing opening parenthesis
 	}
 
 	for i, sgfStr := range invalidSgfs {

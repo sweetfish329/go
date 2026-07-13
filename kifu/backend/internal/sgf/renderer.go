@@ -6,6 +6,8 @@ import (
 	"image/draw"
 	"math"
 	"strconv"
+
+	libsgf "github.com/rooklift/sgf"
 )
 
 type starPoint struct {
@@ -256,7 +258,7 @@ func drawNumber(img *image.RGBA, cx, cy int, num int, col color.Color) {
 }
 
 // GenerateBoardImage creates a 1200x630 OGP image of the final board state with move numbers
-func GenerateBoardImage(grid [][]int, moveNumbers [][]int, size int) image.Image {
+func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.Image {
 	width, height := 1200, 630
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
@@ -318,21 +320,50 @@ func GenerateBoardImage(grid [][]int, moveNumbers [][]int, size int) image.Image
 		stoneRadius = 4
 	}
 
+	// Build move numbers by traversing the main line
+	moveNums := make([][]int, size)
+	for i := range moveNums {
+		moveNums[i] = make([]int, size)
+	}
+
+	curr := root
+	moveNum := 0
+	for {
+		children := curr.Children()
+		if len(children) == 0 {
+			break
+		}
+		curr = children[0] // メインラインを進む
+		moveNum++
+
+		var val string
+		if v, ok := curr.GetValue("B"); ok {
+			val = v
+		} else if v, ok := curr.GetValue("W"); ok {
+			val = v
+		}
+
+		if val != "" {
+			if x, y, onboard := libsgf.ParsePoint(val, size, size); onboard {
+				moveNums[x][y] = moveNum
+			}
+		}
+	}
+
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
-			stoneVal := grid[y][x]
-			if stoneVal == 0 {
+			stoneVal := board.State[x][y]
+			if stoneVal == libsgf.EMPTY {
 				continue
 			}
 			cx := boardX + margin + int(math.Round(float64(x)*step))
 			cy := boardY + margin + int(math.Round(float64(y)*step))
-			drawStone(img, cx, cy, stoneRadius, stoneVal == 1)
+			drawStone(img, cx, cy, stoneRadius, stoneVal == libsgf.BLACK)
 
-			// Draw move sequence numbers if recorded
-			if moveNumbers != nil && moveNumbers[y][x] > 0 {
-				num := moveNumbers[y][x]
+			// Draw move sequence numbers if recorded and stone exists
+			if num := moveNums[x][y]; num > 0 {
 				var textCol color.Color
-				if stoneVal == 1 {
+				if stoneVal == libsgf.BLACK {
 					textCol = color.RGBA{255, 255, 255, 255} // White text on black stone
 				} else {
 					textCol = color.RGBA{15, 10, 5, 255} // Dark brown/black text on white stone

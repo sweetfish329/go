@@ -5,6 +5,7 @@ go 1.26
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
+	github.com/rooklift/sgf v0.0.0-20260704124425-1b66e88da99f
 	golang.org/x/oauth2 v0.36.0
 	modernc.org/sqlite v1.53.0
 )

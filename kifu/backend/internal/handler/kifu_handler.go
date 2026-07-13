@@ -113,7 +113,7 @@ func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string, isAdmin 
 		return nil, fmt.Errorf("failed to parse SGF: %w", err)
 	}
 
-	meta := rootNode.ExtractMetadata()
+	meta := sgf.ExtractMetadata(rootNode)
 
 	title := reqTitle
 	if title == "" {
@@ -562,11 +562,11 @@ func (h *KifuHandler) serveGeneratedOgImage(w http.ResponseWriter, kifu *model.K
 		return
 	}
 
-	meta := rootNode.ExtractMetadata()
-	board := sgf.NewBoard(meta.Size)
-	board.ReplicateGame(rootNode)
+	meta := sgf.ExtractMetadata(rootNode)
+	lastNode := rootNode.GetEnd()
+	board := lastNode.Board()
 
-	img := sgf.GenerateBoardImage(board.Grid, board.MoveNumbers, board.Size)
+	img := sgf.GenerateBoardImage(board, rootNode, meta.Size)
 
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
