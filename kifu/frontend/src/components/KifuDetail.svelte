@@ -61,6 +61,21 @@
   }
 
   let kifu = $state.raw<KifuDetailData | null>(null);
+  $effect(() => {
+    if (kifu) {
+      const parts: string[] = [];
+      if (kifu.title) {
+        parts.push(kifu.title);
+      }
+      if (kifu.black_player && kifu.white_player) {
+        parts.push(`${kifu.black_player} vs ${kifu.white_player}`);
+      }
+      parts.push("kifu_store");
+      document.title = parts.join(" | ");
+    } else {
+      document.title = "棋譜詳細 | kifu_store";
+    }
+  });
   let loading = $state(true);
   let error = $state<string | null>(null);
 

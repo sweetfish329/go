@@ -187,7 +187,25 @@
   // Reactively apply settings to DOM
   $effect(() => {
     document.documentElement.style.setProperty('--theme-color', siteSettings.theme_color);
-    document.title = siteSettings.tab_name;
+    
+    // Dynamically update document title based on the current view for client-side SEO
+    if (currentView !== "detail" && currentView !== "loading") {
+      if (currentView === "public_list") {
+        document.title = `公開棋譜一覧 | ${siteSettings.tab_name}`;
+      } else if (currentView === "admin_dashboard") {
+        document.title = `管理ダッシュボード | ${siteSettings.tab_name}`;
+      } else if (currentView === "admin_auth") {
+        document.title = `管理者ログイン | ${siteSettings.tab_name}`;
+      } else if (currentView === "create") {
+        document.title = `新規棋譜記録 | ${siteSettings.tab_name}`;
+      } else if (currentView === "list") {
+        document.title = `マイ棋譜一覧 | ${siteSettings.tab_name}`;
+      } else if (currentView === "auth") {
+        document.title = `ログイン・新規登録 | ${siteSettings.tab_name}`;
+      } else {
+        document.title = siteSettings.tab_name;
+      }
+    }
     
     let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (!faviconLink) {

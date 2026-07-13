@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /?share=
+Disallow: /*?*share=
+Disallow: /?admin
+Disallow: /*?*admin
+Disallow: /api/
+Allow: /

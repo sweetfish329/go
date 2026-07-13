@@ -595,6 +595,9 @@ func BuildKifuOgpMeta(kifu *model.Kifu, userId string, kifuId string, scheme str
 	if kifu.Result != "" {
 		description += fmt.Sprintf(" (結果: %s)", escapedResult)
 	}
+	description += "。モダンな囲碁棋譜管理・添削ツール kifu_store で記録された棋譜です。"
+
+	keywords := fmt.Sprintf("囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, %s, %s", escapedBlack, escapedWhite)
 
 	robotsTag := ""
 	if kifu.IsPrivate {
@@ -612,13 +615,15 @@ func BuildKifuOgpMeta(kifu *model.Kifu, userId string, kifuId string, scheme str
 
 	ogpMeta := fmt.Sprintf(`
 	%s
+	<meta name="description" content="%s" />
+	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="%s | %s" />
 	<meta property="og:description" content="%s" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="%s | %s" />
 	<meta name="twitter:description" content="%s" />`,
-		robotsTag, title, escapedTabName, description,
+		robotsTag, description, keywords, title, escapedTabName, description,
 		title, escapedTabName, description,
 	)
 
@@ -643,6 +648,7 @@ func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, 
 	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, html.EscapeString(host), shareToken, kifu.UpdatedAt.Unix())
 
 	return fmt.Sprintf(`
+	<meta name="robots" content="noindex, nofollow" />
 	<meta property="og:title" content="%s | %s" />
 	<meta property="og:description" content="%s" />
 	<meta property="og:image" content="%s" />
@@ -657,11 +663,35 @@ func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, 
 }
 
 func BuildUserListOgpMeta(escapedTabName string) string {
+	description := "公開棋譜一覧ページです。モダンなUIで棋譜の管理、記録、そしてAIや指導者による添削を行える囲碁棋譜ストアです。"
+	keywords := "囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, 公開棋譜"
 	return fmt.Sprintf(`
 	<meta name="robots" content="index, follow" />
+	<meta name="description" content="%s" />
+	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="公開棋譜一覧 | %s" />
-	<meta property="og:description" content="ユーザーの一般公開棋譜一覧です。" />
-	<meta property="og:type" content="website" />`, escapedTabName)
+	<meta property="og:description" content="%s" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="公開棋譜一覧 | %s" />
+	<meta name="twitter:description" content="%s" />`,
+		description, keywords, escapedTabName, description, escapedTabName, description)
+}
+
+func BuildDefaultOgpMeta(escapedTabName string) string {
+	description := "モダンで美しい囲碁棋譜管理・添削ツール。Web上で棋譜を記録、保存、共有、そしてAIや指導碁での添削が簡単に行えます。あなたの大切な対局記録（棋譜）を美しく保存しましょう。"
+	keywords := "囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, 棋譜ストア, 添削, 対局記録"
+	return fmt.Sprintf(`
+	<meta name="robots" content="index, follow" />
+	<meta name="description" content="%s" />
+	<meta name="keywords" content="%s" />
+	<meta property="og:title" content="%s" />
+	<meta property="og:description" content="%s" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="%s" />
+	<meta name="twitter:description" content="%s" />`,
+		description, keywords, escapedTabName, description, escapedTabName, description)
 }
 
 // RootHandler handles serving the index.html and dynamically injecting site settings and OGP tags
@@ -749,6 +779,17 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 				scheme, host := resolveSchemeAndHost(r)
 				ogpMeta = BuildSharedKifuOgpMeta(kifu, shareToken, scheme, host, escapedTabName)
 			}
+		}
+	}
+
+	if ogpMeta == "" {
+		// Default homepage / login page / user page fallback
+		// Let's check if it's the admin page to noindex it.
+		isAdmin := r.URL.Query().Has("admin")
+		if isAdmin {
+			ogpMeta = `<meta name="robots" content="noindex, nofollow" />`
+		} else {
+			ogpMeta = BuildDefaultOgpMeta(escapedTabName)
 		}
 	}
 
