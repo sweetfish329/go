@@ -800,6 +800,19 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		// Fallback to share token if any
 		shareToken := r.URL.Query().Get("share")
 		if shareToken != "" {
+			if strings.HasSuffix(shareToken, "/sgf") {
+				tokenOnly := strings.TrimSuffix(shareToken, "/sgf")
+				kifu, err := h.repo.FindByShareToken(tokenOnly)
+				if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.After(time.Now())) {
+					w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+					w.Header().Set("Content-Length", strconv.Itoa(len(kifu.SgfData)))
+					_, _ = w.Write([]byte(kifu.SgfData))
+					return
+				}
+				respondWithError(w, http.StatusNotFound, "Shared kifu not found")
+				return
+			}
+
 			kifu, err := h.repo.FindByShareToken(shareToken)
 			if err == nil && kifu != nil && (kifu.ShareExpiresAt == nil || kifu.ShareExpiresAt.After(time.Now())) {
 				scheme, host := resolveSchemeAndHost(r)
@@ -827,4 +840,48 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(htmlContent))
+}
+
+// GetPublicKifuSgf returns raw SGF data for a public kifu
+func (h *KifuHandler) GetPublicKifuSgf(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	kifuId := r.PathValue("kifuId")
+
+	kifu, err := h.repo.FindByIDAndUser(kifuId, userId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+	if kifu == nil || kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(kifu.SgfData)))
+	_, _ = w.Write([]byte(kifu.SgfData))
+}
+
+// GetSharedSgf returns raw SGF data for a shared kifu by token
+func (h *KifuHandler) GetSharedSgf(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	if token == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing token")
+		return
+	}
+
+	kifu, err := h.repo.FindByShareToken(token)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Shared kifu not found")
+		return
+	}
+
+	if kifu.ShareExpiresAt != nil && kifu.ShareExpiresAt.Before(time.Now()) {
+		respondWithError(w, http.StatusGone, "Shared link has expired")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(kifu.SgfData)))
+	_, _ = w.Write([]byte(kifu.SgfData))
 }

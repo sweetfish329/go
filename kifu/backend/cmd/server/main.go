@@ -59,6 +59,8 @@ func main() {
 	mux.HandleFunc("GET /{$}", kifuHandler.RootHandler)
 	mux.HandleFunc("GET /u/{userId}", kifuHandler.RootHandler)
 	mux.HandleFunc("GET /u/{userId}/{kifuId}", kifuHandler.RootHandler)
+	mux.HandleFunc("GET /u/{userId}/{kifuId}/sgf", kifuHandler.GetPublicKifuSgf)
+	mux.HandleFunc("GET /share/{token}/sgf", kifuHandler.GetSharedSgf)
 	mux.Handle("/", fs)
 
 	// Wrap Mux with CORS and CSRF middleware
