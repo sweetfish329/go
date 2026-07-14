@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -448,6 +449,7 @@ func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
 	imgData, err := h.repo.GetOgpImageByShareToken(token)
 	if err == nil && len(imgData) > 0 {
 		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
 		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
 		_, _ = w.Write(imgData)
 		return
@@ -546,6 +548,7 @@ func (h *KifuHandler) GetPublicKifuOgImage(w http.ResponseWriter, r *http.Reques
 	imgData, err := h.repo.GetOgpImage(kifuId)
 	if err == nil && len(imgData) > 0 {
 		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
 		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
 		_, _ = w.Write(imgData)
 		return
@@ -568,11 +571,16 @@ func (h *KifuHandler) serveGeneratedOgImage(w http.ResponseWriter, kifu *model.K
 
 	img := sgf.GenerateBoardImage(board, rootNode, meta.Size)
 
-	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
-	if err := png.Encode(w, img); err != nil {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to encode PNG: "+err.Error())
+		return
 	}
+
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+	_, _ = w.Write(buf.Bytes())
 }
 
 func resolveSchemeAndHost(r *http.Request) (string, string) {
@@ -613,18 +621,24 @@ func BuildKifuOgpMeta(kifu *model.Kifu, userId string, kifuId string, scheme str
 		ogImageUrl = fmt.Sprintf("%s://%s/api/u/%s/kifus/%s/og-image?t=%d", scheme, html.EscapeString(host), userId, kifuId, kifu.UpdatedAt.Unix())
 	}
 
+	ogUrl := fmt.Sprintf("%s://%s/u/%s/%s", scheme, html.EscapeString(host), userId, kifuId)
+
 	ogpMeta := fmt.Sprintf(`
 	%s
 	<meta name="description" content="%s" />
 	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="%s | %s" />
 	<meta property="og:description" content="%s" />
+	<meta property="og:url" content="%s" />
+	<meta property="og:site_name" content="%s" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="%s | %s" />
-	<meta name="twitter:description" content="%s" />`,
+	<meta name="twitter:description" content="%s" />
+	<meta name="twitter:url" content="%s" />`,
 		robotsTag, description, keywords, title, escapedTabName, description,
-		title, escapedTabName, description,
+		ogUrl, escapedTabName,
+		title, escapedTabName, description, ogUrl,
 	)
 
 	if ogImageUrl != "" {
@@ -646,23 +660,27 @@ func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, 
 	}
 
 	ogImageUrl := fmt.Sprintf("%s://%s/api/share/%s/og-image?t=%d", scheme, html.EscapeString(host), shareToken, kifu.UpdatedAt.Unix())
+	ogUrl := fmt.Sprintf("%s://%s/?share=%s", scheme, html.EscapeString(host), shareToken)
 
 	return fmt.Sprintf(`
 	<meta name="robots" content="noindex, nofollow" />
 	<meta property="og:title" content="%s | %s" />
 	<meta property="og:description" content="%s" />
 	<meta property="og:image" content="%s" />
+	<meta property="og:url" content="%s" />
+	<meta property="og:site_name" content="%s" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="%s | %s" />
 	<meta name="twitter:description" content="%s" />
-	<meta name="twitter:image" content="%s" />`,
-		title, escapedTabName, description, ogImageUrl,
-		title, escapedTabName, description, ogImageUrl,
+	<meta name="twitter:image" content="%s" />
+	<meta name="twitter:url" content="%s" />`,
+		title, escapedTabName, description, ogImageUrl, ogUrl, escapedTabName,
+		title, escapedTabName, description, ogImageUrl, ogUrl,
 	)
 }
 
-func BuildUserListOgpMeta(escapedTabName string) string {
+func BuildUserListOgpMeta(escapedTabName string, ogUrl string) string {
 	description := "公開棋譜一覧ページです。モダンなUIで棋譜の管理、記録、そしてAIや指導者による添削を行える囲碁棋譜ストアです。"
 	keywords := "囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, 公開棋譜"
 	return fmt.Sprintf(`
@@ -671,14 +689,17 @@ func BuildUserListOgpMeta(escapedTabName string) string {
 	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="公開棋譜一覧 | %s" />
 	<meta property="og:description" content="%s" />
+	<meta property="og:url" content="%s" />
+	<meta property="og:site_name" content="%s" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content="公開棋譜一覧 | %s" />
-	<meta name="twitter:description" content="%s" />`,
-		description, keywords, escapedTabName, description, escapedTabName, description)
+	<meta name="twitter:description" content="%s" />
+	<meta name="twitter:url" content="%s" />`,
+		description, keywords, escapedTabName, description, ogUrl, escapedTabName, escapedTabName, description, ogUrl)
 }
 
-func BuildDefaultOgpMeta(escapedTabName string) string {
+func BuildDefaultOgpMeta(escapedTabName string, ogUrl string) string {
 	description := "モダンで美しい囲碁棋譜管理・添削ツール。Web上で棋譜を記録、保存、共有、そしてAIや指導碁での添削が簡単に行えます。あなたの大切な対局記録（棋譜）を美しく保存しましょう。"
 	keywords := "囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, 棋譜ストア, 添削, 対局記録"
 	return fmt.Sprintf(`
@@ -687,11 +708,14 @@ func BuildDefaultOgpMeta(escapedTabName string) string {
 	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="%s" />
 	<meta property="og:description" content="%s" />
+	<meta property="og:url" content="%s" />
+	<meta property="og:site_name" content="%s" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content="%s" />
-	<meta name="twitter:description" content="%s" />`,
-		description, keywords, escapedTabName, description, escapedTabName, description)
+	<meta name="twitter:description" content="%s" />
+	<meta name="twitter:url" content="%s" />`,
+		description, keywords, escapedTabName, description, ogUrl, escapedTabName, escapedTabName, description, ogUrl)
 }
 
 // RootHandler handles serving the index.html and dynamically injecting site settings and OGP tags
@@ -769,7 +793,9 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 			ogpMeta = BuildKifuOgpMeta(kifu, userId, kifuId, scheme, host, escapedTabName)
 		}
 	} else if userId != "" {
-		ogpMeta = BuildUserListOgpMeta(escapedTabName)
+		scheme, host := resolveSchemeAndHost(r)
+		ogUrl := fmt.Sprintf("%s://%s/u/%s", scheme, html.EscapeString(host), userId)
+		ogpMeta = BuildUserListOgpMeta(escapedTabName, ogUrl)
 	} else {
 		// Fallback to share token if any
 		shareToken := r.URL.Query().Get("share")
@@ -789,7 +815,9 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		if isAdmin {
 			ogpMeta = `<meta name="robots" content="noindex, nofollow" />`
 		} else {
-			ogpMeta = BuildDefaultOgpMeta(escapedTabName)
+			scheme, host := resolveSchemeAndHost(r)
+			ogUrl := fmt.Sprintf("%s://%s%s", scheme, html.EscapeString(host), html.EscapeString(r.URL.Path))
+			ogpMeta = BuildDefaultOgpMeta(escapedTabName, ogUrl)
 		}
 	}
 
