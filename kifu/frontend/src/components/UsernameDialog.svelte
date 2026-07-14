@@ -51,28 +51,35 @@
       loading = false;
     }
   }
-</script>
 
-<div class="modal-backdrop animate-fade-in" onclick={onClose} aria-hidden="true">
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }
+</script>
+<svelte:window onkeydown={handleKeyDown} />
+
+<div class="modal-backdrop animate-fade-in" onclick={onClose} role="presentation">
   <!-- Content click propagation stopped to avoid closing on inner click -->
-  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
+  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
     <form onsubmit={handleSave}>
       
       <!-- Header -->
       <div class="modal-header">
-        <span class="modal-title font-mincho">
-          <i class="material-icons modal-title-icon">edit</i>
+        <span id="modal-title" class="modal-title font-mincho">
+          <i class="material-icons modal-title-icon" aria-hidden="true">edit</i>
           ユーザー名の変更
         </span>
-        <p class="modal-subtitle">
+        <p id="modal-desc" class="modal-subtitle">
           添削コメントや公開ライブラリで表示されるお名前を変更できます。
         </p>
       </div>
 
       <!-- Error box style matched to Washi Clay theme colors -->
       {#if error}
-        <div class="error-panel font-sans">
-          <i class="material-icons error-icon">error_outline</i>
+        <div id="username-error" class="error-panel font-sans" aria-live="polite">
+          <i class="material-icons error-icon" aria-hidden="true">error_outline</i>
           <span>{error}</span>
         </div>
       {/if}
@@ -88,6 +95,8 @@
             class="nm-input" 
             placeholder="新しいユーザー名を入力" 
             style="margin-bottom: 0;" 
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={error ? "username-error" : undefined}
           />
           <label for="new-username" class="active font-sans">ユーザー名</label>
         </div>

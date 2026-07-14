@@ -224,7 +224,7 @@
   <div class="col s12 d-flex justify-between align-center" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 12px;">
     <h4 style="margin: 0; font-weight: 800; font-family: 'Shippori Mincho B1', serif; color: var(--wc-text); letter-spacing: 0.04em; text-transform: uppercase;">サイト管理設定</h4>
     <button class="logout-btn font-sans" onclick={handleLogout}>
-      <i class="material-icons" style="font-size: 1.2rem;">exit_to_app</i>管理ログアウト
+      <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem;">exit_to_app</i>管理ログアウト
     </button>
   </div>
 
@@ -259,7 +259,7 @@
         <div class="nm-card admin-panel-card">
           <div class="card-content" style="padding: 2.5rem;">
             <span class="card-title font-mincho">
-              <i class="material-icons title-icon">web</i> サイト基本設定
+              <i class="material-icons title-icon" aria-hidden="true">web</i> サイト基本設定
             </span>
 
             <div class="row" style="margin-bottom: 0;">
@@ -319,7 +319,7 @@
               <!-- Save Button -->
               <div class="col s12 right-align">
                 <button class="save-settings-btn font-sans" onclick={handleSaveSiteSettings} disabled={saving}>
-                  <i class="material-icons" style="font-size: 1.15rem; margin-right: 6px; vertical-align: middle;">save</i>設定を保存
+                  <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; margin-right: 6px; vertical-align: middle;">save</i>設定を保存
                 </button>
               </div>
             </div>
@@ -332,7 +332,7 @@
           <div class="nm-card admin-panel-card animate-fade-in">
             <div class="card-content" style="padding: 2.5rem;">
               <span class="card-title font-mincho">
-                <i class="material-icons title-icon">settings</i> {provider.toUpperCase()} 連携の設定
+                <i class="material-icons title-icon" aria-hidden="true">settings</i> {provider.toUpperCase()} 連携の設定
               </span>
 
               <div class="row" style="margin-bottom: 0;">
@@ -383,7 +383,7 @@
                 <!-- Save Button -->
                 <div class="col s12 right-align">
                   <button class="save-settings-btn font-sans" onclick={() => handleSave(provider)} disabled={saving}>
-                    <i class="material-icons" style="font-size: 1.15rem; margin-right: 6px; vertical-align: middle;">save</i>設定を保存
+                    <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; margin-right: 6px; vertical-align: middle;">save</i>設定を保存
                   </button>
                 </div>
               </div>

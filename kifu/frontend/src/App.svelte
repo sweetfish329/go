@@ -305,10 +305,7 @@
         </div>
 
         <!-- Center Title (Giant jump-rate) -->
-        <!-- svelte-ignore a11y_missing_attribute -->
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <a onclick={handleGoHome} class="cursor-pointer masthead-title-link" style="text-decoration: none; position: relative; display: block;">
+        <a href="/" onclick={(e) => { e.preventDefault(); handleGoHome(); }} class="cursor-pointer masthead-title-link" style="text-decoration: none; position: relative; display: block;">
           <!-- Overlap ornament text -->
           <span class="masthead-ornament-text" style="position: absolute; top: -18px; left: -14px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; font-style: italic; color: var(--wc-accent); letter-spacing: 0.18em; font-weight: 600; text-shadow: 2px 2px 0 var(--wc-bg);">
             the collection of
@@ -336,27 +333,23 @@
         
         <div class="meta-action-group">
           <!-- Home Link -->
-          <!-- svelte-ignore a11y_missing_attribute -->
-          <a onclick={handleGoHome} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; font-weight: bold;">Home</a>
+          <a href="/" onclick={(e) => { e.preventDefault(); handleGoHome(); }} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; font-weight: bold;">Home</a>
           
           {#if auth.isLoggedIn}
             <!-- Username chip -->
-            <!-- svelte-ignore a11y_missing_attribute -->
-            <a onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; background: var(--wc-surface-alt); border: 1px solid var(--wc-text); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-text);">
+            <button type="button" onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; background: var(--wc-surface-alt); border: 1px solid var(--wc-text); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-text); height: auto !important; line-height: normal !important;" aria-label="ユーザー名を変更する">
               @{auth.username}
-            </a>
+            </button>
             <!-- Logout Link -->
-            <!-- svelte-ignore a11y_missing_attribute -->
-            <a onclick={handleLogout} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Logout</a>
+            <a href="#" onclick={(e) => { e.preventDefault(); handleLogout(); }} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Logout</a>
           {/if}
           
           <!-- Theme Toggle -->
-          <!-- svelte-ignore a11y_missing_attribute -->
-          <a onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); display: flex; align-items: center; border: 1px solid var(--wc-text); background: var(--wc-surface); padding: 4px; box-shadow: 2px 2px 0px var(--wc-text);">
-            <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm);">
+          <button type="button" onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); display: flex; align-items: center; border: 1px solid var(--wc-text); background: var(--wc-surface); padding: 4px; box-shadow: 2px 2px 0px var(--wc-text); cursor: pointer;" aria-label="テーマの切り替え">
+            <i class="material-icons" aria-hidden="true" style="font-size: 0.95rem; color: var(--wc-accent-warm);">
               {themeMode === 'light' ? 'wb_sunny' : themeMode === 'dark' ? 'brightness_2' : 'brightness_auto'}
             </i>
-          </a>
+          </button>
         </div>
       </div>
     </div>

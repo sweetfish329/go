@@ -343,24 +343,24 @@
 
         <!-- Navigation Buttons -->
         <div class="control-buttons center-align" style="margin-bottom: 15px; display: flex; justify-content: center; gap: 8px;">
-          <button class="nm-btn-flat" onclick={jumpToStart} disabled={currentMoveIndex === -1} title="最初へ">
-            <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">first_page</i>
+          <button type="button" class="nm-btn-flat" onclick={jumpToStart} disabled={currentMoveIndex === -1} title="最初へ" aria-label="最初の手へ移動">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.25rem; color: var(--wc-text);">first_page</i>
           </button>
-          <button class="nm-btn-flat" onclick={undo} disabled={currentMoveIndex === -1} title="戻る">
-            <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">chevron_left</i>
+          <button type="button" class="nm-btn-flat" onclick={undo} disabled={currentMoveIndex === -1} title="戻る" aria-label="1手戻る">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.25rem; color: var(--wc-text);">chevron_left</i>
           </button>
-          <button class="nm-btn-flat" onclick={redo} disabled={currentMoveIndex === moves.length - 1} title="進む">
-            <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">chevron_right</i>
+          <button type="button" class="nm-btn-flat" onclick={redo} disabled={currentMoveIndex === moves.length - 1} title="進む" aria-label="1手進む">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.25rem; color: var(--wc-text);">chevron_right</i>
           </button>
-          <button class="nm-btn-flat" onclick={jumpToEnd} disabled={currentMoveIndex === moves.length - 1} title="最後へ">
-            <i class="material-icons" style="font-size: 1.25rem; color: var(--wc-text);">last_page</i>
+          <button type="button" class="nm-btn-flat" onclick={jumpToEnd} disabled={currentMoveIndex === moves.length - 1} title="最後へ" aria-label="最後の手へ移動">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.25rem; color: var(--wc-text);">last_page</i>
           </button>
         </div>
 
         <!-- Action Buttons -->
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button class="nm-btn em-pulse-button" style="width: 100%; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important; font-weight: bold;" onclick={handlePass} disabled={saving}>
-            <i class="material-icons" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">redo</i>パスする (Pass)
+          <button type="button" class="nm-btn em-pulse-button" style="width: 100%; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important; font-weight: bold;" onclick={handlePass} disabled={saving}>
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">redo</i>パスする (Pass)
           </button>
         </div>
       </div>

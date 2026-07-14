@@ -549,6 +549,17 @@
     updatePlayerState();
   }
 
+  function handleGraphKeyDown(e: KeyboardEvent) {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      stepBack(1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      stepForward(1);
+    }
+  }
+
+
   const graphWidth = 400;
   const graphHeight = 100;
 
@@ -1030,34 +1041,33 @@
 
           <!-- Buttons Row -->
           <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
-            <button class="nm-btn-flat" onclick={goFirst} title="最初へ">
-              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">first_page</i>
+            <button type="button" class="nm-btn-flat" onclick={goFirst} title="最初へ" aria-label="最初の手へ移動">
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">first_page</i>
             </button>
-            <button class="nm-btn-flat" onclick={() => stepBack(10)} title="10手戻る">
-              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">fast_rewind</i>
+            <button type="button" class="nm-btn-flat" onclick={() => stepBack(10)} title="10手戻る" aria-label="10手戻る">
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">fast_rewind</i>
             </button>
-            <button class="nm-btn-flat" onclick={() => stepBack(1)} title="1手戻る">
-              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">navigate_before</i>
+            <button type="button" class="nm-btn-flat" onclick={() => stepBack(1)} title="1手戻る" aria-label="1手戻る">
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">navigate_before</i>
             </button>
-            <button class="nm-btn-primary em-pulse-button" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'}>
-              <i class="material-icons" style="font-size: 1.25rem;">{isAutoplay ? 'pause' : 'play_arrow'}</i>
+            <button type="button" class="nm-btn-primary em-pulse-button" onclick={toggleAutoplay} title={isAutoplay ? '一時停止' : '自動再生'} aria-label={isAutoplay ? '自動再生を一時停止する' : '自動再生を開始する'}>
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.25rem;">{isAutoplay ? 'pause' : 'play_arrow'}</i>
             </button>
-            <button class="nm-btn-flat" onclick={() => stepForward(1)} title="1手進む">
-              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">navigate_next</i>
+            <button type="button" class="nm-btn-flat" onclick={() => stepForward(1)} title="1手進む" aria-label="1手進む">
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">navigate_next</i>
             </button>
-            <button class="nm-btn-flat" onclick={() => stepForward(10)} title="10手進む">
-              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">fast_forward</i>
+            <button type="button" class="nm-btn-flat" onclick={() => stepForward(10)} title="10手進む" aria-label="10手進む">
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">fast_forward</i>
             </button>
-            <button class="nm-btn-flat" onclick={goLast} title="最後へ">
-              <i class="material-icons" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
+            <button type="button" class="nm-btn-flat" onclick={goLast} title="最後へ" aria-label="最後の手へ移動">
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
             </button>
           </div>
 
           {#if isViewingVariation}
-            <!-- svelte-ignore a11y_missing_attribute -->
             <div class="animate-fade-in" style="margin-top: 16px; display: flex; justify-content: center;">
-              <button class="nm-btn" onclick={handleReturnToMainPath} style="border-radius: 0px !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
-                <i class="material-icons" style="font-size: 1.15rem;">assignment_return</i>
+              <button type="button" class="nm-btn" onclick={handleReturnToMainPath} style="border-radius: 0px !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
+                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">assignment_return</i>
                 本線（元の棋譜）に戻る
               </button>
             </div>
@@ -1072,23 +1082,21 @@
       {#if kifu}
       <div class="em-vogue-editorial-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
         <!-- Card Header Toggle (Click to Toggle) - Slanted Collage Tag overlapping top border -->
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="card-header-toggle cursor-pointer" onclick={() => isGameInfoExpanded = !isGameInfoExpanded} style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+        <button type="button" class="card-header-toggle cursor-pointer" onclick={() => isGameInfoExpanded = !isGameInfoExpanded} aria-expanded={isGameInfoExpanded} aria-controls="game-info-details" style="width: 100%; border: none; background: none; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; text-align: left; padding: 0;">
           <span class="em-collage-tag" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-text);">
             Info — Record Specs
           </span>
           <span style="font-weight: 700; font-size: 0.95rem; color: var(--wc-text); font-family: 'Shippori Mincho B1', serif; padding-top: 6px;">
             ● {kifu.black_player || 'Unknown'} vs ○ {kifu.white_player || 'Unknown'}
           </span>
-          <button class="nm-btn-flat" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
-            <i class="material-icons" style="font-size: 1.1rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-text);">keyboard_arrow_down</i>
-          </button>
-        </div>
+          <div class="nm-btn-flat" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.1rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-text);">keyboard_arrow_down</i>
+          </div>
+        </button>
 
         <!-- Expanded details -->
         {#if isGameInfoExpanded}
-          <div class="card-content" style="padding: 16px 0 0 0; border-top: 1.5px solid var(--wc-text); margin-top: 14px; transition: all 0.3s ease;">
+          <div id="game-info-details" class="card-content" style="padding: 16px 0 0 0; border-top: 1.5px solid var(--wc-text); margin-top: 14px; transition: all 0.3s ease;">
             <table class="em-table">
               <tbody>
                 <tr>
@@ -1180,7 +1188,6 @@
             <!-- Graph Container -->
             <div class="ai-graph-container" style="position: relative; height: 120px; border: 2.5px solid var(--wc-text); background: var(--wc-surface-alt); padding: 8px; box-sizing: border-box; box-shadow: 3px 3px 0px var(--wc-text);">
               <!-- Render SVG Graph -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <svg 
                 viewBox="0 0 {graphWidth} {graphHeight}" 
                 width="100%" 
@@ -1190,6 +1197,10 @@
                 onmousemove={handleGraphMouseMove}
                 onmouseleave={handleGraphMouseLeave}
                 onclick={handleGraphClick}
+                onkeydown={handleGraphKeyDown}
+                tabindex="0"
+                role="application"
+                aria-label="勝率と目数差の推移グラフ。左右の矢印キーで手数を進退できます。"
               >
                 <!-- Draw zero-line for score lead -->
                 {#if graphMode === 'score'}
@@ -1304,15 +1315,15 @@
                 <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid var(--wc-border); padding-bottom: 4px;">AI候補手リスト</div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
                   {#each aiCandidates as cand}
-                    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div 
+                    <button 
+                      type="button"
                       class="candidate-row"
                       onmouseover={() => handleCandidateHover(cand)}
                       onmouseleave={() => handleCandidateHover(null)}
+                      onfocus={() => handleCandidateHover(cand)}
+                      onblur={() => handleCandidateHover(null)}
                       onclick={() => handleCandidateClick(cand)}
-                      style="display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; padding: 4px 6px; cursor: pointer; border: 1px solid transparent; transition: background 0.15s;"
+                      style="display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; padding: 4px 6px; cursor: pointer; border: 1px solid transparent; transition: background 0.15s; background: none; width: 100%; border-radius: 0; text-align: left; color: inherit; font-family: inherit;"
                       class:hovered={activeHoveredCandidate === cand}
                     >
                       <div style="display: flex; align-items: center; gap: 8px;">
@@ -1353,16 +1364,15 @@
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
               <!-- Main branch return button if not on primary branch -->
               {#if isViewingVariation}
-                <!-- svelte-ignore a11y_missing_attribute -->
-                <button class="share-settings-btn" onclick={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important;">
-                  <i class="material-icons" style="font-size: 1.05rem; vertical-align: middle;">assignment_return</i>
+                <button type="button" class="share-settings-btn" onclick={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important;">
+                  <i class="material-icons" aria-hidden="true" style="font-size: 1.05rem; vertical-align: middle;">assignment_return</i>
                   本線に戻る
                 </button>
               {/if}
               <!-- Display other branch buttons -->
               {#each alternativeBranches as branch}
-                <button class="share-settings-btn" onclick={() => selectBranch(branch.originalIndex)} style="background: var(--wc-surface-alt) !important; border: 1.5px solid var(--wc-text) !important; display: inline-flex; align-items: center; gap: 4px;">
-                  <i class="material-icons" style="font-size: 1.05rem; vertical-align: middle;">call_split</i>
+                <button type="button" class="share-settings-btn" onclick={() => selectBranch(branch.originalIndex)} style="background: var(--wc-surface-alt) !important; border: 1.5px solid var(--wc-text) !important; display: inline-flex; align-items: center; gap: 4px;">
+                  <i class="material-icons" aria-hidden="true" style="font-size: 1.05rem; vertical-align: middle;">call_split</i>
                   {branch.label}
                 </button>
               {/each}
@@ -1381,7 +1391,7 @@
 
           {#if comments.length === 0}
             <div class="center-align" style="padding: 2.5rem 0; opacity: 0.5;">
-              <i class="material-icons" style="font-size: 2.6rem; color: var(--wc-text-muted);">chat_bubble_outline</i>
+              <i class="material-icons" aria-hidden="true" style="font-size: 2.6rem; color: var(--wc-text-muted);">chat_bubble_outline</i>
               <p style="margin: 8px 0 0 0; font-size: 0.88rem; color: var(--wc-text-muted); font-family: 'DM Sans', sans-serif;">この手に対するコメントはありません</p>
             </div>
           {:else}
@@ -1401,13 +1411,11 @@
                   </div>
                   {#if comment.reviewId && !isPublic && (isOwner || auth.username === comment.reviewerName)}
                     <div style="display: flex; gap: 6px; margin-left: 12px;">
-                      <!-- svelte-ignore a11y_missing_attribute -->
-                      <button class="nm-btn-flat" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
-                        <i class="material-icons" style="font-size: 1rem; color: var(--wc-text);">edit</i>
+                      <button type="button" class="nm-btn-flat" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" aria-label="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+                        <i class="material-icons" aria-hidden="true" style="font-size: 1rem; color: var(--wc-text);">edit</i>
                       </button>
-                      <!-- svelte-ignore a11y_missing_attribute -->
-                      <button class="nm-btn-flat" onclick={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
-                        <i class="material-icons" style="font-size: 1rem; color: #e53935;">delete</i>
+                      <button type="button" class="nm-btn-flat" onclick={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" aria-label="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+                        <i class="material-icons" aria-hidden="true" style="font-size: 1rem; color: #e53935;">delete</i>
                       </button>
                     </div>
                   {/if}

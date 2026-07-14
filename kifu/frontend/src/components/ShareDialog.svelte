@@ -581,7 +581,14 @@
       console.error("Failed to copy", err);
     }
   }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      props.onClose();
+    }
+  }
 </script>
+<svelte:window onkeydown={handleKeyDown} />
 
 <!-- Hidden board of the selected state for OGP generation -->
 <div style="position: absolute; left: -9999px; top: -9999px; visibility: hidden; pointer-events: none;">
@@ -591,17 +598,17 @@
 </div>
 
 <!-- Backdrop click triggers onClose -->
-<div transition:fade={{ duration: 180 }} class="share-modal-backdrop" onclick={props.onClose} aria-hidden="true">
+<div transition:fade={{ duration: 180 }} class="share-modal-backdrop" onclick={props.onClose} role="presentation">
   <!-- Content click propagation stopped to avoid closing -->
-  <div transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} aria-hidden="true">
+  <div transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-describedby="share-modal-desc">
     
     <!-- Header with Washi Clay Design Style -->
     <div class="share-modal-header">
-      <span class="share-modal-title font-mincho">
-        <i class="material-icons share-modal-title-icon">share</i>
+      <span id="share-modal-title" class="share-modal-title font-mincho">
+        <i class="material-icons share-modal-title-icon" aria-hidden="true">share</i>
         棋譜を共有する
       </span>
-      <p class="share-modal-subtitle">
+      <p id="share-modal-desc" class="share-modal-subtitle">
         添削の依頼や閲覧用のリンクとQRコードです。
       </p>
     </div>

@@ -138,11 +138,24 @@
   function handleMouseLeave(): void {
     hoverIntersection = null;
   }
+
+  function handleSvgKeyDown(e: KeyboardEvent): void {
+    if ((e.key === 'Enter' || e.key === ' ') && hoverIntersection) {
+      e.preventDefault();
+      onPlay?.(hoverIntersection.x, hoverIntersection.y);
+    }
+  }
+
+  function handleCandidateKeyDown(e: KeyboardEvent, cand: any): void {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      onCandidateClick?.(cand);
+    }
+  }
 </script>
 
 <div class="board-container">
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svg
     bind:this={svgElement}
     viewBox="0 0 {boardSize} {boardSize}"
@@ -150,6 +163,10 @@
     onclick={handleSvgClick}
     onmousemove={handleMouseMove}
     onmouseleave={handleMouseLeave}
+    onkeydown={handleSvgKeyDown}
+    tabindex="0"
+    role="application"
+    aria-label="碁盤。マウスで交点を選択するか、Enterまたはスペースキーで選択中の交点に石を置きます。"
   >
     <!-- Board background (Nordic pastel flat style) -->
     <rect width={boardSize} height={boardSize} fill="var(--wc-board)" />
@@ -286,8 +303,6 @@
     <!-- AI Candidate Moves -->
     {#if candidates && candidates.length > 0}
       {#each candidates as cand, idx (idx)}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <g
           class="board-candidate"
           onmouseenter={() => onCandidateHover?.(cand)}
@@ -296,6 +311,10 @@
             e.stopPropagation();
             onCandidateClick?.(cand);
           }}
+          onkeydown={(e) => handleCandidateKeyDown(e, cand)}
+          tabindex="0"
+          role="button"
+          aria-label="AI候補手 {cand.isBest ? '最善' : cand.rank} (座標: {cand.coords})"
           style="cursor: pointer;"
         >
           <!-- Outer circle -->

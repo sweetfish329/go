@@ -55,14 +55,14 @@
         
         <!-- Header -->
         <span class="card-title center-align font-mincho">
-          <i class="material-icons title-icon">security</i>
+          <i class="material-icons title-icon" aria-hidden="true">security</i>
           管理者ログイン
         </span>
 
         <!-- Harmonized Error Box -->
         {#if error}
-          <div class="error-panel font-sans">
-            <i class="material-icons error-icon">error_outline</i>
+          <div id="login-error" class="error-panel font-sans" aria-live="polite">
+            <i class="material-icons error-icon" aria-hidden="true">error_outline</i>
             <span>{error}</span>
           </div>
         {/if}
@@ -71,7 +71,7 @@
           <!-- Username Input -->
           <div class="input-field-wrapper">
             <div class="input-field" style="margin-bottom: 0;">
-              <i class="material-icons prefix">person</i>
+              <i class="material-icons prefix" aria-hidden="true">person</i>
               <input 
                 id="admin_username" 
                 type="text" 
@@ -79,6 +79,8 @@
                 bind:value={username} 
                 required 
                 style="padding-left: 3rem !important;" 
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "login-error" : undefined}
               />
               <label for="admin_username" class="active font-sans">ユーザー名 (Admin)</label>
             </div>
@@ -87,7 +89,7 @@
           <!-- Password Input -->
           <div class="input-field-wrapper" style="margin-top: 24px;">
             <div class="input-field" style="margin-bottom: 0;">
-              <i class="material-icons prefix">lock</i>
+              <i class="material-icons prefix" aria-hidden="true">lock</i>
               <input 
                 id="admin_password" 
                 type="password" 
@@ -95,6 +97,8 @@
                 bind:value={password} 
                 required 
                 style="padding-left: 3rem !important;" 
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={error ? "login-error" : undefined}
               />
               <label for="admin_password" class="active font-sans">パスワード</label>
             </div>

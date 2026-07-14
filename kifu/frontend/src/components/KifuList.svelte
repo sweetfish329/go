@@ -195,11 +195,18 @@
 
   let isDrawerOpen = $state(false);
 
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && isDrawerOpen) {
+      isDrawerOpen = false;
+    }
+  }
+
   onMount(() => {
     fetchKifus();
     fetchOwnerUsername();
   });
 </script>
+<svelte:window onkeydown={handleKeyDown} />
 
 <!-- Floating Vogue Drawer Toggle Button (Left edge vertical ribbon) -->
 <button 
@@ -211,12 +218,12 @@
 </button>
 
 {#if isDrawerOpen}
-  <!-- svelte-ignore a11y_missing_attribute -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     class="em-vogue-overlay animate-fade-in" 
     onclick={() => isDrawerOpen = false}
     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(30,42,38,0.4); backdrop-filter: blur(4px); z-index: 998; cursor: pointer;"
+    tabindex="-1"
+    aria-hidden="true"
   ></div>
 {/if}
 
@@ -224,13 +231,16 @@
 <div 
   class="em-vogue-drawer {isDrawerOpen ? 'open' : ''}"
   style="position: fixed; top: 0; left: 0; height: 100vh; background: var(--wc-surface); border-right: 2px solid var(--wc-text); z-index: 999; transform: translateX({isDrawerOpen ? '0' : '-100%'}); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); padding: 40px 24px; overflow-y: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.15); text-align: left;"
+  role="dialog"
+  aria-modal="true"
+  aria-label="フィルターと概要"
 >
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px;">
     <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 800; margin: 0; color: var(--wc-text); text-transform: uppercase; letter-spacing: 0.08em;">
       the chronicle.
     </h2>
-    <button onclick={() => isDrawerOpen = false} style="background: transparent; border: none; cursor: pointer; color: var(--wc-text); display: flex; align-items: center; justify-content: center;">
-      <i class="material-icons" style="font-size: 1.5rem;">close</i>
+    <button type="button" onclick={() => isDrawerOpen = false} aria-label="フィルターを閉じる" style="background: transparent; border: none; cursor: pointer; color: var(--wc-text); display: flex; align-items: center; justify-content: center;">
+      <i class="material-icons" aria-hidden="true" style="font-size: 1.5rem;">close</i>
     </button>
   </div>
 
@@ -271,10 +281,9 @@
           <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">終了日</label>
         </div>
         {#if searchQuery || startDate || endDate}
-          <!-- svelte-ignore a11y_missing_attribute -->
-          <a class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-text); color: var(--wc-text); text-decoration: none;">
-            <i class="material-icons" style="font-size: 0.85rem;">clear_all</i>条件クリア
-          </a>
+          <button type="button" class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-text); color: var(--wc-text); cursor: pointer; border-radius: 0;">
+            <i class="material-icons" aria-hidden="true" style="font-size: 0.85rem;">clear_all</i>条件クリア
+          </button>
         {/if}
       </div>
     </div>
@@ -381,12 +390,11 @@
     {:else}
       <div class="row">
         {#each filteredKifus as k, i (k.id)}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="col s12" style="margin-bottom: 3.5rem;">
-            <div
+            <button
+              type="button"
               class="em-vogue-editorial-item hoverable animate-pop-in stagger-{(i % 5) + 1}"
-              style="width: 100%; display: block; text-align: left; position: relative; border: none; background: transparent; padding-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); transition: transform 0.4s ease;"
+              style="width: 100%; display: block; text-align: left; position: relative; border: none; background: transparent; padding-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); transition: transform 0.4s ease; padding-left: 0; padding-right: 0; color: inherit; font-family: inherit; cursor: pointer;"
               onclick={() => dispatch('selectKifu', k.id)}
             >
               <!-- Absolute Large Index Number (VOGUE overlap typography) -->
@@ -454,11 +462,11 @@
                     aria-label="この棋譜を削除"
                     style="background: transparent; border: none; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--wc-text); opacity: 0.6; transition: opacity 0.2s;"
                   >
-                    <i class="material-icons" style="font-size: 1.3rem;">delete_outline</i>
+                    <i class="material-icons" aria-hidden="true" style="font-size: 1.3rem;">delete_outline</i>
                   </button>
                 {/if}
               </div>
-            </div>
+            </button>
           </div>
         {/each}
       </div>
