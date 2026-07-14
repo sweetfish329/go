@@ -23,7 +23,7 @@
     theme_color: '#4e342e'
   });
   
-  let isMobile = $state(false);
+
 
   // Dark mode state: "light" | "dark" | "system"
   let themeMode = $state<"light" | "dark" | "system">("system");
@@ -140,8 +140,6 @@
 
     // Setup OS theme change listener and scroll listener
     if (typeof window !== 'undefined') {
-      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      isMobile = isMobileUA || window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches;
       mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       mediaQuery.addEventListener('change', handleSystemThemeChange);
     }

@@ -1341,7 +1341,7 @@
                           <span style="color: #4CAF50; font-weight: bold;">最善</span>
                         {/if}
                       </div>
-                    </div>
+                    </button>
                   {/each}
                 </div>
                 <div style="font-size: 0.65rem; color: var(--wc-text-muted); margin-top: 6px; text-align: right;">

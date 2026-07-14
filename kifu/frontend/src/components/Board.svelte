@@ -142,7 +142,7 @@
   function handleSvgKeyDown(e: KeyboardEvent): void {
     if ((e.key === 'Enter' || e.key === ' ') && hoverIntersection) {
       e.preventDefault();
-      onPlay?.(hoverIntersection.x, hoverIntersection.y);
+      onIntersectionClick?.({ x: hoverIntersection.x, y: hoverIntersection.y });
     }
   }
 
