@@ -1174,6 +1174,7 @@
               <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
                 <input 
                   type="checkbox" 
+                  class="browser-default"
                   checked={showAiAnalysis} 
                   onchange={(e) => {
                     showAiAnalysis = (e.target as HTMLInputElement).checked;
