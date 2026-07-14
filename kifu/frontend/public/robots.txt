@@ -3,5 +3,8 @@ Disallow: /?share=
 Disallow: /*?*share=
 Disallow: /?admin
 Disallow: /*?*admin
+Allow: /api/share/*/og-image
+Allow: /api/u/*/kifus/*/og-image
 Disallow: /api/
 Allow: /
+
