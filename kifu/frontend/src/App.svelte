@@ -24,12 +24,6 @@
   });
   
   let isMobile = $state(false);
-  let scrollY = $state(0);
-
-  function handleScroll() {
-    if (isMobile) return;
-    scrollY = window.scrollY;
-  }
 
   // Dark mode state: "light" | "dark" | "system"
   let themeMode = $state<"light" | "dark" | "system">("system");
@@ -150,9 +144,6 @@
       isMobile = isMobileUA || window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches;
       mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       mediaQuery.addEventListener('change', handleSystemThemeChange);
-      if (!isMobile) {
-        window.addEventListener('scroll', handleScroll, { passive: true });
-      }
     }
 
     // 3. Fetch site settings in the background without blocking render flow
@@ -175,9 +166,6 @@
   onDestroy(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('popstate', handleRouting);
-      if (!isMobile) {
-        window.removeEventListener('scroll', handleScroll);
-      }
       if (mediaQuery) {
         mediaQuery.removeEventListener('change', handleSystemThemeChange);
       }
@@ -281,16 +269,15 @@
 <div class="app-shell" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
   <!-- Parallax Scrolling Dots Background: Moves slower than content to create depth -->
   <div 
-    class="em-bg-pulse-dots" 
-    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; transform: translateY({scrollY * 0.3}px); will-change: transform;"
+    class="em-bg-pulse-dots em-bg-pulse-dots-parallax" 
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none;"
   ></div>
 
   <!-- Newspaper/Portfolio Masthead Header -->
   <header class="container" class:compact-header={currentView === 'detail' || currentView === 'create'} style="position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast (gorgous deep parallax) -->
     <div 
-      class="em-huge-title masthead-bg-title" 
-      style="transform: translate(-50%, calc(-20px + {scrollY * 0.65}px)); will-change: transform;"
+      class="em-huge-title masthead-bg-title masthead-bg-title-parallax" 
     >
       RECORDINGS
     </div>
@@ -298,7 +285,7 @@
     <div class="em-newspaper-masthead" style="position: relative; padding: 20px 0 10px 0;">
       <div class="masthead-flex-row">
         <!-- Left decoration: collage tag (Parallax layered) -->
-        <div style="transform: translateY({scrollY * -0.15}px); will-change: transform; display: inline-block;">
+        <div class="parallax-tag-left" style="display: inline-block;">
           <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
             EDITION II // TOKYO
           </span>
@@ -316,7 +303,7 @@
         </a>
 
         <!-- Right decoration: collage tag (slanted yellow, Parallax layered) -->
-        <div style="transform: translateY({scrollY * -0.22}px); will-change: transform; display: inline-block;">
+        <div class="parallax-tag-right" style="display: inline-block;">
           <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; border-width: 2px; animation-delay: -2s;">
             ISSUE // 2026
           </span>
@@ -645,5 +632,42 @@
     background: var(--wc-accent-soft) !important;
     border-color: rgba(124, 107, 82, 0.4) !important;
     transform: rotate(15deg);
+  }
+
+  /* ---- Scroll-Driven Parallax ---- */
+  .masthead-bg-title-parallax {
+    transform: translate(-50%, -20px);
+  }
+
+  @keyframes parallax-bg-dots {
+    to { transform: translateY(300px); }
+  }
+  @keyframes parallax-bg-title {
+    to { transform: translate(-50%, 630px); }
+  }
+  @keyframes parallax-tag-left {
+    to { transform: translateY(-150px); }
+  }
+  @keyframes parallax-tag-right {
+    to { transform: translateY(-220px); }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .em-bg-pulse-dots-parallax {
+      animation: parallax-bg-dots linear forwards;
+      animation-timeline: scroll(root);
+    }
+    .masthead-bg-title-parallax {
+      animation: parallax-bg-title linear forwards;
+      animation-timeline: scroll(root);
+    }
+    .parallax-tag-left {
+      animation: parallax-tag-left linear forwards;
+      animation-timeline: scroll(root);
+    }
+    .parallax-tag-right {
+      animation: parallax-tag-right linear forwards;
+      animation-timeline: scroll(root);
+    }
   }
 </style>

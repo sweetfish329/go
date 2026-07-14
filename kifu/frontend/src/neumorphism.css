@@ -1229,6 +1229,7 @@ textarea.nm-textarea:focus {
 
 /* 3. 碁盤の最終手に適用する、常に広がり続ける同心円波形 (SVG circle) */
 .em-board-pulse-ring {
+  transform-box: fill-box;
   transform-origin: center;
   animation: svg-pulse 1.8s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
   will-change: transform, opacity;
@@ -1236,13 +1237,11 @@ textarea.nm-textarea:focus {
 
 @keyframes svg-pulse {
   0% {
-    r: 4px;
-    stroke-width: 3.5;
+    transform: scale(0.14);
     opacity: 0.95;
   }
   100% {
-    r: 28px;
-    stroke-width: 0.5;
+    transform: scale(1.0);
     opacity: 0;
   }
 }

@@ -265,8 +265,10 @@
         <circle
           cx={getPos(lastMove.x)}
           cy={getPos(lastMove.y)}
+          r="24"
           fill="none"
           stroke="var(--wc-accent-warm)"
+          stroke-width="1.5"
           class="em-board-pulse-ring"
         />
       {/if}

@@ -1697,7 +1697,6 @@
     padding: 4px 14px !important;
     color: var(--wc-text) !important;
     transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.15s ease !important;
-    will-change: transform, box-shadow;
     touch-action: manipulation; /* タップ遅延防止 */
   }
 
