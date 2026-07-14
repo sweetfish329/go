@@ -30,6 +30,11 @@
   const kifu = $derived(props.kifu);
   const currentPlayIndex = $derived(props.currentPlayIndex ?? 0);
 
+  const isMobileDevice = $derived(typeof window !== 'undefined' && 
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+     window.innerWidth < 768 || 
+     window.matchMedia('(pointer: coarse)').matches));
+
   let loading = $state(false);
   let qrCodeSvg = $state("");
   let copySuccess = $state(false);
@@ -411,8 +416,15 @@
     const result = kifu.result ? ` (${kifu.result})` : '';
     const text = `【囲碁棋譜】${bPlayerWithRank} vs ${wPlayer}${result} #KifuStore\n`;
     
-    const xUrl = `https://x.com/intent/post?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
-    window.open(xUrl, '_blank', 'noopener,noreferrer');
+    // Use twitter.com instead of x.com as it has better OS-level Universal Links / App Links compatibility.
+    const xUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+    
+    if (isMobileDevice) {
+      // Navigate on the same tab to let OS trigger native App Links / Universal Links
+      window.location.href = xUrl;
+    } else {
+      window.open(xUrl, '_blank', 'noopener,noreferrer');
+    }
   }
 
   async function handleInstagramShare() {
