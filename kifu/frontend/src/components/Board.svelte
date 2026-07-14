@@ -99,6 +99,9 @@
   function handleSvgClick(event: MouseEvent): void {
     if (!interactive || !svgElement) return;
 
+    // Reset candidate hover when clicking other board areas
+    onCandidateHover?.(null);
+
     const rect = svgElement.getBoundingClientRect();
     const clientX = event.clientX - rect.left;
     const clientY = event.clientY - rect.top;
@@ -307,8 +310,8 @@
       {#each candidates as cand, idx (idx)}
         <g
           class="board-candidate"
-          onmouseenter={() => onCandidateHover?.(cand)}
-          onmouseleave={() => onCandidateHover?.(null)}
+          onmouseenter={() => !isMobileDevice && onCandidateHover?.(cand)}
+          onmouseleave={() => !isMobileDevice && onCandidateHover?.(null)}
           onclick={(e) => {
             e.stopPropagation();
             onCandidateClick?.(cand);

@@ -101,6 +101,11 @@
   let graphHoverIndex = $state<number | null>(null);
   let aiData = $state<{ moveNumber: number; winrate: number; scoreLead: number }[]>([]);
 
+  const isMobileDevice = $derived(typeof window !== 'undefined' && 
+    (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+     window.innerWidth < 768 || 
+     window.matchMedia('(pointer: coarse)').matches));
+
 
 
   // Autoplay state
@@ -495,6 +500,11 @@
 
   function handleCandidateClick(cand: any) {
     if (!player) return;
+
+    if (isMobileDevice && activeHoveredCandidate !== cand) {
+      handleCandidateHover(cand);
+      return;
+    }
 
     // Check if the clicked candidate is actually the played move
     const nextEntry = player.history[currentIndex + 1];
@@ -1319,10 +1329,10 @@
                     <button 
                       type="button"
                       class="candidate-row"
-                      onmouseover={() => handleCandidateHover(cand)}
-                      onmouseleave={() => handleCandidateHover(null)}
-                      onfocus={() => handleCandidateHover(cand)}
-                      onblur={() => handleCandidateHover(null)}
+                      onmouseover={() => !isMobileDevice && handleCandidateHover(cand)}
+                      onmouseleave={() => !isMobileDevice && handleCandidateHover(null)}
+                      onfocus={() => !isMobileDevice && handleCandidateHover(cand)}
+                      onblur={() => !isMobileDevice && handleCandidateHover(null)}
                       onclick={() => handleCandidateClick(cand)}
                       style="display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; padding: 4px 6px; cursor: pointer; border: 1px solid transparent; transition: background 0.15s; background: none; width: 100%; border-radius: 0; text-align: left; color: inherit; font-family: inherit;"
                       class:hovered={activeHoveredCandidate === cand}
@@ -1346,7 +1356,11 @@
                   {/each}
                 </div>
                 <div style="font-size: 0.65rem; color: var(--wc-text-muted); margin-top: 6px; text-align: right;">
-                  ※候補手をホバーすると変化図をプレビュー、クリックすると変化図へ遷移
+                  {#if isMobileDevice}
+                    ※候補手をタップすると変化図をプレビュー、もう一度タップすると変化図へ遷移
+                  {:else}
+                    ※候補手をホバーすると変化図をプレビュー、クリックすると変化図へ遷移
+                  {/if}
                 </div>
               </div>
             {/if}
