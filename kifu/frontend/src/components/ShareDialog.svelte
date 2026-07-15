@@ -475,30 +475,40 @@
     loading = true;
     
     try {
-      // 1. Request new share token (URL regeneration)
-      const res = await fetch(`/api/kifus/${kifu.id}/share`, {
-        method: 'POST',
-        headers: auth.getHeaders(),
-        body: JSON.stringify({
-          disable: false, // Ensure active sharing
-          expires_in_days: null // Never expires by default
-        })
-      });
+      if (isPrivate) {
+        // 1. Request new share token (URL regeneration)
+        const res = await fetch(`/api/kifus/${kifu.id}/share`, {
+          method: 'POST',
+          headers: auth.getHeaders(),
+          body: JSON.stringify({
+            disable: false, // Ensure active sharing
+            expires_in_days: null // Never expires by default
+          })
+        });
 
-      const updated = await res.json();
-      if (!res.ok) {
-        throw new Error(updated.error || "URLの再発行に失敗しました。");
-      }
+        const updated = await res.json();
+        if (!res.ok) {
+          throw new Error(updated.error || "限定公開URLの再発行に失敗しました。");
+        }
 
-      // 2. Generate and upload new OGP image immediately
-      await generateAndUploadOgp();
+        // 2. Generate and upload new OGP image immediately
+        await generateAndUploadOgp();
 
-      // 3. Update parent state
-      props.onUpdate(updated);
+        // 3. Update parent state
+        props.onUpdate(updated);
 
-      const M = getM();
-      if (M) {
-        M.toast({ html: 'URLとOGP画像を再発行しました！', classes: 'green darken-1' });
+        const M = getM();
+        if (M) {
+          M.toast({ html: '限定公開URLとOGP画像を再発行しました！', classes: 'green darken-1' });
+        }
+      } else {
+        // Public Access: Only regenerate OGP image (URL is static)
+        await generateAndUploadOgp();
+
+        const M = getM();
+        if (M) {
+          M.toast({ html: 'OGP画像を再生成しました！', classes: 'green darken-1' });
+        }
       }
     } catch (err: any) {
       const M = getM();
@@ -704,7 +714,11 @@
       <div class="regenerate-action-container">
         <button type="button" class="regenerate-btn font-sans" onclick={handleRegenerate} disabled={loading}>
           <i class="material-icons btn-icon" class:spin={loading}>{loading ? 'sync' : 'refresh'}</i>
-          URL再発行 & OGP画像再生成
+          {#if isPrivate}
+            限定公開URL再発行 & OGP画像再生成
+          {:else}
+            OGP画像再生成
+          {/if}
         </button>
       </div>
 
