@@ -5,6 +5,10 @@
     "": {
       "name": "kifu-frontend",
       "dependencies": {
+        "@sabaki/deadstones": "^2.2.0",
+        "@sabaki/go-board": "^1.4.3",
+        "@sabaki/immutable-gametree": "^1.9.4",
+        "@sabaki/influence": "^1.2.2",
         "@sabaki/sgf": "^3.4.7",
         "qrcode": "^1.5.4",
         "svelte-sonner": "^1.1.1",
@@ -115,6 +119,14 @@
     "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.1.4", "", { "os": "win32", "cpu": "x64" }, "sha512-M1lpniBePobTfsa7Ks9a199e1akxsXn+GYBUKsEzv3YFzOm1HJAMNwKI3qr0Zq+mxwx9gOZoTdP1yXRYsZUocQ=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
+
+    "@sabaki/deadstones": ["@sabaki/deadstones@2.2.0", "", {}, "sha512-Sj7O8qShY34S4Cpa4ktAp/XP9cCTldqoUBHl9qcmbTK+zc35FtjBoDQ6/Q5KBSzbJz9dlMTfsF1GTsPwV5UlDA=="],
+
+    "@sabaki/go-board": ["@sabaki/go-board@1.4.3", "", {}, "sha512-tXonP7vw7bYcXKSVrN1bhkb/QQi5EfTbDSflBffSp2iabbFbz4JyhEyw0ekbuwR0ntBq6iHky6BfCGF69Z4ttg=="],
+
+    "@sabaki/immutable-gametree": ["@sabaki/immutable-gametree@1.9.4", "", {}, "sha512-7DKEu/0zYOrPKCaj54zkHxdxw2sRUOki+br6NxT2sbhLiXNCDjKj1nSvGyMD9TdKzM2e4B/kFm58rE9bk6dpKQ=="],
+
+    "@sabaki/influence": ["@sabaki/influence@1.2.2", "", {}, "sha512-VaySQcgFFgPsGmzZJ2AE97g0b6+9bBxEZlCmS++cyJ9GboLwoXjGZa4vGKdY3zXvzngzSEwQWu3PrONfZOFthw=="],
 
     "@sabaki/sgf": ["@sabaki/sgf@3.4.7", "", { "dependencies": { "doken": "^1.0.0" }, "optionalDependencies": { "iconv-lite": "0.4.x", "jschardet": ">=1.0 <3" } }, "sha512-513CQMEejYVqaIKWK+P3AL1TXv2cqdUVOI+3mJDGcDEw5fWlz8puEYn+aQrGjnxJrn5XUUX0fefndEJbam65Sw=="],
 

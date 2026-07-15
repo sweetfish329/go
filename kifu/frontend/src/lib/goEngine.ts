@@ -1,4 +1,6 @@
-// Simple Go rules engine for board state calculation
+import GoBoard from "@sabaki/go-board";
+import * as influence from "@sabaki/influence";
+import * as deadstones from "@sabaki/deadstones";
 
 export function createBoard(size: number = 19): number[][] {
   const board: number[][] = [];
@@ -9,62 +11,47 @@ export function createBoard(size: number = 19): number[][] {
 }
 
 export function copyBoard(board: number[][]): number[][] {
-  return board.map(row => [...row]);
+  return board.map((row) => [...row]);
 }
 
-// Find all connected stones of the same color
-function getGroup(board: number[][], startX: number, startY: number, size: number): [number, number][] | null {
-  const color = board[startY][startX];
-  if (color === 0) return null;
+// Helper to convert kifu colors (1: black, 2: white, 0: empty) to Sabaki signs (1: black, -1: white, 0: empty)
+function kifuToSabakiColor(color: number): 1 | -1 | 0 {
+  if (color === 1) return 1;
+  if (color === 2) return -1;
+  return 0;
+}
 
-  const group: [number, number][] = [];
-  const visited = new Array(size).fill(0).map(() => new Array(size).fill(false));
-  const queue: [number, number][] = [[startX, startY]];
-  visited[startY][startX] = true;
+// Helper to convert Sabaki signs back to kifu colors
+function sabakiToKifuColor(color: number): number {
+  if (color === 1) return 1;
+  if (color === -1) return 2;
+  return 0;
+}
 
-  while (queue.length > 0) {
-    const shiftResult = queue.shift();
-    if (!shiftResult) break;
-    const [cx, cy] = shiftResult;
-    group.push([cx, cy]);
-
-    // Check 4 directions
-    const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-    for (const [dx, dy] of dirs) {
-      const nx = cx + dx;
-      const ny = cy + dy;
-
-      if (nx >= 0 && nx < size && ny >= 0 && ny < size) {
-        if (!visited[ny][nx] && board[ny][nx] === color) {
-          visited[ny][nx] = true;
-          queue.push([nx, ny]);
-        }
+// Convert kifu 2D array board to Sabaki GoBoard
+function toSabakiBoard(kifuBoard: number[][], size: number): GoBoard {
+  const sabakiBoard = GoBoard.fromDimensions(size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const kColor = kifuBoard[y][x];
+      if (kColor !== 0) {
+        sabakiBoard.set([x, y], kifuToSabakiColor(kColor));
       }
     }
   }
-
-  return group;
+  return sabakiBoard;
 }
 
-// Count liberties of a group of stones
-function getLiberties(board: number[][], group: [number, number][], size: number): number {
-  const liberties = new Set<string>();
-  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-
-  for (const [gx, gy] of group) {
-    for (const [dx, dy] of dirs) {
-      const nx = gx + dx;
-      const ny = gy + dy;
-
-      if (nx >= 0 && nx < size && ny >= 0 && ny < size) {
-        if (board[ny][nx] === 0) {
-          liberties.add(`${nx},${ny}`);
-        }
-      }
+// Convert Sabaki GoBoard back to kifu 2D array board
+function toKifuBoard(sabakiBoard: GoBoard, size: number): number[][] {
+  const board = createBoard(size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const sColor = sabakiBoard.get([x, y]);
+      board[y][x] = sabakiToKifuColor(sColor || 0);
     }
   }
-
-  return liberties.size;
+  return board;
 }
 
 export interface PlaceStoneResult {
@@ -74,9 +61,14 @@ export interface PlaceStoneResult {
   error?: string;
 }
 
-// Places a stone on the board. 
-// Returns { success: true, board: nextBoard, captured: number } or { success: false, error: string }
-export function placeStone(board: number[][], x: number, y: number, color: number, size: number = 19): PlaceStoneResult {
+// Places a stone on the board using @sabaki/go-board.
+export function placeStone(
+  board: number[][],
+  x: number,
+  y: number,
+  color: number,
+  size: number = 19,
+): PlaceStoneResult {
   if (x < 0 || x >= size || y < 0 || y >= size) {
     return { success: false, error: "Out of bounds" };
   }
@@ -84,61 +76,49 @@ export function placeStone(board: number[][], x: number, y: number, color: numbe
     return { success: false, error: "Intersection already occupied" };
   }
 
-  // Work on a copy of the board
-  const nextBoard = copyBoard(board);
-  nextBoard[y][x] = color;
+  const sabakiBoard = toSabakiBoard(board, size);
+  const sabakiColor = kifuToSabakiColor(color);
 
-  const opponentColor = color === 1 ? 2 : 1;
-  const capturedStones: [number, number][] = [];
+  if (sabakiColor === 0) {
+    return { success: false, error: "Invalid stone color" };
+  }
 
-  // Check 4 adjacent points to see if we captured any opponent groups
-  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-  const checkedOpponents = new Array(size).fill(0).map(() => new Array(size).fill(false));
+  // Check rules (suicide, ko) using analyzeMove
+  const analysis = sabakiBoard.analyzeMove(sabakiColor, [x, y]);
+  if (analysis.suicide) {
+    return { success: false, error: "Suicide move is illegal" };
+  }
+  if (analysis.ko) {
+    return { success: false, error: "Ko rule violation" };
+  }
 
-  for (const [dx, dy] of dirs) {
-    const nx = x + dx;
-    const ny = y + dy;
+  try {
+    const nextSabakiBoard = sabakiBoard.makeMove(sabakiColor, [x, y], {
+      preventSuicide: true,
+      preventKo: true,
+      preventOverwrite: true,
+    });
 
-    if (nx >= 0 && nx < size && ny >= 0 && ny < size) {
-      if (nextBoard[ny][nx] === opponentColor && !checkedOpponents[ny][nx]) {
-        const group = getGroup(nextBoard, nx, ny, size);
-        if (group) {
-          // Mark all in group as checked
-          for (const [gx, gy] of group) {
-            checkedOpponents[gy][gx] = true;
-          }
-
-          // If this group has 0 liberties, capture it
-          if (getLiberties(nextBoard, group, size) === 0) {
-            capturedStones.push(...group);
-          }
+    // Count captured stones
+    let captured = 0;
+    const changedVertices = sabakiBoard.diff(nextSabakiBoard);
+    if (changedVertices) {
+      const opponentColor = -sabakiColor;
+      for (const vertex of changedVertices) {
+        if (sabakiBoard.get(vertex) === opponentColor && nextSabakiBoard.get(vertex) === 0) {
+          captured++;
         }
       }
     }
-  }
 
-  // Remove captured stones
-  for (const [cx, cy] of capturedStones) {
-    nextBoard[cy][cx] = 0;
+    return {
+      success: true,
+      board: toKifuBoard(nextSabakiBoard, size),
+      captured: captured,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Invalid move" };
   }
-
-  // Now check if our own move has any liberties
-  const ownGroup = getGroup(nextBoard, x, y, size);
-  if (!ownGroup) {
-    return { success: false, error: "Invalid move state" };
-  }
-  const ownLiberties = getLiberties(nextBoard, ownGroup, size);
-
-  if (ownLiberties === 0) {
-    // Suicide move, illegal
-    return { success: false, error: "Suicide move is illegal" };
-  }
-
-  return {
-    success: true,
-    board: nextBoard,
-    captured: capturedStones.length
-  };
 }
 
 export interface CoordsResult {
@@ -148,7 +128,6 @@ export interface CoordsResult {
 }
 
 // Convert SGF coordinate (e.g. "pd") to index [x, y]
-// SGF coords: "a" = 0, "b" = 1, ..., "s" = 18. Pass "tt" or empty for pass
 export function sgfToCoords(sgfStr: string): CoordsResult {
   if (!sgfStr || sgfStr === "" || sgfStr === "tt") {
     return { pass: true };
@@ -163,4 +142,23 @@ export function coordsToSgf(x: number, y: number): string {
   const xChar = String.fromCharCode(x + 97);
   const yChar = String.fromCharCode(y + 97);
   return xChar + yChar;
+}
+
+// Get influence map (-1: White influence, 1: Black influence)
+export function getInfluenceMap(board: number[][], size: number = 19): number[][] {
+  const sabakiBoard = toSabakiBoard(board, size);
+  return influence.map(sabakiBoard.signMap);
+}
+
+// Get area map (-1: White area, 0: Neutral, 1: Black area)
+export function getAreaMap(board: number[][], size: number = 19): number[][] {
+  const sabakiBoard = toSabakiBoard(board, size);
+  return influence.areaMap(sabakiBoard.signMap);
+}
+
+// Guess dead stones. Returns array of {x, y} coordinate objects.
+export function getDeadStones(board: number[][], size: number = 19): { x: number; y: number }[] {
+  const sabakiBoard = toSabakiBoard(board, size);
+  const deadList = deadstones.guess(sabakiBoard.signMap);
+  return deadList.map(([x, y]) => ({ x, y }));
 }

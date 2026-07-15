@@ -105,3 +105,29 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
     captureFrame(videoElement: HTMLVideoElement, canvasElement: HTMLCanvasElement): void;
   }
 }
+
+declare module "@sabaki/influence" {
+  export interface InfluenceOptions {
+    discrete?: boolean;
+    maxDistance?: number;
+    minRadiance?: number;
+  }
+  export function map(data: number[][], options?: InfluenceOptions): number[][];
+  export function areaMap(data: number[][]): number[][];
+  export function distanceMap(data: number[][], sign: number): number[][];
+  export function radianceMap(
+    data: number[][],
+    sign: number,
+    p1?: number,
+    p2?: number,
+    p3?: number,
+  ): number[][];
+}
+
+declare module "@sabaki/deadstones" {
+  export interface DeadstonesOptions {
+    playthroughs?: number;
+    randomness?: number;
+  }
+  export function guess(data: number[][], options?: DeadstonesOptions): [number, number][];
+}
