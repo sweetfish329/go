@@ -8,3 +8,12 @@ Allow: /api/u/*/kifus/*/og-image
 Disallow: /api/
 Allow: /
 
+# Allow social media bots to fetch OGP images without robots.txt warnings
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: Discordbot
+User-agent: Google-Structured-Data-Testing-Tool
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
