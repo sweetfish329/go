@@ -14,6 +14,8 @@ User-agent: facebookexternalhit
 User-agent: Discordbot
 User-agent: Linespider
 User-agent: Slackbot
+User-agent: SkypeUriPreview
+User-agent: LinkedInBot
 User-agent: Google-Structured-Data-Testing-Tool
 Disallow: /?admin
 Disallow: /*?*admin
