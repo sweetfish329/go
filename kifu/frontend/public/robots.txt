@@ -10,12 +10,40 @@ Allow: /
 
 # Allow social media bots to fetch OGP images without robots.txt warnings
 User-agent: Twitterbot
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: facebookexternalhit
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: Discordbot
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: Linespider
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: Slackbot
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: SkypeUriPreview
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: LinkedInBot
+Disallow: /?admin
+Disallow: /*?*admin
+Allow: /
+
 User-agent: Google-Structured-Data-Testing-Tool
 Disallow: /?admin
 Disallow: /*?*admin
