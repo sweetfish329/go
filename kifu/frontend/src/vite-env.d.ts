@@ -131,3 +131,34 @@ declare module "@sabaki/deadstones" {
   }
   export function guess(data: number[][], options?: DeadstonesOptions): [number, number][];
 }
+
+declare module "@sabaki/immutable-gametree" {
+  export interface NodeObject {
+    id: any;
+    data: Record<string, string[]>;
+    parentId: any | null;
+    children: NodeObject[];
+  }
+
+  export interface GameTreeOptions {
+    getId?: () => any;
+    merger?: (node: NodeObject, data: Record<string, string[]>) => Record<string, string[]> | null;
+    root?: NodeObject;
+  }
+
+  export interface Draft {
+    root: NodeObject;
+    appendNode(parentId: any, data: Record<string, string[]>, options?: any): any;
+    removeNode(id: any): any;
+    addToProperty(id: any, property: string, value: string): any;
+    removeFromProperty(id: any, property: string, value: string): any;
+    get(id: any): NodeObject | null;
+  }
+
+  export default class GameTree {
+    constructor(options?: GameTreeOptions);
+    root: NodeObject;
+    get(id: any): NodeObject | null;
+    mutate(mutator: (draft: Draft) => void): GameTree;
+  }
+}
