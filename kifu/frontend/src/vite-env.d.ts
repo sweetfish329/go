@@ -129,7 +129,7 @@ declare module "@sabaki/deadstones" {
     playthroughs?: number;
     randomness?: number;
   }
-  export function guess(data: number[][], options?: DeadstonesOptions): [number, number][];
+  export function guess(data: number[][], options?: DeadstonesOptions): Promise<[number, number][]>;
 }
 
 declare module "@sabaki/immutable-gametree" {

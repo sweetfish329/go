@@ -138,11 +138,29 @@
       : []
   );
 
-  const deadStones = $derived(
-    showDeadStones && boardState.length > 0
-      ? getDeadStones(boardState, boardSize)
-      : []
-  );
+  let deadStones = $state<{ x: number; y: number }[]>([]);
+
+  $effect(() => {
+    let active = true;
+    if (showDeadStones && boardState.length > 0) {
+      getDeadStones(boardState, boardSize).then((res) => {
+        if (active) {
+          deadStones = res;
+        }
+      }).catch((err) => {
+        if (active) {
+          console.error("Failed to guess dead stones:", err);
+          deadStones = [];
+        }
+      });
+    } else {
+      deadStones = [];
+    }
+
+    return () => {
+      active = false;
+    };
+  });
 
   // Display options accordion state
   let showDisplayOptions = $state(false);

@@ -156,9 +156,12 @@ export function getAreaMap(board: number[][], size: number = 19): number[][] {
   return influence.areaMap(sabakiBoard.signMap);
 }
 
-// Guess dead stones. Returns array of {x, y} coordinate objects.
-export function getDeadStones(board: number[][], size: number = 19): { x: number; y: number }[] {
+// Guess dead stones. Returns array of {x, y} coordinate objects asynchronously.
+export async function getDeadStones(
+  board: number[][],
+  size: number = 19,
+): Promise<{ x: number; y: number }[]> {
   const sabakiBoard = toSabakiBoard(board, size);
-  const deadList = deadstones.guess(sabakiBoard.signMap);
+  const deadList = await deadstones.guess(sabakiBoard.signMap);
   return deadList.map(([x, y]) => ({ x, y }));
 }
