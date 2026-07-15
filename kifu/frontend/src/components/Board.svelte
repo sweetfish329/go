@@ -229,9 +229,9 @@
               cx={getPos(x)}
               cy={getPos(y)}
               r={step * 0.43}
-              fill={val > 0 ? "var(--wc-text)" : "var(--wc-border)"}
-              opacity={Math.min(Math.abs(val) * 0.38, 0.5)}
-              stroke={val > 0 ? "none" : "#bbb"}
+              fill={val > 0 ? "#111111" : "#ffffff"}
+              opacity={val > 0 ? Math.min(Math.abs(val) * 0.4, 0.55) : Math.min(Math.abs(val) * 0.4, 0.65)}
+              stroke={val > 0 ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.3)"}
               stroke-width="0.5"
             />
           {/if}

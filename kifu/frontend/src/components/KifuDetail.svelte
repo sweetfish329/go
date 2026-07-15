@@ -144,6 +144,9 @@
       : []
   );
 
+  // Display options accordion state
+  let showDisplayOptions = $state(false);
+
   const isPublicProfileMode = $derived(!!userId && !!kifuId);
   const isOwner = $derived(!!kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId);
   const isPublic = $derived(!!kifu && kifu.is_private === false);
@@ -986,6 +989,7 @@
       reviewerName = auth.username;
     }
     loadKifu();
+    showDisplayOptions = !isMobileDevice;
   });
 </script>
 
@@ -1085,43 +1089,84 @@
             />
           </div>
 
-          <!-- Sabaki Features Toggle Row -->
-          <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 12px; margin-top: 8px; flex-wrap: wrap;">
-            <!-- Influence Toggle -->
-            <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
-              <input
-                type="checkbox"
-                bind:checked={showInfluenceMap}
-                style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
-              />
-              <span class="font-sans" style="font-size: 0.8rem; font-weight: 600; color: var(--wc-text);">
-                勢力図を表示 (Influence)
-              </span>
-            </label>
-
-            <!-- Dead Stones Toggle -->
-            <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
-              <input
-                type="checkbox"
-                bind:checked={showDeadStones}
-                style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
-              />
-              <span class="font-sans" style="font-size: 0.8rem; font-weight: 600; color: var(--wc-text);">
-                死活を自動推定 (Dead Stones)
-              </span>
-            </label>
-
-            <!-- Path Export Button -->
+          <!-- Display Options Accordion -->
+          <div style="margin-top: 10px; border: 1.5px solid var(--wc-text); background: var(--wc-surface-alt); box-shadow: 3px 3px 0 var(--wc-text); margin-bottom: 12px; width: 100%; box-sizing: border-box; text-align: left;">
+            <!-- Accordion Header -->
             <button
               type="button"
-              onclick={handleExportPath}
-              class="nm-btn-flat"
-              style="padding: 2px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 0; display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 2px 2px 0 var(--wc-text);"
-              title="最初から現在の手順までのSGFをコピーします"
+              onclick={() => showDisplayOptions = !showDisplayOptions}
+              style="width: 100%; border: none; background: none; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.85rem; color: var(--wc-text);"
             >
-              <i class="material-icons" style="font-size: 0.95rem;">file_download</i>
-              <span>現在の手順を出力</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <i class="material-icons" style="font-size: 1.1rem; color: var(--wc-text);">settings</i>
+                表示オプション
+              </span>
+              <i class="material-icons" style="font-size: 1.2rem; transition: transform 0.2s ease; transform: {showDisplayOptions ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-text);">
+                keyboard_arrow_down
+              </i>
             </button>
+
+            <!-- Accordion Content -->
+            {#if showDisplayOptions}
+              <div 
+                class="animate-fade-in" 
+                style="padding: 12px 16px; border-top: 1.5px solid var(--wc-text); display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; align-items: center; background: var(--wc-surface);"
+              >
+                <!-- Influence Toggle -->
+                <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+                  <input
+                    type="checkbox"
+                    bind:checked={showInfluenceMap}
+                    style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
+                  />
+                  <span class="font-sans" style="font-size: 0.85rem; font-weight: 600; color: var(--wc-text);">
+                    勢力図 (Influence)
+                  </span>
+                </label>
+
+                <!-- Dead Stones Toggle -->
+                <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+                  <input
+                    type="checkbox"
+                    bind:checked={showDeadStones}
+                    style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
+                  />
+                  <span class="font-sans" style="font-size: 0.85rem; font-weight: 600; color: var(--wc-text);">
+                    死活判定 (Dead Stones)
+                  </span>
+                </label>
+
+                <!-- AI Candidates Toggle -->
+                <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+                  <input
+                    type="checkbox"
+                    checked={showAiAnalysis}
+                    onchange={(e) => {
+                      showAiAnalysis = (e.target as HTMLInputElement).checked;
+                      updatePlayerState();
+                    }}
+                    style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
+                  />
+                  <span class="font-sans" style="font-size: 0.85rem; font-weight: 600; color: var(--wc-text);">
+                    候補手を表示 (AI Moves)
+                  </span>
+                </label>
+
+                <div style="flex-grow: 1; min-width: 10px;"></div>
+
+                <!-- Path Export Button -->
+                <button
+                  type="button"
+                  onclick={handleExportPath}
+                  class="nm-btn-flat"
+                  style="padding: 2px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 0; display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 2px 2px 0 var(--wc-text);"
+                  title="最初から現在の手順までのSGFをコピーします"
+                >
+                  <i class="material-icons" style="font-size: 0.95rem;">file_download</i>
+                  <span>現在の手順を出力</span>
+                </button>
+              </div>
+            {/if}
           </div>
 
           <!-- Buttons Row -->
@@ -1255,20 +1300,7 @@
                 </button>
               </div>
               
-              <!-- Toggle show candidates on board -->
-              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
-                <input 
-                  type="checkbox" 
-                  class="browser-default"
-                  checked={showAiAnalysis} 
-                  onchange={(e) => {
-                    showAiAnalysis = (e.target as HTMLInputElement).checked;
-                    updatePlayerState();
-                  }}
-                  style="position: relative; opacity: 1; pointer-events: auto; width: 15px; height: 15px; margin: 0; cursor: pointer;"
-                />
-                <span style="font-size: 0.8rem; font-weight: bold; color: var(--wc-text);">候補手を盤上に表示</span>
-              </label>
+              <!-- Toggle show candidates on board removed (moved to display options accordion) -->
             </div>
 
             <!-- Graph Container -->
