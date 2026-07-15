@@ -88,32 +88,7 @@ export function stringifySgf(rootNode: SgfNode): string {
     return sabakiStringify([sabakiRoot]);
   } catch (err) {
     console.error("Failed to stringify SGF with @sabaki/sgf:", err);
-    // Simple manual fallback
-    let sgf = "";
-    function traverse(node: SgfNode): void {
-      sgf += ";";
-      for (const [key, values] of Object.entries(node.properties)) {
-        sgf += key;
-        for (const val of values) {
-          const escaped = val.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
-          sgf += `[${escaped}]`;
-        }
-      }
-      if (node.children.length === 0) return;
-      if (node.children.length === 1) {
-        traverse(node.children[0]);
-      } else {
-        for (const child of node.children) {
-          sgf += "(";
-          traverse(child);
-          sgf += ")";
-        }
-      }
-    }
-    sgf += "(";
-    traverse(rootNode);
-    sgf += ")";
-    return sgf;
+    return "";
   }
 }
 
