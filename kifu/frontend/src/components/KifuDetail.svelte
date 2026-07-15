@@ -6,7 +6,7 @@
   import type { SgfNode } from '../lib/sgfPlayer';
   import { auth } from '../lib/auth.svelte';
   import { coordsToBoard } from '../lib/aiAnalysis';
-  import { sgfToCoords } from '../lib/goEngine';
+  import { sgfToCoords, getInfluenceMap, getDeadStones } from '../lib/goEngine';
 
   let {
     kifuId = "",
@@ -127,6 +127,22 @@
   // For board config
   let boardSize = $state(19);
   let currentTurn = $state(1); // 1: Black, 2: White (used for review mode placing stones)
+
+  // Sabaki features state
+  let showInfluenceMap = $state(false);
+  let showDeadStones = $state(false);
+
+  const influenceMap = $derived(
+    showInfluenceMap && boardState.length > 0
+      ? getInfluenceMap(boardState, boardSize)
+      : []
+  );
+
+  const deadStones = $derived(
+    showDeadStones && boardState.length > 0
+      ? getDeadStones(boardState, boardSize)
+      : []
+  );
 
   const isPublicProfileMode = $derived(!!userId && !!kifuId);
   const isOwner = $derived(!!kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId);
@@ -467,6 +483,22 @@
     // Reset preview stones on move change
     aiPreviewStones = [];
     activeHoveredCandidate = null;
+  }
+
+  function handleExportPath() {
+    if (!player) return;
+    const sgfStr = player.exportCurrentPathAsSgf();
+    if (!sgfStr) {
+      getM().toast({ html: 'SGF出力に失敗しました', classes: 'red' });
+      return;
+    }
+
+    navigator.clipboard.writeText(sgfStr).then(() => {
+      getM().toast({ html: '現在の手順（SGF）をコピーしました！', classes: 'green' });
+    }).catch(err => {
+      console.error('Failed to copy SGF:', err);
+      getM().toast({ html: 'コピーに失敗しました', classes: 'red' });
+    });
   }
 
   function extractAiData() {
@@ -1021,6 +1053,10 @@
             turnColor={currentTurn}
             candidates={aiCandidates}
             previewStones={aiPreviewStones}
+            influenceMap={influenceMap}
+            showInfluence={showInfluenceMap}
+            deadStones={deadStones}
+            showDeadStones={showDeadStones}
             onIntersectionClick={handleIntersectionClick}
             onCandidateHover={handleCandidateHover}
             onCandidateClick={handleCandidateClick}
@@ -1047,6 +1083,45 @@
               oninput={handleSliderChange}
               style="margin: 0 15px; flex-grow: 1;"
             />
+          </div>
+
+          <!-- Sabaki Features Toggle Row -->
+          <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 12px; margin-top: 8px; flex-wrap: wrap;">
+            <!-- Influence Toggle -->
+            <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+              <input
+                type="checkbox"
+                bind:checked={showInfluenceMap}
+                style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
+              />
+              <span class="font-sans" style="font-size: 0.8rem; font-weight: 600; color: var(--wc-text);">
+                勢力図を表示 (Influence)
+              </span>
+            </label>
+
+            <!-- Dead Stones Toggle -->
+            <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+              <input
+                type="checkbox"
+                bind:checked={showDeadStones}
+                style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
+              />
+              <span class="font-sans" style="font-size: 0.8rem; font-weight: 600; color: var(--wc-text);">
+                死活を自動推定 (Dead Stones)
+              </span>
+            </label>
+
+            <!-- Path Export Button -->
+            <button
+              type="button"
+              onclick={handleExportPath}
+              class="nm-btn-flat"
+              style="padding: 2px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 0; display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 2px 2px 0 var(--wc-text);"
+              title="最初から現在の手順までのSGFをコピーします"
+            >
+              <i class="material-icons" style="font-size: 0.95rem;">file_download</i>
+              <span>現在の手順を出力</span>
+            </button>
           </div>
 
           <!-- Buttons Row -->

@@ -452,4 +452,55 @@ export class SgfPlayer {
       return "";
     }
   }
+
+  // Export current path as a new SGF string (only includes the moves played in the current history path)
+  exportCurrentPathAsSgf(): string {
+    if (this.history.length === 0) return "";
+
+    const origRoot = this.root;
+    const rootProperties = origRoot ? { ...origRoot.properties } : {};
+
+    // Remove the play properties from the root to make it clean,
+    // but keep initial setups (like AW, AB, SZ, KM, etc.)
+    delete rootProperties.B;
+    delete rootProperties.W;
+
+    const newTree = new GameTree({
+      root: {
+        id: 1,
+        data: rootProperties,
+        parentId: null,
+        children: [],
+      },
+    });
+
+    let currentId = 1;
+    const finalTree = newTree.mutate((draft) => {
+      for (let i = 1; i <= this.currentIndex; i++) {
+        const entry = this.history[i];
+        if (!entry.node) continue;
+
+        const nodeProperties: Record<string, string[]> = {};
+        if (entry.node.properties.B) {
+          nodeProperties.B = [...entry.node.properties.B];
+        } else if (entry.node.properties.W) {
+          nodeProperties.W = [...entry.node.properties.W];
+        }
+
+        if (entry.node.properties.C) {
+          nodeProperties.C = [...entry.node.properties.C];
+        }
+
+        const nextId = draft.appendNode(currentId, nodeProperties);
+        currentId = nextId;
+      }
+    });
+
+    try {
+      return sabakiStringify([finalTree.root]);
+    } catch (err) {
+      console.error("Failed to stringify current path GameTree:", err);
+      return "";
+    }
+  }
 }

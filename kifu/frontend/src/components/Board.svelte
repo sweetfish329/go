@@ -7,6 +7,10 @@
     turnColor = 1,
     candidates = [],
     previewStones = [],
+    influenceMap = [],
+    showInfluence = false,
+    deadStones = [],
+    showDeadStones = false,
     onIntersectionClick,
     onCandidateHover,
     onCandidateClick
@@ -32,6 +36,10 @@
       color: number;
       stepNumber: number;
     }[];
+    influenceMap?: number[][];
+    showInfluence?: boolean;
+    deadStones?: { x: number; y: number }[];
+    showDeadStones?: boolean;
     onIntersectionClick?: (detail: { x: number; y: number }) => void;
     onCandidateHover?: (candidate: any | null) => void;
     onCandidateClick?: (candidate: any) => void;
@@ -211,6 +219,26 @@
       />
     {/each}
 
+    <!-- Influence Map Overlay -->
+    {#if showInfluence && influenceMap && influenceMap.length > 0}
+      {#each Array(size) as _, y (y)}
+        {#each Array(size) as _, x (x)}
+          {@const val = influenceMap[y]?.[x] || 0}
+          {#if val !== 0}
+            <circle
+              cx={getPos(x)}
+              cy={getPos(y)}
+              r={step * 0.43}
+              fill={val > 0 ? "var(--wc-text)" : "var(--wc-border)"}
+              opacity={Math.min(Math.abs(val) * 0.38, 0.5)}
+              stroke={val > 0 ? "none" : "#bbb"}
+              stroke-width="0.5"
+            />
+          {/if}
+        {/each}
+      {/each}
+    {/if}
+
     <!-- Ghost Stone on hover -->
     {#if interactive && hoverIntersection}
       <circle
@@ -228,27 +256,75 @@
     {#each board as row, y (y)}
       {#each row as cell, x (x)}
         {#if cell === 1}
+          {@const isDead = showDeadStones && deadStones && deadStones.some((s: { x: number; y: number }) => s.x === x && s.y === y)}
           <!-- Black stone with a radial gradient and outline -->
-          <circle
-            cx={getPos(x)}
-            cy={getPos(y)}
-            r={step * 0.46}
-            fill="url(#blackStoneGrad)"
-            stroke="var(--wc-border)"
-            stroke-width="0.5"
-            filter="url(#shadow)"
-          />
+          <g opacity={isDead ? 0.35 : 1.0}>
+            <circle
+              cx={getPos(x)}
+              cy={getPos(y)}
+              r={step * 0.46}
+              fill="url(#blackStoneGrad)"
+              stroke="var(--wc-border)"
+              stroke-width="0.5"
+              filter="url(#shadow)"
+            />
+            {#if isDead}
+              <!-- Red X mark for dead stones -->
+              <line 
+                x1={getPos(x) - step * 0.22} 
+                y1={getPos(y) - step * 0.22} 
+                x2={getPos(x) + step * 0.22} 
+                y2={getPos(y) + step * 0.22} 
+                stroke="#d32f2f" 
+                stroke-width="2.5" 
+                stroke-linecap="round"
+              />
+              <line 
+                x1={getPos(x) + step * 0.22} 
+                y1={getPos(y) - step * 0.22} 
+                x2={getPos(x) - step * 0.22} 
+                y2={getPos(y) + step * 0.22} 
+                stroke="#d32f2f" 
+                stroke-width="2.5" 
+                stroke-linecap="round"
+              />
+            {/if}
+          </g>
         {:else if cell === 2}
+          {@const isDead = showDeadStones && deadStones && deadStones.some((s: { x: number; y: number }) => s.x === x && s.y === y)}
           <!-- White stone with a radial gradient and outline -->
-          <circle
-            cx={getPos(x)}
-            cy={getPos(y)}
-            r={step * 0.46}
-            fill="url(#whiteStoneGrad)"
-            stroke="var(--wc-border)"
-            stroke-width="0.5"
-            filter="url(#shadow)"
-          />
+          <g opacity={isDead ? 0.35 : 1.0}>
+            <circle
+              cx={getPos(x)}
+              cy={getPos(y)}
+              r={step * 0.46}
+              fill="url(#whiteStoneGrad)"
+              stroke="var(--wc-border)"
+              stroke-width="0.5"
+              filter="url(#shadow)"
+            />
+            {#if isDead}
+              <!-- Red X mark for dead stones -->
+              <line 
+                x1={getPos(x) - step * 0.22} 
+                y1={getPos(y) - step * 0.22} 
+                x2={getPos(x) + step * 0.22} 
+                y2={getPos(y) + step * 0.22} 
+                stroke="#d32f2f" 
+                stroke-width="2.5" 
+                stroke-linecap="round"
+              />
+              <line 
+                x1={getPos(x) + step * 0.22} 
+                y1={getPos(y) - step * 0.22} 
+                x2={getPos(x) - step * 0.22} 
+                y2={getPos(y) + step * 0.22} 
+                stroke="#d32f2f" 
+                stroke-width="2.5" 
+                stroke-linecap="round"
+              />
+            {/if}
+          </g>
         {/if}
       {/each}
     {/each}
