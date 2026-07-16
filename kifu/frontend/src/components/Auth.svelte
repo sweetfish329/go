@@ -279,13 +279,13 @@
       </h2>
       <div style="border-left: 3px solid var(--wc-text); padding-left: 20px; max-width: 440px;">
         <p style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.6; color: var(--wc-text); margin: 0 0 12px 0;">
-          美しさと戦術が交錯する、私的な記録庫へ。
+          お気に入りの対局を、もっと美しく、スマートに。
         </p>
         <p style="font-family: 'DM Sans', sans-serif; font-size: 0.85rem; line-height: 1.6; color: var(--wc-text-muted); margin: 0; margin-bottom: 24px;">
-          Kifu Storeは、囲碁の対局記録（棋譜）を美しく保存・再現し、AI分析や共有を行うためのデジタル・アーカイブです。
+          Kifu Storeは、あなたの対局や研究の記録をセンスよく保存し、いつでも心地よく振り返るためのデジタル・アーカイブです。
         </p>
         <div class="font-sans" style="font-size: 0.8rem; font-weight: 700; color: var(--wc-accent); display: flex; align-items: center; gap: 8px;">
-          <span>下へスクロールして機能を体験する</span>
+          <span>スクロールして体験する</span>
           <i class="material-icons animate-bounce" aria-hidden="true" style="font-size: 1rem;">arrow_downward</i>
         </div>
       </div>
@@ -380,65 +380,67 @@
   <div class="scrolly-narrative-container" bind:this={containerEl}>
     <!-- Sticky Board Wrapper -->
     <div class="sticky-board-wrapper">
-      <div class="sticky-board-container" style="opacity: {boardOpacity}; transition: opacity 0.15s ease;">
-        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
-          LIVE REPLAY ARCHIVE
-        </span>
+      <div class="sticky-board-inner">
+        <div class="sticky-board-container" style="opacity: {boardOpacity}; transition: opacity 0.15s ease;">
+          <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
+            LIVE REPLAY ARCHIVE
+          </span>
 
-        {#if player && boardState.length > 0}
-          <div class="board-wrapper" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-text); border: 1.5px solid var(--wc-text);">
-            <Board
-              board={boardState}
-              size={boardSize}
-              lastMove={lastMove}
-              interactive={false}
-            />
-          </div>
+          {#if player && boardState.length > 0}
+            <div class="board-wrapper" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-text); border: 1.5px solid var(--wc-text);">
+              <Board
+                board={boardState}
+                size={boardSize}
+                lastMove={lastMove}
+                interactive={false}
+              />
+            </div>
 
-          <!-- Playback Mini Controls -->
-          <div class="board-mini-controls" style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
-            <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_left</i>
-            </button>
-            <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
-            </button>
-            <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_right</i>
-            </button>
-            <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
-              {player.currentIndex} / {player.history.length - 1} 手目
-            </span>
-          </div>
+            <!-- Playback Mini Controls -->
+            <div class="board-mini-controls" style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
+              <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_left</i>
+              </button>
+              <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
+              </button>
+              <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_right</i>
+              </button>
+              <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
+                {player.currentIndex} / {player.history.length - 1} 手目
+              </span>
+            </div>
 
-          <!-- Game Info -->
-          <div class="game-info-badge" style="margin-top: 16px; width: 100%; max-width: 320px; border: 1.5px solid var(--wc-text); padding: 8px 12px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-text); text-align: left; box-sizing: border-box;">
-            {#if kifuData}
-              <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title={kifuData.title}>
-                {kifuData.title}
-              </div>
-              <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
-                <span>● {kifuData.black_player || '黒'}</span>
-                <span>VS</span>
-                <span>○ {kifuData.white_player || '白'}</span>
-              </div>
-            {:else}
-              <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                第12回 秀策の耳赤の一局 (Fallback)
-              </div>
-              <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
-                <span>● 安田栄斎</span>
-                <span>VS</span>
-                <span>○ 幻庵因碩</span>
-              </div>
-            {/if}
-          </div>
-        {:else}
-          <div style="padding: 2rem 0; text-align: center; color: var(--wc-text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; width: 100%;">
-            <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 24px; height: 24px; margin-bottom: 8px;"></div>
-            LOADING BOARD STATE...
-          </div>
-        {/if}
+            <!-- Game Info -->
+            <div class="game-info-badge" style="margin-top: 16px; width: 100%; max-width: 320px; border: 1.5px solid var(--wc-text); padding: 8px 12px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-text); text-align: left; box-sizing: border-box;">
+              {#if kifuData}
+                <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title={kifuData.title}>
+                  {kifuData.title}
+                </div>
+                <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
+                  <span>● {kifuData.black_player || '黒'}</span>
+                  <span>VS</span>
+                  <span>○ {kifuData.white_player || '白'}</span>
+                </div>
+              {:else}
+                <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  本因坊秀策の耳赤の一局 (Fallback)
+                </div>
+                <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
+                  <span>● 安田栄斎</span>
+                  <span>VS</span>
+                  <span>○ 幻庵因碩</span>
+                </div>
+              {/if}
+            </div>
+          {:else}
+            <div style="padding: 2rem 0; text-align: center; color: var(--wc-text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; width: 100%;">
+              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 24px; height: 24px; margin-bottom: 8px;"></div>
+              LOADING BOARD STATE...
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
 
@@ -447,9 +449,9 @@
       <div class="scrolly-step left-side" id="scrolly-sec-1" class:active={activeSection === 1}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">01 / REPLAY</span>
-          <h3 class="scrolly-title font-mincho">盤上の美しき再現</h3>
+          <h3 class="scrolly-title font-mincho">心地よく振り返る、一手のストーリー</h3>
           <p class="scrolly-text font-sans">
-            対局の流れを一手ずつ、美しい碁盤上に再現。歴史的銘局からあなたの自戦記まで、生命を吹き込むように棋譜をたどることができます。
+            対局のプロセスを一手ずつ、洗練された碁盤でスムーズに再生。お気に入りの対局を、まるで雑誌をめくるように美しく振り返ることができます。
           </p>
         </div>
       </div>
@@ -457,9 +459,9 @@
       <div class="scrolly-step right-side" id="scrolly-sec-2" class:active={activeSection === 2}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">02 / AI GRAPH</span>
-          <h3 class="scrolly-title font-mincho">AI 勝率・目数差分析</h3>
+          <h3 class="scrolly-title font-mincho">一瞬でわかる、形勢のバイオリズム</h3>
           <p class="scrolly-text font-sans">
-            一手ごとの勝率グラフと詳細な形勢判断を視覚化。最善手と悪手の落差を一目で把握し、直感的な形勢・戦術分析を実現します。
+            AIによる勝率グラフと形勢判断をグラフィカルに表示。対局の波を視覚的に捉え、次のステップへの気づきをスマートにサポートします。
           </p>
         </div>
       </div>
@@ -467,9 +469,9 @@
       <div class="scrolly-step left-side" id="scrolly-sec-3" class:active={activeSection === 3}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">03 / INSTANT SHARE</span>
-          <h3 class="scrolly-title font-mincho">スマート共有とカスタムOGP</h3>
+          <h3 class="scrolly-title font-mincho">お気に入りの瞬間を、センスよくシェア</h3>
           <p class="scrolly-text font-sans">
-            対局の最もエキサイティングな瞬間をOGP画像に指定し、SNSで一発共有。限定公開・一般公開もワンクリックでシームレスに制御できます。
+            対局のベストショットをカスタムOGP画像にして、SNSでスマートに共有。ワンクリックで公開・非公開を設定でき、大切な記録をシンプルに管理できます。
           </p>
         </div>
       </div>
@@ -477,9 +479,9 @@
       <div class="scrolly-step right-side" id="scrolly-sec-4" class:active={activeSection === 4}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">04 / COLLABORATIVE REVIEWS</span>
-          <h3 class="scrolly-title font-mincho">双方向の添削指導とコメント</h3>
+          <h3 class="scrolly-title font-mincho">大切な人とつながる、盤上のメッセージ</h3>
           <p class="scrolly-text font-sans">
-            盤上の任意の局面に変化図や解説コメントを書き込み、対局を豊かに分析。他者との添削コラボレーションにより、技術の深まりをサポートします。
+            盤上に直接変化図やコメントを書き込んで、コーチや仲間と楽しくコミュニケーション。学びと対話を重ねることで、囲碁の時間がもっと愛おしくなります。
           </p>
         </div>
       </div>
@@ -500,16 +502,33 @@
     margin-top: 4rem;
   }
 
-  /* Sticky wrapper that holds the board vertically centered on screen */
+  /* Container for the entire scrollytelling scene */
+  .scrolly-narrative-container {
+    position: relative;
+    width: 100%;
+    margin-top: 4rem;
+  }
+
+  /* The absolute wrapper that covers the entire scrollable height of the narrative container */
   .sticky-board-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Let scroll events pass to track elements below */
+    z-index: 5;
+  }
+
+  /* The sticky inner wrapper that remains vertically centered in the viewport */
+  .sticky-board-inner {
     position: sticky;
     top: 0;
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none; /* Let scroll events pass to track elements below */
-    z-index: 5;
+    width: 100%;
   }
 
   .sticky-board-container {
@@ -529,7 +548,6 @@
   /* Scrolling track containing the descriptive steps */
   .scrolly-scroll-track {
     position: relative;
-    margin-top: -100vh; /* Overlap scroll track with sticky wrapper */
     z-index: 6;
   }
 
@@ -787,6 +805,12 @@
       top: 0;
       margin-bottom: 2rem;
       pointer-events: auto;
+    }
+
+    .sticky-board-inner {
+      position: relative;
+      height: auto;
+      top: 0;
     }
     
     .scrolly-scroll-track {
