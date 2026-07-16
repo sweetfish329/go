@@ -602,9 +602,8 @@
     min-width: 290px;
     padding: 2rem;
     border: 2px solid var(--wc-text);
-    background: var(--wc-surface);
     box-shadow: 4px 4px 0px var(--wc-text);
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.25s ease, box-shadow 0.25s ease;
     opacity: 0.3;
     transform: translateY(20px);
     will-change: transform, opacity;
@@ -896,7 +895,7 @@
       width: 100%;
       opacity: 0.35;
       transform: translateY(15px);
-      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.25s ease, box-shadow 0.25s ease;
       background: var(--wc-surface) !important;
       padding: 1.2rem !important;
       box-shadow: 4px 4px 0px var(--wc-text) !important;
