@@ -51,6 +51,7 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/kifus/{id}/share", AuthMiddleware(http.HandlerFunc(h.Share)))
 	mux.Handle("PUT /api/kifus/{id}/privacy", AuthMiddleware(http.HandlerFunc(h.UpdatePrivacy)))
 	mux.Handle("PUT /api/kifus/{id}/ogp", AuthMiddleware(http.HandlerFunc(h.UpdateOgpImage)))
+	mux.Handle("GET /api/kifus/{id}/og-image", AuthMiddleware(http.HandlerFunc(h.GetOgImage)))
 	mux.Handle("DELETE /api/kifus/{id}", AuthMiddleware(http.HandlerFunc(h.Delete)))
 
 	// Public routes
@@ -527,6 +528,50 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+// GetOgImage retrieves and returns OGP PNG image for owner's kifu
+func (h *KifuHandler) GetOgImage(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing ID")
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	kifu, err := h.repo.FindByID(id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	// Verify ownership
+	if kifu.UploadedBy == nil || *kifu.UploadedBy != userID {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// Try getting from DB first
+	imgData, err := h.repo.GetOgpImage(id)
+	if err == nil && len(imgData) > 0 {
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
+		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+		_, _ = w.Write(imgData)
+		return
+	}
+
+	// Fallback to auto generation
+	h.serveGeneratedOgImage(w, kifu)
 }
 
 // GetPublicKifuOgImage retrieves and returns OGP PNG image for public kifu

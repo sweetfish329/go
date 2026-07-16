@@ -58,7 +58,8 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 	query := `
 	SELECT id, title, black_player, black_rank, white_player, white_rank,
-	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
+	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at,
+	       (ogp_image IS NOT NULL AND octet_length(ogp_image) > 0) AS has_ogp
 	FROM kifus
 	WHERE uploaded_by = $1
 	ORDER BY created_at DESC`
@@ -76,6 +77,7 @@ func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 		err := rows.Scan(
 			&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
 			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+			&k.HasOgp,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan kifu row: %w", err)
@@ -154,7 +156,8 @@ func (r *KifuRepository) FindByShareToken(token string) (*model.Kifu, error) {
 func (r *KifuRepository) FindAllPublicByUser(userID string) ([]*model.Kifu, error) {
 	query := `
 	SELECT id, title, black_player, black_rank, white_player, white_rank,
-	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
+	       game_date, result, komi, handicap, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at,
+	       (ogp_image IS NOT NULL AND octet_length(ogp_image) > 0) AS has_ogp
 	FROM kifus
 	WHERE uploaded_by = $1 AND is_private = false
 	ORDER BY created_at DESC`
@@ -172,6 +175,7 @@ func (r *KifuRepository) FindAllPublicByUser(userID string) ([]*model.Kifu, erro
 		err := rows.Scan(
 			&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
 			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+			&k.HasOgp,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan public kifu row: %w", err)

@@ -12,6 +12,7 @@
     result?: string;
     game_date?: string;
     created_at: string;
+    has_ogp?: boolean;
   }
 
   const dispatch = createEventDispatcher<{
@@ -388,85 +389,87 @@
         <p class="text-muted" style="font-size: 0.82rem;">検索キーワードや日付の範囲を変更してお試しください。</p>
       </div>
     {:else}
-      <div class="row">
+      <div class="kifu-tile-grid">
         {#each filteredKifus as k, i (k.id)}
-          <div class="col s12" style="margin-bottom: 3.5rem;">
+          <div class="kifu-tile-card animate-pop-in stagger-{(i % 5) + 1}">
             <button
               type="button"
-              class="em-vogue-editorial-item hoverable animate-pop-in stagger-{(i % 5) + 1}"
-              style="width: 100%; display: block; text-align: left; position: relative; border: none; background: transparent; padding-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); transition: transform 0.4s ease; padding-left: 0; padding-right: 0; color: inherit; font-family: inherit; cursor: pointer;"
+              class="kifu-tile-click-area"
               onclick={() => dispatch('selectKifu', k.id)}
+              aria-label="{k.title}の詳細を表示"
             >
-              <!-- Absolute Large Index Number (VOGUE overlap typography) -->
-              <span class="em-index-num" style="position: absolute; top: -16px; right: 0; opacity: 0.18; user-select: none; font-weight: 900; color: var(--wc-text); font-size: 5rem; z-index: 1; font-family: 'Cormorant Garamond', serif; font-style: italic; transition: transform 0.4s ease, color 0.3s ease, opacity 0.3s ease;">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-
-              <div class="card-content" style="padding: 0; position: relative; z-index: 2;">
-                <!-- Overlap Result Badge (Collage tag style) -->
-                {#if k.result}
-                  <div class="em-collage-tag em-float-badge" style="position: absolute; top: -36px; left: 0; z-index: 10; font-size: 0.68rem; animation-delay: -{i * 0.8}s; border-width: 1.5px; box-shadow: 2px 2px 0 var(--wc-text);">
-                    {k.result}
+              <!-- OGP画像エリア (正方形) -->
+              <div class="kifu-tile-image-container">
+                {#if k.has_ogp}
+                  <img
+                    src={publicMode ? `/api/u/${userId}/kifus/${k.id}/og-image` : `/api/kifus/${k.id}/og-image`}
+                    alt="OGP preview"
+                    class="kifu-tile-image"
+                    loading="lazy"
+                  />
+                {:else}
+                  <div class="kifu-tile-placeholder-wrap">
+                    <svg viewBox="0 0 100 100" class="kifu-tile-placeholder">
+                      <line x1="20" y1="50" x2="80" y2="50" stroke="var(--wc-text)" stroke-width="0.7" opacity="0.15" />
+                      <line x1="50" y1="20" x2="50" y2="80" stroke="var(--wc-text)" stroke-width="0.7" opacity="0.15" />
+                      <circle cx="50" cy="50" r="2.5" fill="var(--wc-text)" opacity="0.3" />
+                      <circle cx="44" cy="44" r="10" fill="var(--wc-text)" opacity="0.15" />
+                      <circle cx="56" cy="56" r="10" fill="var(--wc-surface)" stroke="var(--wc-text)" stroke-width="1" opacity="0.8" />
+                    </svg>
                   </div>
                 {/if}
 
-                <!-- Subheadline (Newspaper tag) -->
-                <div class="em-newspaper-subheadline" style="margin-top: 8px; font-weight: 800; letter-spacing: 0.12em; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-accent);">
-                  RECORD NO. {String(i + 1).padStart(2, '0')} // ARCHIVE
-                </div>
-
-                <!-- Headline (Title) - High jump-rate style -->
-                <h3 class="em-newspaper-headline" title={k.title} style="font-family: 'Cormorant Garamond', 'Shippori Mincho B1', serif; font-weight: 900; line-height: 1.05; margin-top: 10px; margin-bottom: 18px; letter-spacing: -0.02em; color: var(--wc-text); word-break: break-word;">
-                  {k.title}
-                </h3>
-
-                <!-- Players and Meta Side-by-Side (Magazine Spread feel) -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; margin-top: 24px;">
-                  <div class="players-info" style="display: flex; gap: 32px; flex-wrap: wrap;">
-                    <!-- Black Player -->
-                    <div class="player-row" style="display: flex; align-items: center; gap: 8px;">
-                      <span class="stone-dot stone-black" style="border: 1.5px solid var(--wc-text); width: 14px; height: 14px;" aria-label="黒"></span>
-                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 900; font-size: 1.05rem; color: var(--wc-text);">{k.black_player || 'Unknown'}</span>
-                      {#if k.black_rank}
-                        <span class="wc-tag" style="font-size: 0.65rem; padding: 2px 8px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface); font-weight: bold; color: var(--wc-text); font-family: 'JetBrains Mono', monospace;">{k.black_rank}</span>
-                      {/if}
-                    </div>
-                    <!-- White Player -->
-                    <div class="player-row" style="display: flex; align-items: center; gap: 8px;">
-                      <span class="stone-dot stone-white" style="border: 1.5px solid var(--wc-text); width: 14px; height: 14px;" aria-label="白"></span>
-                      <span class="player-name" style="font-family: 'Shippori Mincho B1', serif; font-weight: 900; font-size: 1.05rem; color: var(--wc-text);">{k.white_player || 'Unknown'}</span>
-                      {#if k.white_rank}
-                        <span class="wc-tag" style="font-size: 0.65rem; padding: 2px 8px; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface); font-weight: bold; color: var(--wc-text); font-family: 'JetBrains Mono', monospace;">{k.white_rank}</span>
-                      {/if}
-                    </div>
-                  </div>
-
-                  <!-- Meta Info -->
-                  <div class="kifu-meta" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-text-muted); display: flex; flex-direction: column; gap: 2px; text-align: right;">
-                    <span style="font-weight: bold; color: var(--wc-text); letter-spacing: 0.05em;">DATE: {k.game_date || 'Unknown'}</span>
-                    <span style="opacity: 0.8;">ARCHIVED ON {new Date(k.created_at).toLocaleDateString('ja-JP')}</span>
-                  </div>
-                </div>
+                <!-- 右上：対局結果バッジ -->
+                {#if k.result}
+                  <span class="kifu-tile-result-badge">{k.result}</span>
+                {/if}
               </div>
 
-              <!-- Action Link and Delete Button -->
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 12px;">
-                <span class="open-label" style="font-size: 0.78rem; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; color: var(--wc-text); display: inline-flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--wc-accent); padding-bottom: 2px; transition: letter-spacing 0.3s ease;">
-                  READ FULL JOURNAL <span>→</span>
-                </span>
-                {#if !publicMode}
-                  <button
-                    class="delete-btn"
-                    onclick={(e) => handleDelete(k.id, e)}
-                    title="削除"
-                    aria-label="この棋譜を削除"
-                    style="background: transparent; border: none; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--wc-text); opacity: 0.6; transition: opacity 0.2s;"
-                  >
-                    <i class="material-icons" aria-hidden="true" style="font-size: 1.3rem;">delete_outline</i>
-                  </button>
-                {/if}
+              <!-- カードテキストコンテンツ -->
+              <div class="kifu-tile-info">
+                <!-- タイトル -->
+                <h4 class="kifu-tile-title font-mincho" title={k.title}>
+                  {k.title}
+                </h4>
+
+                <!-- 対局者情報 -->
+                <div class="kifu-tile-players font-sans">
+                  <!-- 黒 -->
+                  <div class="player-row-inline">
+                    <span class="stone-dot stone-black"></span>
+                    <span class="player-name-txt">{k.black_player || 'Unknown'}</span>
+                    {#if k.black_rank}
+                      <span class="player-rank-badge">{k.black_rank}</span>
+                    {/if}
+                  </div>
+                  <!-- 白 -->
+                  <div class="player-row-inline">
+                    <span class="stone-dot stone-white"></span>
+                    <span class="player-name-txt">{k.white_player || 'Unknown'}</span>
+                    {#if k.white_rank}
+                      <span class="player-rank-badge">{k.white_rank}</span>
+                    {/if}
+                  </div>
+                </div>
+
+                <!-- フッターメタ -->
+                <div class="kifu-tile-footer font-mono">
+                  <span>{k.game_date || 'Unknown'}</span>
+                </div>
               </div>
             </button>
+
+            <!-- 削除ボタン（非公開モード＝オーナー自身のみ・カードのボタンクリックと干渉させないために分離して絶対配置） -->
+            {#if !publicMode}
+              <button
+                class="kifu-tile-delete-btn"
+                onclick={(e) => handleDelete(k.id, e)}
+                title="削除"
+                aria-label="この棋譜を削除"
+              >
+                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">delete_outline</i>
+              </button>
+            {/if}
           </div>
         {/each}
       </div>
@@ -737,4 +740,231 @@
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  /* ---- Grid Tile Layout ---- */
+  .kifu-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 3.5rem;
+  }
+
+  .kifu-tile-card {
+    position: relative;
+    border: 1.5px solid var(--wc-text);
+    background: var(--wc-surface);
+    box-shadow: 4px 4px 0px var(--wc-text);
+    transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .kifu-tile-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 7px 7px 0px var(--wc-text);
+  }
+
+  .kifu-tile-click-area {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* OGP Image area - strictly 1:1 aspect ratio */
+  .kifu-tile-image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--wc-surface-alt);
+    border-bottom: 1.5px solid var(--wc-text);
+  }
+
+  .kifu-tile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .kifu-tile-card:hover .kifu-tile-image {
+    transform: scale(1.03);
+  }
+
+  /* OGP Placeholder style */
+  .kifu-tile-placeholder-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, var(--wc-surface-alt) 60%, var(--wc-bg) 100%);
+    padding: 20%;
+    box-sizing: border-box;
+  }
+
+  .kifu-tile-placeholder {
+    width: 100%;
+    height: 100%;
+    opacity: 0.85;
+  }
+
+  /* Overlay Badge */
+  .kifu-tile-result-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--wc-accent-warm);
+    color: var(--wc-text);
+    border: 1px solid var(--wc-text);
+    box-shadow: 2px 2px 0px var(--wc-text);
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 3px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    z-index: 5;
+  }
+
+  /* Card Texts */
+  .kifu-tile-info {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .kifu-tile-title {
+    margin: 0 0 12px 0 !important;
+    font-size: 1.15rem !important;
+    font-weight: 900 !important;
+    line-height: 1.25 !important;
+    color: var(--wc-text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 2.5rem;
+    word-break: break-word;
+  }
+
+  .kifu-tile-players {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .player-row-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .player-name-txt {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--wc-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
+  }
+
+  .player-rank-badge {
+    font-size: 0.62rem;
+    font-weight: bold;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--wc-surface-alt);
+    border: 1px solid var(--wc-text);
+    padding: 1px 5px;
+    color: var(--wc-text-muted);
+  }
+
+  .kifu-tile-footer {
+    margin-top: auto;
+    font-size: 0.68rem;
+    color: var(--wc-text-muted);
+    opacity: 0.8;
+  }
+
+  /* Absolute delete button - overlay on hover */
+  .kifu-tile-delete-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--wc-surface);
+    border: 1px solid var(--wc-text);
+    color: var(--wc-text);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    box-shadow: 1.5px 1.5px 0 var(--wc-text);
+    z-index: 10;
+  }
+
+  .kifu-tile-card:hover .kifu-tile-delete-btn {
+    opacity: 0.8;
+    transform: translateY(0);
+  }
+
+  .kifu-tile-delete-btn:hover {
+    opacity: 1 !important;
+    background: var(--wc-accent-warm) !important;
+    color: var(--wc-text) !important;
+  }
+
+  /* Mobile responsiveness adjustments */
+  @media only screen and (max-width: 600px) {
+    .kifu-tile-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .kifu-tile-title {
+      font-size: 0.95rem !important;
+      height: 2.1rem;
+    }
+    .player-name-txt {
+      max-width: 75px;
+      font-size: 0.75rem;
+    }
+    .player-rank-badge {
+      font-size: 0.58rem;
+      padding: 0px 3px;
+    }
+    .kifu-tile-info {
+      padding: 10px;
+    }
+    .kifu-tile-result-badge {
+      font-size: 0.58rem;
+      padding: 2px 5px;
+      top: 6px;
+      right: 6px;
+    }
+    /* Always show delete button on mobile (no hover state) */
+    .kifu-tile-delete-btn {
+      opacity: 0.75;
+      transform: none;
+      bottom: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+    }
+  }
 </style>
+
