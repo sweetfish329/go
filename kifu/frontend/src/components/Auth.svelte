@@ -825,31 +825,88 @@
     animation: bounce 1.8s infinite ease-in-out;
   }
 
-  /* Responsive styling for Tablet / Mobile */
+  /* Responsive styling for Tablet / Mobile split-screen scrollytelling */
   @media (max-width: 800px) {
     .sticky-board-container {
-      position: relative !important;
-      margin: 0 auto 2rem auto;
+      position: sticky !important;
+      top: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
       transform: none !important;
-      top: auto !important;
       left: auto !important;
       bottom: auto !important;
+      box-shadow: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom: 2px solid var(--wc-text) !important;
+      background: var(--wc-surface-alt) !important;
+      padding: 10px 16px !important;
+      height: 40vh !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      box-sizing: border-box;
+    }
+
+    /* Shrink the board and hide player metadata on mobile to save viewport height */
+    .sticky-board-container :global(.board-wrapper) {
+      max-width: 170px !important;
+      margin: 4px auto !important;
+    }
+
+    .sticky-board-container .game-info-badge {
+      display: none !important;
+    }
+
+    .sticky-board-container .board-mini-controls {
+      margin-top: 6px !important;
+      font-size: 0.72rem !important;
+    }
+
+    .sticky-board-container .move-counter {
+      font-size: 0.75rem !important;
+      padding: 2px 6px !important;
+      margin-left: 6px !important;
+    }
+
+    .sticky-board-container .nm-btn-flat {
+      height: 26px !important;
+      padding: 2px 6px !important;
     }
     
     .scrolly-scroll-track {
       margin-top: 0;
     }
 
+    /* Scroll steps: height of 80vh, align cards to bottom so they scroll past underneath board */
     .scrolly-step {
-      height: auto;
-      padding: 1.5rem 0;
+      height: 80vh;
+      padding: 0 16px 4vh 16px;
+      display: flex;
+      align-items: flex-end;
       justify-content: center !important;
+      box-sizing: border-box;
     }
 
     .scrolly-card {
       width: 100%;
+      opacity: 0.35;
+      transform: translateY(15px);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      background: var(--wc-surface) !important;
+      padding: 1.2rem !important;
+      box-shadow: 4px 4px 0px var(--wc-text) !important;
+    }
+
+    .scrolly-step.active .scrolly-card {
       opacity: 1;
-      transform: none;
+      transform: translateY(0);
+      border-color: var(--wc-accent) !important;
+      box-shadow: 6px 6px 0px var(--wc-accent) !important;
     }
   }
 
