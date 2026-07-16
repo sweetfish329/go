@@ -1011,9 +1011,9 @@
   });
 </script>
 
-<div class="row" style="margin-top: 1rem;">
-  <!-- Header Navigation -->
-  <div class="col s12 d-flex align-center justify-between" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-text); padding-bottom: 16px; position: relative; z-index: 10;">
+<div class="row kifu-detail-root">
+  <!-- Header Navigation（PC表示・スマホでは非表示） -->
+  <div class="col s12 d-flex align-center justify-between kifu-header-nav" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px; position: relative; z-index: 10;">
     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 16px; position: relative;">
       <button class="em-collage-tag-pastel em-float-badge" onclick={onBack} style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; font-size: 0.68rem; text-transform: uppercase; font-weight: bold; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text);">
         <i class="material-icons" style="font-size: 0.85rem; vertical-align: middle;">arrow_back</i>Back
@@ -1052,7 +1052,7 @@
   {:else}
     <!-- Main UI Grid -->
     <!-- Left Column: Go Board & Controls -->
-    <div class="col s12 l7 center-align kifu-board-column" style="margin-bottom: 2rem; position: relative;">
+    <div class="col s12 l7 center-align kifu-board-column" style="margin-bottom: 2rem; padding-bottom: 3.5rem; position: relative;">
       <div class="board-wrapper {isViewingVariation ? 'viewing-variation' : ''}" style="position: relative; display: inline-block;">
         {#if isViewingVariation}
           <div class="wc-variation-badge animate-fade-in" style="position: absolute; top: 15px; left: 15px; z-index: 10;">
@@ -1620,6 +1620,22 @@
       </div>
     </div>
   {/if}
+
+  <!-- スマホ専用ボトムナビバー（PCでは非表示） -->
+  <div class="kifu-bottom-nav">
+    <button class="kifu-bottom-nav-back" onclick={onBack}>
+      <i class="material-icons" style="font-size: 1.1rem;">arrow_back</i>
+      <span>Back</span>
+    </button>
+    {#if kifu}
+      <span class="kifu-bottom-nav-title">{kifu.title}</span>
+    {/if}
+    {#if kifu && isOwner}
+      <button class="kifu-bottom-nav-share" onclick={() => showShareDialog = true}>
+        <i class="material-icons" style="font-size: 1.1rem;">share</i>
+      </button>
+    {/if}
+  </div>
 </div>
 
 {#if showShareDialog && kifu}
@@ -1864,5 +1880,79 @@
   .candidate-row:hover, .candidate-row.hovered {
     background: var(--wc-surface-alt);
     border-color: var(--wc-text) !important;
+  }
+  /* ---- スマホ：ヘッダーナビ非表示 / ボトムバー表示 ---- */
+  @media only screen and (max-width: 600px) {
+    .kifu-header-nav {
+      display: none !important;
+    }
+    .kifu-detail-root {
+      margin-top: 0 !important;
+    }
+  }
+
+  /* ---- PC：ボトムバー非表示 ---- */
+  .kifu-bottom-nav {
+    display: none;
+  }
+  @media only screen and (max-width: 600px) {
+    .kifu-bottom-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      background: var(--wc-surface);
+      border-top: 2px solid var(--wc-text);
+      box-shadow: 0 -3px 0 0 var(--wc-text);
+      padding: 6px 12px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      min-height: 48px;
+    }
+    .kifu-bottom-nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'JetBrains Mono', sans-serif;
+      font-size: 0.68rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--wc-surface-alt);
+      border: 1.5px solid var(--wc-text);
+      box-shadow: 2px 2px 0 var(--wc-text);
+      padding: 4px 10px;
+      color: var(--wc-text);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .kifu-bottom-nav-title {
+      flex: 1;
+      font-family: 'Shippori Mincho B1', serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--wc-text);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-align: center;
+      opacity: 0.75;
+    }
+    .kifu-bottom-nav-share {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--wc-surface-alt);
+      border: 1.5px solid var(--wc-text);
+      box-shadow: 2px 2px 0 var(--wc-text);
+      color: var(--wc-text);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
   }
 </style>
