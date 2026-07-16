@@ -57,12 +57,19 @@
       onClose();
     }
   }
+
+  function handleBackdropClick(e: MouseEvent) {
+    // backdrop自体をクリックした場合のみ閉じる（バブリングでの誤動作防止）
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  }
 </script>
 <svelte:window onkeydown={handleKeyDown} />
 
-<div class="modal-backdrop animate-fade-in" onclick={onClose} role="presentation">
+<div class="modal-backdrop animate-fade-in" onclick={handleBackdropClick} role="presentation">
   <!-- Content click propagation stopped to avoid closing on inner click -->
-  <div class="modal-content nm-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
+  <div class="modal-content nm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc" tabindex="-1">
     <form onsubmit={handleSave}>
       
       <!-- Header -->

@@ -277,7 +277,7 @@
 
               <!-- Favicon File Input -->
               <div class="col s12" style="margin-bottom: 24px;">
-                <label class="font-sans" style="font-size: 0.8rem; color: var(--wc-text-muted); display: block; margin-bottom: 6px; font-weight: 600;">ファビコン (Favicon)</label>
+                <span class="font-sans" style="font-size: 0.8rem; color: var(--wc-text-muted); display: block; margin-bottom: 6px; font-weight: 600;">ファビコン (Favicon)</span>
                 <div class="file-field-container">
                   <div class="file-select-btn font-sans">
                     <span>ファイル選択</span>
@@ -299,7 +299,7 @@
               <!-- Theme Color Input -->
               <div class="col s12" style="margin-bottom: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 120px;">
-                  <label for="site_theme_color" class="font-sans" style="font-size: 0.8rem; color: var(--wc-text-muted); display: block; margin-bottom: 6px; font-weight: 600;">テーマカラー</label>
+                  <span class="font-sans" style="font-size: 0.8rem; color: var(--wc-text-muted); display: block; margin-bottom: 6px; font-weight: 600;">テーマカラー</span>
                   <input id="site_theme_color" type="color" bind:value={siteSettingsForm.theme_color} style="width: 100%; height: 40px; border: 1.5px solid var(--wc-border); border-radius: 0px; padding: 0; cursor: pointer; background: none;" />
                 </div>
                 <div style="flex: 3; display: flex; flex-direction: column; gap: 6px; min-width: 200px; text-align: left;">
@@ -338,7 +338,7 @@
               <div class="row" style="margin-bottom: 0;">
                 <!-- Enabled/Disabled Segmented selector -->
                 <div class="col s12" style="margin-bottom: 24px; text-align: left;">
-                  <label class="font-sans" style="font-size: 0.8rem; color: var(--wc-text-muted); display: block; margin-bottom: 8px; font-weight: 600;">プロバイダ有効化設定</label>
+                  <span class="font-sans" style="font-size: 0.8rem; color: var(--wc-text-muted); display: block; margin-bottom: 8px; font-weight: 600;">プロバイダ有効化設定</span>
                   <div class="provider-status-selector">
                     <button 
                       type="button" 

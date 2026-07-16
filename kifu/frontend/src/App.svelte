@@ -333,7 +333,7 @@
               @{auth.username}
             </button>
             <!-- Logout Link -->
-            <a href="#" onclick={(e) => { e.preventDefault(); handleLogout(); }} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif;">Logout</a>
+            <button type="button" onclick={handleLogout} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: underline; text-underline-offset: 3px; font-size: 0.72rem; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; background: transparent; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center;">Logout</button>
           {/if}
           
           <!-- Theme Toggle -->

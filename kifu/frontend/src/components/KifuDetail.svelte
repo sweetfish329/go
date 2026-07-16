@@ -591,8 +591,8 @@
 
   function handleGraphMouseMove(e: MouseEvent) {
     if (!player || aiData.length === 0) return;
-    const svg = e.currentTarget as SVGSVGElement;
-    const rect = svg.getBoundingClientRect();
+    const container = e.currentTarget as HTMLDivElement;
+    const rect = container.getBoundingClientRect();
     const clientX = e.clientX - rect.left;
     const percentage = clientX / rect.width;
     
@@ -1252,21 +1252,26 @@
             </div>
 
             <!-- Graph Container -->
-            <div class="ai-graph-container" style="position: relative; height: 120px; border: 2.5px solid var(--wc-text); background: var(--wc-surface-alt); padding: 8px; box-sizing: border-box; box-shadow: 3px 3px 0px var(--wc-text);">
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div 
+              class="ai-graph-container" 
+              style="position: relative; height: 120px; border: 2.5px solid var(--wc-text); background: var(--wc-surface-alt); padding: 8px; box-sizing: border-box; box-shadow: 3px 3px 0px var(--wc-text); cursor: crosshair;"
+              onmousemove={handleGraphMouseMove}
+              onmouseleave={handleGraphMouseLeave}
+              onclick={handleGraphClick}
+              onkeydown={handleGraphKeyDown}
+              tabindex="0"
+              role="application"
+              aria-label="勝率と目数差の推移グラフ。左右の矢印キーで手数を進退できます。"
+            >
               <!-- Render SVG Graph -->
               <svg 
                 viewBox="0 0 {graphWidth} {graphHeight}" 
                 width="100%" 
                 height="100%" 
                 preserveAspectRatio="none"
-                style="display: block; overflow: visible; cursor: crosshair;"
-                onmousemove={handleGraphMouseMove}
-                onmouseleave={handleGraphMouseLeave}
-                onclick={handleGraphClick}
-                onkeydown={handleGraphKeyDown}
-                tabindex="0"
-                role="application"
-                aria-label="勝率と目数差の推移グラフ。左右の矢印キーで手数を進退できます。"
+                style="display: block; overflow: visible; pointer-events: none;"
               >
                 <!-- Draw zero-line for score lead -->
                 {#if graphMode === 'score'}
@@ -1590,7 +1595,7 @@
     role="presentation"
   ></div>
   <!-- Sheet -->
-  <div class="settings-sheet animate-slide-up" role="dialog" aria-modal="true" aria-label="表示オプション">
+  <div class="settings-sheet animate-slide-up" role="dialog" aria-modal="true" aria-label="表示オプション" tabindex="-1">
     <!-- Handle bar -->
     <div class="settings-sheet-handle"></div>
     <div class="settings-sheet-header">
@@ -1615,6 +1620,7 @@
           onclick={() => showInfluenceMap = !showInfluenceMap}
           role="switch"
           aria-checked={showInfluenceMap}
+          aria-label="勢力図を表示"
         >
           <span class="settings-switch-thumb"></span>
         </button>
@@ -1631,6 +1637,7 @@
           onclick={() => showDeadStones = !showDeadStones}
           role="switch"
           aria-checked={showDeadStones}
+          aria-label="死活判定を表示"
         >
           <span class="settings-switch-thumb"></span>
         </button>
@@ -1647,6 +1654,7 @@
           onclick={() => { showAiAnalysis = !showAiAnalysis; updatePlayerState(); }}
           role="switch"
           aria-checked={showAiAnalysis}
+          aria-label="AI候補手を表示"
         >
           <span class="settings-switch-thumb"></span>
         </button>
