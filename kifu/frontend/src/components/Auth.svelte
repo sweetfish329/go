@@ -31,8 +31,20 @@
   let autoplayDirection = $state(1); // 1 = forward, -1 = backward, 0 = paused/manual
   let userInteracted = $state(false);
 
+  // Layout Cache to avoid Reflow during scrolling (Fixing Motion Performance guideline)
+  let containerOffsetTop = 0;
+  let containerHeight = 0;
+
   // Fallback famous SGF: Shusaku's Ear-Reddening Game (first 60 moves)
-  const fallbackSgf = `(;GM[1]FF[4]SZ[19]KM[0.0]PB[安田栄斎]BR[四段]PW[幻庵因碩]WR[八段]RE[B+3]DT[1846-09-11]EV[赤耳局];B[qd];W[dc];B[pq];W[oc];B[cp];W[po];B[qo];W[qn];B[ro];W[pp];B[qp];W[oq];B[op];W[pn];B[np];W[qq];B[pr];W[or];B[qr];W[rq];B[rr];W[rp];B[rn];W[rm];B[qm];W[ql];B[pm];W[om];B[pl];W[pk];B[ol];W[nl];B[ok];W[oj];B[nk];W[mk];B[nj];W[ni];B[mj];W[lj];B[mi];W[mh];B[li];W[ki];B[lh];W[lg];B[kh];W[jh];B[kg];W[kf];B[jg];W[ig];B[jf];W[je];B[if];W[hf];B[ie];W[id];B[he];W[ge])`;
+  const fallbackSgf = `(;GM[1]FF[4]SZ[19]KM[0.0]PB[安田栄斎]BR[四段]PW[幻庵因碩]WR[八段]RE[B+3]DT[1846-09-11]EV[赤耳局];B[qd];W[dc];B[pq];W[oc];B[cp];W[po];B[qo];W[qn];B[ro];W[pp];B[qp];W[oq];B[op];W[pn];B[np];W[qq];B[pr];W[or];B[qr];W[rq];B[rr];W[rp];B[rn];W[rm];B[qm];W[ql];B[pm];W[om];B[pl];W[pk];B[ol];W[nl];B[ok];W[oj];B[nk];W[mk];B[nj];W[ni];B[mj];W[lj];B[mi];W[mh];B[li];W[ki];B[lh];W[lg];B[kh];W[jh];B[kg];W[kf];B[jg];W[ig];B[jf];W[je];B[if];W[hf])`;
+
+  function measureContainer() {
+    if (!containerEl) return;
+    const rect = containerEl.getBoundingClientRect();
+    const scrollTop = window.scrollY || window.pageYOffset;
+    containerOffsetTop = rect.top + scrollTop;
+    containerHeight = rect.height;
+  }
 
   onMount(async () => {
     // 1. Fetch OAuth providers
@@ -69,15 +81,22 @@
       startAutoplay();
     }
 
-    // 4. Add scroll listener
+    // 4. Setup pre-measured layout offsets & event listeners
+    window.addEventListener('resize', measureContainer, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
-    setTimeout(handleScroll, 150); // Initial layout evaluation
+    
+    // Defer initial layout measurement slightly to ensure components are fully rendered
+    setTimeout(() => {
+      measureContainer();
+      handleScroll();
+    }, 300);
   });
 
   onDestroy(() => {
     if (autoplayInterval) clearInterval(autoplayInterval);
     if (animationTimer) clearTimeout(animationTimer);
     if (transitionTimer) clearTimeout(transitionTimer);
+    window.removeEventListener('resize', measureContainer);
     window.removeEventListener('scroll', handleScroll);
   });
 
@@ -119,20 +138,21 @@
     window.location.href = `/api/auth/oauth/redirect/${provider}`;
   }
 
-  // Scroll handler for Scrollytelling
+  // Scroll handler using pre-cached variables (Reflow-free scroll animation)
   function handleScroll() {
-    if (!containerEl || !player) return;
-    const rect = containerEl.getBoundingClientRect();
+    if (!player || containerHeight === 0) return;
+    
+    const scrollTop = window.scrollY || window.pageYOffset;
     const viewportHeight = window.innerHeight;
     
-    // We compute scroll progress when the top of the container hits the top of the viewport
-    // and ends when the bottom of the container hits the bottom of the viewport
-    const totalScrollableHeight = rect.height - viewportHeight;
+    const totalScrollableHeight = containerHeight - viewportHeight;
+    if (totalScrollableHeight <= 0) return;
+
+    const relativeScroll = scrollTop - containerOffsetTop;
     
-    if (rect.top <= 0 && rect.bottom >= viewportHeight) {
-      const currentScroll = -rect.top;
-      scrollPercent = Math.max(0, Math.min(1, currentScroll / totalScrollableHeight));
-    } else if (rect.top > 0) {
+    if (relativeScroll >= 0 && relativeScroll <= totalScrollableHeight) {
+      scrollPercent = Math.max(0, Math.min(1, relativeScroll / totalScrollableHeight));
+    } else if (relativeScroll < 0) {
       scrollPercent = 0;
     } else {
       scrollPercent = 1;
