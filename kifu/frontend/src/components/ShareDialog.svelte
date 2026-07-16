@@ -242,49 +242,201 @@
             ctx.fillStyle = '#dcdfdc';
             ctx.fillRect(0, 0, ogpWidth, ogpHeight);
 
-            // --- サイトのデザイン意匠のあしらい（碁盤の邪魔をしない薄い描写） ---
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = 'rgba(37, 53, 48, 0.08)'; // --wc-border (#253530) に透明度をかけたもの
+            // --- AI分析データ収集 ---
+            // playerのhistoryを走査し、winrate（勝率）とscoreLead（目差）の系列を取得する
+            const aiWinratePoints: number[] = [];
+            const aiScorePoints: number[] = [];
+            if (player && player.history) {
+              for (const entry of player.history) {
+                if (entry.node?.aiAnalysis) {
+                  aiWinratePoints.push(entry.node.aiAnalysis.winrate); // 黒の勝率 0-100
+                  aiScorePoints.push(entry.node.aiAnalysis.scoreLead);  // 黒視点の目差
+                }
+              }
+            }
+            const hasAiData = aiWinratePoints.length >= 4;
 
-            // 左側のあしらい：石のプレースメントや波紋をイメージした同心円
-            ctx.beginPath();
-            ctx.arc(100, 315, 180, 0, Math.PI * 2);
-            ctx.stroke();
+            // --- Catmull-Rom スプライン補間で滑らかな波線を描くヘルパー ---
+            function drawSplineInRegion(
+              c: CanvasRenderingContext2D,
+              points: { x: number; y: number }[],
+              tension = 0.4
+            ) {
+              if (points.length < 2) return;
+              c.beginPath();
+              c.moveTo(points[0].x, points[0].y);
+              for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[Math.max(0, i - 1)];
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const p3 = points[Math.min(points.length - 1, i + 2)];
+                const cp1x = p1.x + (p2.x - p0.x) * tension;
+                const cp1y = p1.y + (p2.y - p0.y) * tension;
+                const cp2x = p2.x - (p3.x - p1.x) * tension;
+                const cp2y = p2.y - (p3.y - p1.y) * tension;
+                c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+              }
+              c.stroke();
+            }
 
-            ctx.beginPath();
-            ctx.arc(100, 315, 260, 0, Math.PI * 2);
-            ctx.stroke();
+            if (hasAiData) {
+              // ===== AI分析データあり：勝率・目差のウェーブグラフを描画 =====
+              const leftX = 15;
+              const leftW = 275;
+              const rightX = 910;
+              const rightW = 275;
+              const gY = 60;
+              const gH = ogpHeight - 120;
+              const midY = gY + gH / 2;
 
-            ctx.beginPath();
-            ctx.arc(100, 315, 100, 0, Math.PI * 2);
-            ctx.stroke();
+              // --- 左側：勝率グラフ（黒の勝率 0-100% → Y軸） ---
+              const wrPts = aiWinratePoints.map((v, i) => ({
+                x: leftX + (i / (aiWinratePoints.length - 1)) * leftW,
+                // 50%が中央、上が黒有利
+                y: midY - ((v - 50) / 50) * (gH / 2) * 0.82,
+              }));
 
-            // 右側のあしらい：同心円
-            ctx.beginPath();
-            ctx.arc(1100, 315, 160, 0, Math.PI * 2);
-            ctx.stroke();
+              // 50%基準線（ほぼ見えない細いライン）
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = 'rgba(37, 53, 48, 0.06)';
+              ctx.setLineDash([4, 6]);
+              ctx.beginPath();
+              ctx.moveTo(leftX, midY);
+              ctx.lineTo(leftX + leftW, midY);
+              ctx.stroke();
+              ctx.setLineDash([]);
 
-            ctx.beginPath();
-            ctx.arc(1100, 315, 220, 0, Math.PI * 2);
-            ctx.stroke();
+              // 塗りつぶし（勝率 > 50% = 黒優勢エリア）
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(leftX, gY, leftW, gH);
+              ctx.clip();
 
-            ctx.beginPath();
-            ctx.arc(1100, 315, 80, 0, Math.PI * 2);
-            ctx.stroke();
+              // グラデーション塗り
+              const wrGrad = ctx.createLinearGradient(0, gY, 0, gY + gH);
+              wrGrad.addColorStop(0,   'rgba(37, 53, 48, 0.10)'); // 黒有利側
+              wrGrad.addColorStop(0.5, 'rgba(37, 53, 48, 0.02)');
+              wrGrad.addColorStop(1,   'rgba(220, 210, 200, 0.10)'); // 白有利側
+              ctx.fillStyle = wrGrad;
+              ctx.beginPath();
+              ctx.moveTo(wrPts[0].x, midY);
+              for (const pt of wrPts) { ctx.lineTo(pt.x, pt.y); }
+              ctx.lineTo(wrPts[wrPts.length - 1].x, midY);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
 
-            // サイトのブランドネーム「K I F U   S T O R E」（Cormorant Garamond 縦書き風）
-            ctx.fillStyle = 'rgba(37, 53, 48, 0.35)'; // 邪魔にならないが品良く読める薄い色
-            ctx.font = "italic 600 22px 'Cormorant Garamond', 'Shippori Mincho B1', serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            
-            ctx.save();
-            ctx.translate(110, 315);
-            ctx.rotate(-Math.PI / 2);
-            ctx.fillText("K I F U   S T O R E", 0, 0);
-            ctx.restore();
+              // 波線本体
+              ctx.lineWidth = 1.8;
+              ctx.strokeStyle = 'rgba(37, 53, 48, 0.22)';
+              drawSplineInRegion(ctx, wrPts, 0.35);
 
-            // 右側に対局情報（対局者、手番、結果など）を表示
+              // ラベル
+              ctx.fillStyle = 'rgba(37, 53, 48, 0.30)';
+              ctx.font = "400 10px 'JetBrains Mono', monospace";
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'top';
+              ctx.fillText('WIN RATE', leftX + 2, gY + 2);
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText('B  ●', leftX + 2, midY - 4);
+              ctx.fillText('W  ○', leftX + 2, midY + 14);
+
+              // --- 右側：目差グラフ（scoreLead: 黒視点） ---
+              const slPts = aiScorePoints.map((v, i) => ({
+                x: rightX + (i / (aiScorePoints.length - 1)) * rightW,
+                y: midY - (v / Math.max(1, Math.max(...aiScorePoints.map(Math.abs)))) * (gH / 2) * 0.78,
+              }));
+
+              // ゼロ基準線
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = 'rgba(37, 53, 48, 0.06)';
+              ctx.setLineDash([4, 6]);
+              ctx.beginPath();
+              ctx.moveTo(rightX, midY);
+              ctx.lineTo(rightX + rightW, midY);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              // 塗りつぶし
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(rightX, gY, rightW, gH);
+              ctx.clip();
+              const slGrad = ctx.createLinearGradient(0, gY, 0, gY + gH);
+              slGrad.addColorStop(0,   'rgba(37, 53, 48, 0.10)');
+              slGrad.addColorStop(0.5, 'rgba(37, 53, 48, 0.02)');
+              slGrad.addColorStop(1,   'rgba(200, 195, 185, 0.10)');
+              ctx.fillStyle = slGrad;
+              ctx.beginPath();
+              ctx.moveTo(slPts[0].x, midY);
+              for (const pt of slPts) { ctx.lineTo(pt.x, pt.y); }
+              ctx.lineTo(slPts[slPts.length - 1].x, midY);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
+
+              // 波線本体
+              ctx.lineWidth = 1.8;
+              ctx.strokeStyle = 'rgba(37, 53, 48, 0.22)';
+              drawSplineInRegion(ctx, slPts, 0.35);
+
+              // ラベル
+              ctx.fillStyle = 'rgba(37, 53, 48, 0.30)';
+              ctx.font = "400 10px 'JetBrains Mono', monospace";
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'top';
+              ctx.fillText('SCORE LEAD', rightX + 2, gY + 2);
+
+              // ブランドネームは左下に控えめに
+              ctx.fillStyle = 'rgba(37, 53, 48, 0.22)';
+              ctx.font = "italic 600 14px 'Cormorant Garamond', serif";
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText('K I F U   S T O R E', leftX + leftW / 2, ogpHeight - 12);
+
+            } else {
+              // ===== AI分析データなし：従来の同心円デザイン =====
+              ctx.lineWidth = 1.5;
+              ctx.strokeStyle = 'rgba(37, 53, 48, 0.08)';
+
+              ctx.beginPath();
+              ctx.arc(100, 315, 180, 0, Math.PI * 2);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(100, 315, 260, 0, Math.PI * 2);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(100, 315, 100, 0, Math.PI * 2);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(1100, 315, 160, 0, Math.PI * 2);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(1100, 315, 220, 0, Math.PI * 2);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(1100, 315, 80, 0, Math.PI * 2);
+              ctx.stroke();
+
+              // ブランドネーム
+              ctx.fillStyle = 'rgba(37, 53, 48, 0.35)';
+              ctx.font = "italic 600 22px 'Cormorant Garamond', 'Shippori Mincho B1', serif";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.save();
+              ctx.translate(110, 315);
+              ctx.rotate(-Math.PI / 2);
+              ctx.fillText("K I F U   S T O R E", 0, 0);
+              ctx.restore();
+            }
+
+            // 右側に対局情報（対局者、手番、結果など）を表示 — AI有無に関わらず共通
             ctx.fillStyle = 'rgba(37, 53, 48, 0.5)';
             ctx.font = "500 16px 'Shippori Mincho B1', 'Noto Sans JP', serif";
             
@@ -309,18 +461,33 @@
             }
 
             // 右側余白に対局情報と日付・結果を上品に縦書き（回転）して配置
+            // AI分析データがある場合は小さく右下に収める
             ctx.save();
-            ctx.translate(1090, 315);
-            ctx.rotate(Math.PI / 2);
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.font = "500 15px 'Shippori Mincho B1', 'Noto Sans JP', serif";
-            ctx.fillText(infoText, 0, -12); // 少し左にずらす
-            
-            if (subText) {
-              ctx.fillStyle = 'rgba(37, 53, 48, 0.35)';
-              ctx.font = "400 12px 'JetBrains Mono', 'Noto Sans JP', sans-serif";
-              ctx.fillText(subText, 0, 12); // 少し右にずらす
+            if (hasAiData) {
+              ctx.translate(1082, 315);
+              ctx.rotate(Math.PI / 2);
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillStyle = 'rgba(37, 53, 48, 0.40)';
+              ctx.font = "500 12px 'Shippori Mincho B1', 'Noto Sans JP', serif";
+              ctx.fillText(infoText, 0, -10);
+              if (subText) {
+                ctx.fillStyle = 'rgba(37, 53, 48, 0.28)';
+                ctx.font = "400 10px 'JetBrains Mono', 'Noto Sans JP', sans-serif";
+                ctx.fillText(subText, 0, 10);
+              }
+            } else {
+              ctx.translate(1090, 315);
+              ctx.rotate(Math.PI / 2);
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.font = "500 15px 'Shippori Mincho B1', 'Noto Sans JP', serif";
+              ctx.fillText(infoText, 0, -12);
+              if (subText) {
+                ctx.fillStyle = 'rgba(37, 53, 48, 0.35)';
+                ctx.font = "400 12px 'JetBrains Mono', 'Noto Sans JP', sans-serif";
+                ctx.fillText(subText, 0, 12);
+              }
             }
             ctx.restore();
             // -------------------------------------------------------------
