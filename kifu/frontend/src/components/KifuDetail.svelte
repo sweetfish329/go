@@ -162,8 +162,8 @@
     };
   });
 
-  // Display options accordion state
-  let showDisplayOptions = $state(false);
+  // 表示オプションモーダル
+  let showSettingsModal = $state(false);
 
   const isPublicProfileMode = $derived(!!userId && !!kifuId);
   const isOwner = $derived(!!kifu && auth.isLoggedIn && kifu.uploaded_by === auth.userId);
@@ -1007,7 +1007,6 @@
       reviewerName = auth.username;
     }
     loadKifu();
-    showDisplayOptions = !isMobileDevice;
   });
 </script>
 
@@ -1107,88 +1106,9 @@
             />
           </div>
 
-          <!-- Display Options Accordion -->
-          <div style="margin-top: 10px; border: 1.5px solid var(--wc-text); background: var(--wc-surface-alt); box-shadow: 3px 3px 0 var(--wc-text); margin-bottom: 12px; width: 100%; box-sizing: border-box; text-align: left;">
-            <!-- Accordion Header -->
-            <button
-              type="button"
-              onclick={() => showDisplayOptions = !showDisplayOptions}
-              style="width: 100%; border: none; background: none; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.85rem; color: var(--wc-text);"
-            >
-              <span style="display: inline-flex; align-items: center; gap: 6px;">
-                <i class="material-icons" style="font-size: 1.1rem; color: var(--wc-text);">settings</i>
-                表示オプション
-              </span>
-              <i class="material-icons" style="font-size: 1.2rem; transition: transform 0.2s ease; transform: {showDisplayOptions ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-text);">
-                keyboard_arrow_down
-              </i>
-            </button>
-
-            <!-- Accordion Content -->
-            {#if showDisplayOptions}
-              <div 
-                class="animate-fade-in" 
-                style="padding: 12px 16px; border-top: 1.5px solid var(--wc-text); display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; align-items: center; background: var(--wc-surface);"
-              >
-                <!-- Influence Toggle -->
-                <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
-                  <input
-                    type="checkbox"
-                    bind:checked={showInfluenceMap}
-                    style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
-                  />
-                  <span class="font-sans" style="font-size: 0.85rem; font-weight: 600; color: var(--wc-text);">
-                    勢力図 (Influence)
-                  </span>
-                </label>
-
-                <!-- Dead Stones Toggle -->
-                <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
-                  <input
-                    type="checkbox"
-                    bind:checked={showDeadStones}
-                    style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
-                  />
-                  <span class="font-sans" style="font-size: 0.85rem; font-weight: 600; color: var(--wc-text);">
-                    死活判定 (Dead Stones)
-                  </span>
-                </label>
-
-                <!-- AI Candidates Toggle -->
-                <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
-                  <input
-                    type="checkbox"
-                    checked={showAiAnalysis}
-                    onchange={(e) => {
-                      showAiAnalysis = (e.target as HTMLInputElement).checked;
-                      updatePlayerState();
-                    }}
-                    style="width: 15px; height: 15px; margin-right: 6px; cursor: pointer; accent-color: var(--wc-text);"
-                  />
-                  <span class="font-sans" style="font-size: 0.85rem; font-weight: 600; color: var(--wc-text);">
-                    候補手を表示 (AI Moves)
-                  </span>
-                </label>
-
-                <div style="flex-grow: 1; min-width: 10px;"></div>
-
-                <!-- Path Export Button -->
-                <button
-                  type="button"
-                  onclick={handleExportPath}
-                  class="nm-btn-flat"
-                  style="padding: 2px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 0; display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 2px 2px 0 var(--wc-text);"
-                  title="最初から現在の手順までのSGFをコピーします"
-                >
-                  <i class="material-icons" style="font-size: 0.95rem;">file_download</i>
-                  <span>現在の手順を出力</span>
-                </button>
-              </div>
-            {/if}
-          </div>
 
           <!-- Buttons Row -->
-          <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
+          <div class="buttons-row" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center;">
             <button type="button" class="nm-btn-flat" onclick={goFirst} title="最初へ" aria-label="最初の手へ移動">
               <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">first_page</i>
             </button>
@@ -1209,6 +1129,16 @@
             </button>
             <button type="button" class="nm-btn-flat" onclick={goLast} title="最後へ" aria-label="最後の手へ移動">
               <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
+            </button>
+            <!-- 表示オプションアイコンボタン -->
+            <button
+              type="button"
+              class="nm-btn-flat settings-icon-btn {showSettingsModal ? 'active' : ''}"
+              onclick={() => showSettingsModal = true}
+              title="表示オプション"
+              aria-label="表示オプションを開く"
+            >
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">tune</i>
             </button>
           </div>
 
@@ -1651,6 +1581,93 @@
   />
 {/if}
 
+<!-- 表示オプション ボトムシートモーダル -->
+{#if showSettingsModal}
+  <!-- Backdrop -->
+  <div
+    class="settings-backdrop"
+    onclick={() => showSettingsModal = false}
+    role="presentation"
+  ></div>
+  <!-- Sheet -->
+  <div class="settings-sheet animate-slide-up" role="dialog" aria-modal="true" aria-label="表示オプション">
+    <!-- Handle bar -->
+    <div class="settings-sheet-handle"></div>
+    <div class="settings-sheet-header">
+      <span class="settings-sheet-title">
+        <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 6px;">tune</i>
+        表示オプション
+      </span>
+      <button type="button" class="settings-sheet-close" onclick={() => showSettingsModal = false} aria-label="閉じる">
+        <i class="material-icons" style="font-size: 1.1rem;">close</i>
+      </button>
+    </div>
+    <div class="settings-sheet-body">
+      <!-- トグル行 -->
+      <label class="settings-toggle-row">
+        <span class="settings-toggle-label">
+          <i class="material-icons settings-toggle-icon">blur_on</i>
+          勢力図 <span class="settings-toggle-sub">Influence Map</span>
+        </span>
+        <button
+          type="button"
+          class="settings-switch {showInfluenceMap ? 'on' : ''}"
+          onclick={() => showInfluenceMap = !showInfluenceMap}
+          role="switch"
+          aria-checked={showInfluenceMap}
+        >
+          <span class="settings-switch-thumb"></span>
+        </button>
+      </label>
+
+      <label class="settings-toggle-row">
+        <span class="settings-toggle-label">
+          <i class="material-icons settings-toggle-icon">circle</i>
+          死活判定 <span class="settings-toggle-sub">Dead Stones</span>
+        </span>
+        <button
+          type="button"
+          class="settings-switch {showDeadStones ? 'on' : ''}"
+          onclick={() => showDeadStones = !showDeadStones}
+          role="switch"
+          aria-checked={showDeadStones}
+        >
+          <span class="settings-switch-thumb"></span>
+        </button>
+      </label>
+
+      <label class="settings-toggle-row">
+        <span class="settings-toggle-label">
+          <i class="material-icons settings-toggle-icon">auto_fix_high</i>
+          AI候補手 <span class="settings-toggle-sub">AI Moves</span>
+        </span>
+        <button
+          type="button"
+          class="settings-switch {showAiAnalysis ? 'on' : ''}"
+          onclick={() => { showAiAnalysis = !showAiAnalysis; updatePlayerState(); }}
+          role="switch"
+          aria-checked={showAiAnalysis}
+        >
+          <span class="settings-switch-thumb"></span>
+        </button>
+      </label>
+
+      <!-- 区切り線 -->
+      <div class="settings-divider"></div>
+
+      <!-- SGF出力ボタン -->
+      <button
+        type="button"
+        class="settings-action-btn"
+        onclick={() => { handleExportPath(); showSettingsModal = false; }}
+      >
+        <i class="material-icons" style="font-size: 1.1rem;">file_download</i>
+        現在の手順をSGF出力
+      </button>
+    </div>
+  </div>
+{/if}
+
 
   <style>
   .animate-fade-in {
@@ -1954,5 +1971,178 @@
       cursor: pointer;
       flex-shrink: 0;
     }
+  }
+
+  /* ---- 表示オプション モーダルシート ---- */
+  :global(.settings-backdrop) {
+    position: fixed;
+    inset: 0;
+    background: rgba(37, 53, 48, 0.35);
+    z-index: 900;
+    backdrop-filter: blur(2px);
+  }
+
+  :global(.settings-sheet) {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: min(480px, 100%);
+    z-index: 901;
+    background: var(--wc-surface);
+    border: 2px solid var(--wc-text);
+    border-bottom: none;
+    box-shadow: 0 -4px 0 0 var(--wc-text);
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    border-radius: 0;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateX(-50%) translateY(100%); }
+    to   { transform: translateX(-50%) translateY(0); }
+  }
+  :global(.animate-slide-up) {
+    animation: slideUp 0.22s cubic-bezier(0.25, 0.8, 0.25, 1) both;
+  }
+
+  :global(.settings-sheet-handle) {
+    width: 36px;
+    height: 4px;
+    background: var(--wc-border);
+    border-radius: 2px;
+    margin: 10px auto 6px;
+  }
+
+  :global(.settings-sheet-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px 10px;
+    border-bottom: 1.5px solid var(--wc-text);
+  }
+
+  :global(.settings-sheet-title) {
+    font-family: 'Shippori Mincho B1', serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--wc-text);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  :global(.settings-sheet-close) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1.5px solid var(--wc-text);
+    background: var(--wc-surface-alt);
+    box-shadow: 2px 2px 0 var(--wc-text);
+    color: var(--wc-text);
+    cursor: pointer;
+  }
+
+  :global(.settings-sheet-body) {
+    padding: 8px 16px 4px;
+  }
+
+  :global(.settings-toggle-row) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--wc-border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  :global(.settings-toggle-label) {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Shippori Mincho B1', serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--wc-text);
+  }
+
+  :global(.settings-toggle-icon) {
+    font-size: 1.15rem;
+    color: var(--wc-text);
+    opacity: 0.7;
+  }
+
+  :global(.settings-toggle-sub) {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 400;
+    opacity: 0.5;
+    margin-left: 4px;
+  }
+
+  /* トグルスイッチ */
+  :global(.settings-switch) {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    border: 1.5px solid var(--wc-text);
+    background: var(--wc-surface-alt);
+    box-shadow: 2px 2px 0 var(--wc-text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+    padding: 0;
+  }
+  :global(.settings-switch.on) {
+    background: var(--wc-text);
+  }
+  :global(.settings-switch-thumb) {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--wc-text);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  :global(.settings-switch.on .settings-switch-thumb) {
+    transform: translateX(18px);
+    background: var(--wc-surface);
+  }
+
+  :global(.settings-divider) {
+    height: 1px;
+    background: var(--wc-text);
+    margin: 6px 0 10px;
+    opacity: 0.2;
+  }
+
+  :global(.settings-action-btn) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--wc-surface-alt);
+    border: 1.5px solid var(--wc-text);
+    box-shadow: 2px 2px 0 var(--wc-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--wc-text);
+    cursor: pointer;
+    margin-bottom: 8px;
+    text-align: left;
+    letter-spacing: 0.03em;
+  }
+
+  /* ⚙ アイコンボタン アクティブ時 */
+  .settings-icon-btn.active {
+    background: var(--wc-text) !important;
+    color: var(--wc-surface) !important;
+  }
+  .settings-icon-btn.active i {
+    color: var(--wc-surface) !important;
   }
 </style>
