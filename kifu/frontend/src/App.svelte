@@ -16,6 +16,13 @@
   let selectedUserId = $state("");
   let showUsernameDialog = $state(false);
 
+  // 共有URL経由アクセスかどうか（ヘッダーをミニマルにする判定）
+  const isSharedView = $derived(
+    !!(selectedShareToken) ||
+    (currentView === 'detail' && !!selectedUserId && !auth.isLoggedIn) ||
+    (currentView === 'public_list' && !!selectedUserId && !auth.isLoggedIn)
+  );
+
   let siteSettings = $state({
     title: 'kifu_store',
     tab_name: 'kifu_store',
@@ -272,7 +279,7 @@
   ></div>
 
   <!-- Newspaper/Portfolio Masthead Header -->
-  <header class="container" class:compact-header={currentView === 'detail' || currentView === 'create'} style="position: relative;">
+  <header class="container" class:compact-header={currentView === 'detail' || currentView === 'create'} class:shared-header={isSharedView} style="position: relative;">
     <!-- Huge background decoration text for extreme editorial contrast (gorgous deep parallax) -->
     <div 
       class="em-huge-title masthead-bg-title masthead-bg-title-parallax" 
@@ -341,7 +348,7 @@
   </header>
 
   <!-- Main Container -->
-  <main class="container" style="padding-bottom: 5rem; padding-top: 2rem;">
+  <main class="container" class:shared-main={isSharedView} style="padding-bottom: 5rem; padding-top: 2rem;">
     {#if currentView === "loading"}
       <div class="center-align" style="margin-top: 5rem;">
         <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto;"></div>
@@ -404,6 +411,42 @@
   }
   header.container.compact-header .masthead-title-link > span:first-child {
     display: none !important;
+  }
+
+  /* ---- 共有URLアクセス時：ミニマルヘッダー ---- */
+  header.container.shared-header {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  /* すべてのデコレーション・マストヘッドを非表示 */
+  header.container.shared-header .masthead-bg-title,
+  header.container.shared-header .parallax-tag-left,
+  header.container.shared-header .parallax-tag-right,
+  header.container.shared-header .masthead-ornament-text,
+  header.container.shared-header .em-newspaper-meta-bar {
+    display: none !important;
+  }
+  /* マストヘッド全体を最小化 */
+  header.container.shared-header .em-newspaper-masthead {
+    padding: 8px 0 4px 0 !important;
+    border-bottom: 1px solid var(--wc-border, rgba(37,53,48,0.15)) !important;
+    margin-bottom: 0 !important;
+  }
+  header.container.shared-header .masthead-flex-row {
+    justify-content: center !important;
+    margin-bottom: 0 !important;
+  }
+  /* サイト名をコンパクトに */
+  header.container.shared-header .masthead-site-title {
+    font-size: 1.1rem !important;
+    letter-spacing: 0.25em !important;
+    opacity: 0.55 !important;
+  }
+  /* mainの上部余白もリセット */
+  main.container.shared-main {
+    padding-top: 0.75rem !important;
   }
 
   .app-shell {
