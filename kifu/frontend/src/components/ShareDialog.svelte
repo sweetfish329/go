@@ -285,8 +285,8 @@
               const leftW = 275;
               const rightX = 910;
               const rightW = 275;
-              const gY = 60;
-              const gH = ogpHeight - 120;
+              const gY = 140;
+              const gH = 350;
               const midY = gY + gH / 2;
 
               // --- 左側：勝率グラフ（黒の勝率 0-100% → Y軸） ---
