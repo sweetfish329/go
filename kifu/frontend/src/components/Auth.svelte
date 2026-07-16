@@ -929,4 +929,16 @@
       font-size: 2.2rem !important;
     }
   }
+
+  /* Respect prefers-reduced-motion for user accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .scrolly-card,
+    .sticky-board-container,
+    :global(.animate-bounce) {
+      transition: none !important;
+      animation: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+    }
+  }
 </style>
