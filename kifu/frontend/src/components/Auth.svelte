@@ -286,7 +286,7 @@
         </p>
         <div class="font-sans" style="font-size: 0.8rem; font-weight: 700; color: var(--wc-accent); display: flex; align-items: center; gap: 8px;">
           <span>下へスクロールして機能を体験する</span>
-          <i class="material-icons animate-bounce" style="font-size: 1rem;">arrow_downward</i>
+          <i class="material-icons animate-bounce" aria-hidden="true" style="font-size: 1rem;">arrow_downward</i>
         </div>
       </div>
       <!-- Huge Deco Number -->
@@ -398,13 +398,13 @@
           <!-- Playback Mini Controls -->
           <div class="board-mini-controls" style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
             <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-              <i class="material-icons" style="font-size: 1.15rem;">chevron_left</i>
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_left</i>
             </button>
             <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-              <i class="material-icons" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
             </button>
             <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-              <i class="material-icons" style="font-size: 1.15rem;">chevron_right</i>
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_right</i>
             </button>
             <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
               {player.currentIndex} / {player.history.length - 1} 手目
