@@ -55,6 +55,7 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("DELETE /api/kifus/{id}", AuthMiddleware(http.HandlerFunc(h.Delete)))
 
 	// Public routes
+	mux.HandleFunc("GET /api/public/random", h.GetRandomPublic)
 	mux.HandleFunc("GET /api/share/{token}", h.GetShared)
 	mux.HandleFunc("GET /api/share/{token}/og-image", h.GetSharedOgImage)
 	mux.HandleFunc("GET /api/u/{userId}/kifus", h.ListPublic)
@@ -929,4 +930,18 @@ func (h *KifuHandler) GetSharedSgf(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(kifu.SgfData)))
 	_, _ = w.Write([]byte(kifu.SgfData))
+}
+
+// GetRandomPublic returns a random public kifu
+func (h *KifuHandler) GetRandomPublic(w http.ResponseWriter, r *http.Request) {
+	kifu, err := h.repo.FindRandomPublic()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "No public kifus found")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, kifu)
 }

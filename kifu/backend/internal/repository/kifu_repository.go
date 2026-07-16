@@ -290,3 +290,35 @@ func (r *KifuRepository) GetOgpImageByShareToken(token string) ([]byte, error) {
 	}
 	return imgData, nil
 }
+
+func (r *KifuRepository) FindRandomPublic() (*model.Kifu, error) {
+	query := `
+	SELECT id, title, black_player, black_rank, white_player, white_rank,
+	       game_date, result, komi, handicap, sgf_data, uploaded_by, share_token, share_expires_at, is_private, created_at, updated_at
+	FROM kifus
+	WHERE is_private = false
+	ORDER BY RANDOM()
+	LIMIT 1`
+
+	k := &model.Kifu{}
+	var gameDate string
+	err := r.db.QueryRow(query).Scan(
+		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil // not found
+		}
+		return nil, fmt.Errorf("failed to find random public kifu: %w", err)
+	}
+
+	if len(gameDate) >= 10 {
+		k.GameDate = gameDate[:10]
+	} else {
+		k.GameDate = gameDate
+	}
+
+	return k, nil
+}

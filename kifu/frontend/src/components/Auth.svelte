@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import Board from './Board.svelte';
+  import { SgfPlayer } from '../lib/sgfPlayer';
 
   let error = $state<string | null>(null);
   let loading = $state(true);
@@ -9,7 +11,25 @@
     meta: false
   });
 
+  // SGF and Board states
+  let kifuData = $state<any>(null);
+  let sgfText = $state("");
+  let player = $state<SgfPlayer | null>(null);
+  let boardState = $state<number[][]>([]);
+  let lastMove = $state<{ x: number; y: number } | null>(null);
+  let boardSize = $state(19);
+
+  // Autoplay and Scrollytelling states
+  let autoplayInterval: any = null;
+  let autoplayDirection = $state(1); // 1 = forward, -1 = backward, 0 = paused/manual
+  let userInteracted = $state(false);
+  let activeSection = $state(1);
+
+  // Fallback famous SGF: Shusaku's Ear-Reddening Game (first 60 moves)
+  const fallbackSgf = `(;GM[1]FF[4]SZ[19]KM[0.0]PB[安田栄斎]BR[四段]PW[幻庵因碩]WR[八段]RE[B+3]DT[1846-09-11]EV[赤耳局];B[qd];W[dc];B[pq];W[oc];B[cp];W[po];B[qo];W[qn];B[ro];W[pp];B[qp];W[oq];B[op];W[pn];B[np];W[qq];B[pr];W[or];B[qr];W[rq];B[rr];W[rp];B[rn];W[rm];B[qm];W[ql];B[pm];W[om];B[pl];W[pk];B[ol];W[nl];B[ok];W[oj];B[nk];W[mk];B[nj];W[ni];B[mj];W[lj];B[mi];W[mh];B[li];W[ki];B[lh];W[lg];B[kh];W[jh];B[kg];W[kf];B[jg];W[ig];B[jf];W[je];B[if];W[hf];B[ie];W[id];B[he];W[ge])`;
+
   onMount(async () => {
+    // 1. Fetch OAuth providers
     try {
       const res = await fetch('/api/auth/providers');
       if (res.ok) {
@@ -20,41 +40,255 @@
     } finally {
       loading = false;
     }
+
+    // 2. Fetch random public SGF
+    try {
+      const res = await fetch('/api/public/random');
+      if (res.ok) {
+        kifuData = await res.json();
+        sgfText = kifuData.sgf_data;
+      } else {
+        sgfText = fallbackSgf;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch random public kifu, using fallback Shusaku SGF", err);
+      sgfText = fallbackSgf;
+    }
+
+    // 3. Initialize SgfPlayer
+    if (sgfText) {
+      boardSize = sgfText.includes("SZ[9]") ? 9 : sgfText.includes("SZ[13]") ? 13 : 19;
+      player = new SgfPlayer(sgfText, boardSize);
+      updateBoardState();
+      startAutoplay();
+    }
+
+    // 4. Setup Scroll observer/listener for scrollytelling
+    setupScrollObserver();
   });
+
+  onDestroy(() => {
+    if (autoplayInterval) clearInterval(autoplayInterval);
+    if (animationTimer) clearTimeout(animationTimer);
+  });
+
+  function updateBoardState() {
+    if (!player) return;
+    const state = player.getCurrentState();
+    boardState = state.board;
+    lastMove = state.lastMove;
+  }
+
+  function startAutoplay() {
+    if (autoplayInterval) clearInterval(autoplayInterval);
+    autoplayInterval = setInterval(() => {
+      if (userInteracted || !player) return;
+      
+      const maxIdx = player.history.length - 1;
+      const limit = Math.min(60, maxIdx); // Limit autoplay to 60 moves to keep it engaging
+      
+      if (autoplayDirection === 1) {
+        if (player.currentIndex < limit) {
+          player.stepForward();
+        } else {
+          autoplayDirection = -1;
+        }
+      } else if (autoplayDirection === -1) {
+        if (player.currentIndex > 0) {
+          player.stepBackward();
+        } else {
+          autoplayDirection = 1;
+        }
+      }
+      updateBoardState();
+    }, 1800);
+  }
 
   function handleOAuth(provider: string) {
     loading = true;
     error = null;
     window.location.href = `/api/auth/oauth/redirect/${provider}`;
   }
+
+  // Scroll Observation for Scrollytelling
+  function setupScrollObserver() {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const secId = entry.target.getAttribute('id');
+          if (secId === 'scrolly-sec-1') {
+            activeSection = 1;
+            animateToMove(15);
+          } else if (secId === 'scrolly-sec-2') {
+            activeSection = 2;
+            animateToMove(35);
+          } else if (secId === 'scrolly-sec-3') {
+            activeSection = 3;
+            animateToMove(55);
+          } else if (secId === 'scrolly-sec-4') {
+            activeSection = 4;
+            if (player) {
+              animateToMove(player.history.length - 1);
+            }
+          }
+        }
+      });
+    }, {
+      threshold: 0.5,
+      rootMargin: "-15% 0px -15% 0px"
+    });
+
+    // Defer observation briefly to ensure elements are in DOM
+    setTimeout(() => {
+      document.querySelectorAll('.scrolly-section').forEach(el => {
+        observer.observe(el);
+      });
+    }, 100);
+  }
+
+  let animationTimer: any = null;
+  function animateToMove(targetMove: number) {
+    if (!player) return;
+    userInteracted = true; // Pause auto autoplay
+    
+    if (animationTimer) clearTimeout(animationTimer);
+    
+    const step = () => {
+      if (!player) return;
+      const cur = player.currentIndex;
+      if (cur === targetMove) {
+        // Resume autoplay loop after 6 seconds of no scroll activity
+        setTimeout(() => { userInteracted = false; }, 6000);
+        return;
+      }
+      
+      if (cur < targetMove) {
+        player.stepForward();
+      } else {
+        player.stepBackward();
+      }
+      updateBoardState();
+      
+      animationTimer = setTimeout(step, 70); // Rapid replay animation
+    };
+    
+    step();
+  }
+
+  // Playback manual navigation
+  function handlePrevMove() {
+    if (!player) return;
+    userInteracted = true;
+    player.stepBackward();
+    updateBoardState();
+  }
+
+  // Playback manual navigation
+  function handleNextMove() {
+    if (!player) return;
+    userInteracted = true;
+    player.stepForward();
+    updateBoardState();
+  }
+
+  function handleTogglePlay() {
+    if (autoplayDirection !== 0) {
+      autoplayDirection = 0; // Pause
+      if (autoplayInterval) {
+        clearInterval(autoplayInterval);
+        autoplayInterval = null;
+      }
+    } else {
+      autoplayDirection = 1; // Play
+      userInteracted = false;
+      startAutoplay();
+    }
+  }
 </script>
 
-<div class="auth-container animate-fade-in" style="margin-top: 2rem; position: relative;">
-  <div class="row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 30px 0;">
-    <!-- Left Column: Giant Editorial Typo (Magazine Style) -->
-    <div class="col s12 l7" style="position: relative; z-index: 2; padding-right: 40px; text-align: left;">
-      <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; display: inline-block; margin-bottom: 20px;">
-        CATALOGUE SYSTEM
-      </span>
-      <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 6rem; font-style: italic; font-weight: 800; line-height: 0.9; color: var(--wc-text); margin: 0 0 20px 0; letter-spacing: -0.02em;">
-        the gateway.
-      </h2>
-      <div style="border-left: 3px solid var(--wc-text); padding-left: 20px; max-width: 440px;">
-        <p style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.6; color: var(--wc-text); margin: 0 0 12px 0;">
-          美しさと戦術が交錯する、私的な記録庫へ。
-        </p>
-        <p style="font-family: 'DM Sans', sans-serif; font-size: 0.85rem; line-height: 1.6; color: var(--wc-text-muted); margin: 0;">
-          Kifu Store is a minimal, grid-driven digital archive for preserving and analyzing Go match specifications. Please verify your identity using your preferred network below.
-        </p>
-      </div>
-      <!-- Huge Deco Number -->
-      <div style="position: absolute; bottom: -80px; left: -10px; opacity: 0.05; font-family: 'Cormorant Garamond', serif; font-size: 14rem; font-weight: 900; pointer-events: none; user-select: none;">
-        01
+<div class="auth-container animate-fade-in" style="margin-top: 2rem; position: relative; padding-bottom: 5rem;">
+  <!-- Washi Decorative Background Dots -->
+  <div class="auth-washi-dot auth-washi-dot--1"></div>
+  <div class="auth-washi-dot auth-washi-dot--2"></div>
+
+  <div class="row" style="display: flex; flex-wrap: wrap; gap: 40px 0;">
+    <!-- Left Column: Sticky Go Board (Desktop) / Flow (Mobile) -->
+    <div class="col s12 m6" style="position: relative; z-index: 2;">
+      <div class="sticky-board-container">
+        <!-- Floating Badge -->
+        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
+          LIVE REPLAY ARCHIVE
+        </span>
+
+        {#if player && boardState.length > 0}
+          <div class="board-wrapper" style="width: 100%; max-width: 380px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-text); border: 1.5px solid var(--wc-text);">
+            <Board
+              board={boardState}
+              size={boardSize}
+              lastMove={lastMove}
+              interactive={false}
+            />
+          </div>
+          
+          <!-- Playback Navigation Mini Controls -->
+          <div class="board-mini-controls" style="margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
+            <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+              <i class="material-icons" style="font-size: 1.15rem;">chevron_left</i>
+            </button>
+            <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+              <i class="material-icons" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
+            </button>
+            <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+              <i class="material-icons" style="font-size: 1.15rem;">chevron_right</i>
+            </button>
+            <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
+              {player.currentIndex} / {player.history.length - 1} 手目
+            </span>
+          </div>
+
+          <!-- Game Info Badge -->
+          <div class="game-info-badge" style="margin-top: 20px; width: 100%; max-width: 380px; border: 1.5px solid var(--wc-text); padding: 12px 16px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-text); text-align: left; box-sizing: border-box;">
+            {#if kifuData}
+              <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.95rem; color: var(--wc-text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title={kifuData.title}>
+                {kifuData.title || '公開棋譜'}
+              </div>
+              <div style="font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 6px; margin-top: 6px;">
+                <span>● {kifuData.black_player || '黒'} ({kifuData.black_rank || '-'})</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; opacity: 0.5;">VS</span>
+                <span>○ {kifuData.white_player || '白'} ({kifuData.white_rank || '-'})</span>
+              </div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-text-muted); margin-top: 6px; text-align: right; opacity: 0.75;">
+                結果: {kifuData.result || '-'} / {kifuData.game_date || '-'}
+              </div>
+            {:else}
+              <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.95rem; color: var(--wc-text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                第12回 秀策の耳赤の一局 (Fallback)
+              </div>
+              <div style="font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 6px; margin-top: 6px;">
+                <span>● 安田栄斎 (四段)</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; opacity: 0.5;">VS</span>
+                <span>○ 幻庵因碩 (八段)</span>
+              </div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--wc-text-muted); margin-top: 6px; text-align: right; opacity: 0.75;">
+                結果: B+3 (黒3目勝) / 1846-09-11
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <div style="padding: 3rem 0; text-align: center; color: var(--wc-text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; width: 100%;">
+            <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 28px; height: 28px; margin-bottom: 12px;"></div>
+            LOADING LIVE BOARD STATE...
+          </div>
+        {/if}
       </div>
     </div>
 
-    <!-- Right Column: Login Card -->
-    <div class="col s12 l5" style="position: relative; z-index: 3;">
+    <!-- Right Column: Login Card & Scrollytelling Sections -->
+    <div class="col s12 m6" style="position: relative; z-index: 3; display: flex; flex-direction: column; gap: 2.5rem;">
+      
+      <!-- Access Gate Login Card -->
       <div class="em-portfolio-section auth-card" style="border-color: var(--wc-text) !important; transform: rotate(-1.5deg); box-shadow: 8px 8px 0px var(--wc-text) !important; background: var(--wc-surface) !important; transition: transform 0.3s ease;">
         <!-- Overlap Badge with Floating animation -->
         <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.72rem; z-index: 10; box-shadow: 2.5px 2.5px 0px var(--wc-text); transform: rotate(1deg);">
@@ -134,11 +368,45 @@
           <p class="auth-footer-deco" style="font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--wc-text-muted); opacity: 0.7; margin-top: 30px; letter-spacing: 0.22em; text-transform: uppercase; text-align: center;">○ ARCHIVE ACCESS PLATFORM ○</p>
         </div>
       </div>
+
+      <!-- Scrollytelling Sections -->
+      <div class="scrolly-narrative-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="scrolly-section" id="scrolly-sec-1" class:active={activeSection === 1}>
+          <span class="scrolly-tag font-mono">01 / REPLAY</span>
+          <h3 class="scrolly-title font-mincho">盤上の美しき再現</h3>
+          <p class="scrolly-text font-sans">
+            対局の流れを一手ずつ、美しい碁盤上に再現。歴史的銘局からあなたの自戦記まで、生命を吹き込むように棋譜をたどることができます。
+          </p>
+        </div>
+
+        <div class="scrolly-section" id="scrolly-sec-2" class:active={activeSection === 2}>
+          <span class="scrolly-tag font-mono">02 / AI GRAPH</span>
+          <h3 class="scrolly-title font-mincho">AI 勝率・目数差分析</h3>
+          <p class="scrolly-text font-sans">
+            一手ごとの勝率グラフと詳細な形勢判断を視覚化。最善手と悪手の落差を一目で把握し、直感的な形勢・戦術分析を実現します。
+          </p>
+        </div>
+
+        <div class="scrolly-section" id="scrolly-sec-3" class:active={activeSection === 3}>
+          <span class="scrolly-tag font-mono">03 / INSTANT SHARE</span>
+          <h3 class="scrolly-title font-mincho">スマート共有とカスタムOGP</h3>
+          <p class="scrolly-text font-sans">
+            対局の最もエキサイティングな瞬間をOGP画像に指定し、SNSで一発共有。限定公開・一般公開もワンクリックでシームレスに制御できます。
+          </p>
+        </div>
+
+        <div class="scrolly-section" id="scrolly-sec-4" class:active={activeSection === 4}>
+          <span class="scrolly-tag font-mono">04 / COLLABORATIVE REVIEWS</span>
+          <h3 class="scrolly-title font-mincho">双方向の添削指導とコメント</h3>
+          <p class="scrolly-text font-sans">
+            盤上の任意の局面に変化図や解説コメントを書き込み、対局を豊かに分析。他者との添削コラボレーションにより、技術の深まりをサポートします。
+          </p>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
-
-
 
 <style>
   .auth-container {
@@ -146,7 +414,74 @@
     position: relative;
   }
 
-  /* Decorative washi dots (静的・アニメーションなし) */
+  /* Sticky Board container for scrollytelling */
+  .sticky-board-container {
+    position: sticky;
+    top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    border: 2.5px solid var(--wc-text);
+    background: var(--wc-surface-alt);
+    box-shadow: 6px 6px 0px var(--wc-text);
+    z-index: 10;
+  }
+
+  @media (max-width: 600px) {
+    .sticky-board-container {
+      position: relative;
+      top: 0;
+      padding: 1rem;
+      box-shadow: 4px 4px 0px var(--wc-text);
+      margin-bottom: 2rem;
+    }
+  }
+
+  /* Scrollytelling Sections */
+  .scrolly-section {
+    padding: 2.2rem 2rem;
+    border: 2px solid var(--wc-text);
+    background: var(--wc-surface);
+    box-shadow: 4px 4px 0px var(--wc-text);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    opacity: 0.4;
+    transform: translateY(15px);
+    text-align: left;
+    will-change: transform, opacity;
+  }
+
+  .scrolly-section.active {
+    opacity: 1;
+    transform: translateY(0);
+    border-color: var(--wc-accent);
+    box-shadow: 6px 6px 0px var(--wc-accent);
+  }
+
+  .scrolly-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--wc-accent);
+    display: block;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.08em;
+  }
+
+  .scrolly-title {
+    font-size: 1.45rem !important;
+    font-weight: 700 !important;
+    margin: 0 0 0.8rem 0 !important;
+    color: var(--wc-text);
+  }
+
+  .scrolly-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--wc-text-muted);
+    margin: 0;
+  }
+
+  /* Decorative washi dots */
   .auth-washi-dot {
     position: absolute;
     border-radius: 50%;
@@ -180,23 +515,6 @@
     position: relative;
     margin-bottom: 16px;
     gap: 6px;
-  }
-
-  .auth-main-icon {
-    font-size: 2.5rem;
-    color: var(--wc-go-black);
-    line-height: 1;
-    text-shadow: 2px 3px 6px rgba(0,0,0,0.25);
-  }
-
-  .auth-go-white {
-    position: relative;
-    top: -10px;
-    font-size: 1.8rem;
-    color: transparent;
-    text-shadow: 0 0 0 var(--wc-go-white);
-    filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.15));
-    line-height: 1;
   }
 
   /* Title */
@@ -323,7 +641,7 @@
     border-color: rgba(24, 119, 242, 0.5) !important;
   }
 
-  /* Footer decoration — 碁石パターン */
+  /* Footer decoration */
   .auth-footer-deco {
     text-align: center;
     margin-top: 2rem;
@@ -334,7 +652,6 @@
     opacity: 0.35;
   }
 
-  /* Loading spinner override */
   .mx-auto {
     margin-left: auto;
     margin-right: auto;
