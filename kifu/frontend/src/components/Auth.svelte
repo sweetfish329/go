@@ -279,13 +279,13 @@
       </h2>
       <div style="border-left: 3px solid var(--wc-text); padding-left: 20px; max-width: 440px;">
         <p style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.6; color: var(--wc-text); margin: 0 0 12px 0;">
-          お気に入りの対局を、もっと美しく、スマートに。
+          私のペースで楽しむ、囲碁の時間。
         </p>
         <p style="font-family: 'DM Sans', sans-serif; font-size: 0.85rem; line-height: 1.6; color: var(--wc-text-muted); margin: 0; margin-bottom: 24px;">
-          Kifu Storeは、あなたの対局や研究の記録をセンスよく保存し、いつでも心地よく振り返るためのデジタル・アーカイブです。
+          Kifu Storeは、好きな対局や日々の記録をのんびり残すための場所。ノートに綴るみたいに、いつでも心地よく振り返ることができます。
         </p>
         <div class="font-sans" style="font-size: 0.8rem; font-weight: 700; color: var(--wc-accent); display: flex; align-items: center; gap: 8px;">
-          <span>スクロールして体験する</span>
+          <span>スクロールして見てみる</span>
           <i class="material-icons animate-bounce" aria-hidden="true" style="font-size: 1rem;">arrow_downward</i>
         </div>
       </div>
@@ -449,9 +449,9 @@
       <div class="scrolly-step left-side" id="scrolly-sec-1" class:active={activeSection === 1}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">01 / REPLAY</span>
-          <h3 class="scrolly-title font-mincho">心地よく振り返る、一手のストーリー</h3>
+          <h3 class="scrolly-title font-mincho">ゆっくり眺める、お気に入りの一局</h3>
           <p class="scrolly-text font-sans">
-            対局のプロセスを一手ずつ、洗練された碁盤でスムーズに再生。お気に入りの対局を、まるで雑誌をめくるように美しく振り返ることができます。
+            対局の流れをぽちぽちと再生。お気に入りの対局を、パラパラと本をめくるように、自分のペースでゆっくり振り返ることができます。
           </p>
         </div>
       </div>
@@ -459,9 +459,9 @@
       <div class="scrolly-step right-side" id="scrolly-sec-2" class:active={activeSection === 2}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">02 / AI GRAPH</span>
-          <h3 class="scrolly-title font-mincho">一瞬でわかる、形勢のバイオリズム</h3>
+          <h3 class="scrolly-title font-mincho">AIと一緒に、ゲームの流れをふり返る</h3>
           <p class="scrolly-text font-sans">
-            AIによる勝率グラフと形勢判断をグラフィカルに表示。対局の波を視覚的に捉え、次のステップへの気づきをスマートにサポートします。
+            勝率グラフと形勢判断をなんとなく眺めて。対局の山あり谷ありをビジュアルで捉え、「次はこう打とうかな」を気楽に見つけることができます。
           </p>
         </div>
       </div>
@@ -469,9 +469,9 @@
       <div class="scrolly-step left-side" id="scrolly-sec-3" class:active={activeSection === 3}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">03 / INSTANT SHARE</span>
-          <h3 class="scrolly-title font-mincho">お気に入りの瞬間を、センスよくシェア</h3>
+          <h3 class="scrolly-title font-mincho">「ここ！」という局面を、パッとシェア</h3>
           <p class="scrolly-text font-sans">
-            対局のベストショットをカスタムOGP画像にして、SNSでスマートに共有。ワンクリックで公開・非公開を設定でき、大切な記録をシンプルに管理できます。
+            ベストな局面を切り取って、SNSなどでパッとシェア。公開・非公開の切り替えもワンクリックで、自分だけの秘密のメモにもできます。
           </p>
         </div>
       </div>
@@ -479,9 +479,9 @@
       <div class="scrolly-step right-side" id="scrolly-sec-4" class:active={activeSection === 4}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">04 / COLLABORATIVE REVIEWS</span>
-          <h3 class="scrolly-title font-mincho">大切な人とつながる、盤上のメッセージ</h3>
+          <h3 class="scrolly-title font-mincho">コメントを書いて、あれこれお喋り</h3>
           <p class="scrolly-text font-sans">
-            盤上に直接変化図やコメントを書き込んで、コーチや仲間と楽しくコミュニケーション。学びと対話を重ねることで、囲碁の時間がもっと愛おしくなります。
+            盤上に変化図やコメントを残して、みんなと楽しくお喋り。アドバイスをもらったり、感想を書き残したり、囲碁の時間がもっと楽しくなります。
           </p>
         </div>
       </div>
