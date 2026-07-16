@@ -23,6 +23,7 @@
   let containerEl = $state<HTMLElement | null>(null);
   let scrollPercent = $state(0);
   let activeSection = $state(1);
+  let scrollStatus = $state<'before' | 'active' | 'after'>('before');
   let boardOpacity = $state(1.0);
   let transitionTimer: any = null;
 
@@ -152,10 +153,13 @@
     
     if (relativeScroll >= 0 && relativeScroll <= totalScrollableHeight) {
       scrollPercent = Math.max(0, Math.min(1, relativeScroll / totalScrollableHeight));
+      scrollStatus = 'active';
     } else if (relativeScroll < 0) {
       scrollPercent = 0;
+      scrollStatus = 'before';
     } else {
       scrollPercent = 1;
+      scrollStatus = 'after';
     }
 
     // Determine active section (1 to 4)
@@ -378,70 +382,66 @@
 
   <!-- Scrollytelling Section -->
   <div class="scrolly-narrative-container" bind:this={containerEl}>
-    <!-- Sticky Board Wrapper -->
-    <div class="sticky-board-wrapper">
-      <div class="sticky-board-inner">
-        <div class="sticky-board-container" style="opacity: {boardOpacity}; transition: opacity 0.15s ease;">
-          <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
-            LIVE REPLAY ARCHIVE
+    <!-- Board Card: Placed directly in narrative container, positioned by JS state -->
+    <div class="sticky-board-container state-{scrollStatus}" style="opacity: {boardOpacity}; transition: opacity 0.15s ease;">
+      <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
+        LIVE REPLAY ARCHIVE
+      </span>
+
+      {#if player && boardState.length > 0}
+        <div class="board-wrapper" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-text); border: 1.5px solid var(--wc-text);">
+          <Board
+            board={boardState}
+            size={boardSize}
+            lastMove={lastMove}
+            interactive={false}
+          />
+        </div>
+
+        <!-- Playback Mini Controls -->
+        <div class="board-mini-controls" style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
+          <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_left</i>
+          </button>
+          <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
+          </button>
+          <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_right</i>
+          </button>
+          <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
+            {player.currentIndex} / {player.history.length - 1} 手目
           </span>
+        </div>
 
-          {#if player && boardState.length > 0}
-            <div class="board-wrapper" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-text); border: 1.5px solid var(--wc-text);">
-              <Board
-                board={boardState}
-                size={boardSize}
-                lastMove={lastMove}
-                interactive={false}
-              />
+        <!-- Game Info -->
+        <div class="game-info-badge" style="margin-top: 16px; width: 100%; max-width: 320px; border: 1.5px solid var(--wc-text); padding: 8px 12px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-text); text-align: left; box-sizing: border-box;">
+          {#if kifuData}
+            <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title={kifuData.title}>
+              {kifuData.title}
             </div>
-
-            <!-- Playback Mini Controls -->
-            <div class="board-mini-controls" style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
-              <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_left</i>
-              </button>
-              <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
-              </button>
-              <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
-                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_right</i>
-              </button>
-              <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
-                {player.currentIndex} / {player.history.length - 1} 手目
-              </span>
-            </div>
-
-            <!-- Game Info -->
-            <div class="game-info-badge" style="margin-top: 16px; width: 100%; max-width: 320px; border: 1.5px solid var(--wc-text); padding: 8px 12px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-text); text-align: left; box-sizing: border-box;">
-              {#if kifuData}
-                <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title={kifuData.title}>
-                  {kifuData.title}
-                </div>
-                <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
-                  <span>● {kifuData.black_player || '黒'}</span>
-                  <span>VS</span>
-                  <span>○ {kifuData.white_player || '白'}</span>
-                </div>
-              {:else}
-                <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  本因坊秀策の耳赤の一局 (Fallback)
-                </div>
-                <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
-                  <span>● 安田栄斎</span>
-                  <span>VS</span>
-                  <span>○ 幻庵因碩</span>
-                </div>
-              {/if}
+            <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
+              <span>● {kifuData.black_player || '黒'}</span>
+              <span>VS</span>
+              <span>○ {kifuData.white_player || '白'}</span>
             </div>
           {:else}
-            <div style="padding: 2rem 0; text-align: center; color: var(--wc-text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; width: 100%;">
-              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 24px; height: 24px; margin-bottom: 8px;"></div>
-              LOADING BOARD STATE...
+            <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              本因坊秀策の耳赤の一局 (Fallback)
+            </div>
+            <div style="font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--wc-text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--wc-border); padding-top: 4px; margin-top: 4px;">
+              <span>● 安田栄斎</span>
+              <span>VS</span>
+              <span>○ 幻庵因碩</span>
             </div>
           {/if}
         </div>
-      </div>
+      {:else}
+        <div style="padding: 2rem 0; text-align: center; color: var(--wc-text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; width: 100%;">
+          <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 24px; height: 24px; margin-bottom: 8px;"></div>
+          LOADING BOARD STATE...
+        </div>
+      {/if}
     </div>
 
     <!-- Scrolling Text Steps -->
@@ -485,6 +485,35 @@
           </p>
         </div>
       </div>
+
+      <!-- Bottom Login Call To Action -->
+      <div class="bottom-cta-section center-align animate-fade-in" style="padding: 6rem 1rem 8rem 1rem; border-top: 1px dashed var(--wc-border); margin-top: 2rem;">
+        <p class="cta-text font-sans" style="font-size: 0.95rem; color: var(--wc-text); margin-bottom: 24px; font-weight: 700; font-family: 'Shippori Mincho B1', serif;">
+          対局の保存・検討を始める
+        </p>
+        
+        {#if !providers.google && !providers.line && !providers.meta}
+          <p style="font-size: 0.8rem; color: var(--wc-text-muted);">ログインは現在無効化されています</p>
+        {:else}
+          <div class="bottom-login-row" style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; max-width: 500px; margin: 0 auto;">
+            {#if providers.google}
+              <button type="button" class="social-btn google-btn font-sans" onclick={() => handleOAuth('google')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+                <span>Googleでログイン</span>
+              </button>
+            {/if}
+            {#if providers.line}
+              <button type="button" class="social-btn line-btn font-sans" onclick={() => handleOAuth('line')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+                <span>LINEでログイン</span>
+              </button>
+            {/if}
+            {#if providers.meta}
+              <button type="button" class="social-btn meta-btn font-sans" onclick={() => handleOAuth('meta')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+                <span>Metaでログイン</span>
+              </button>
+            {/if}
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
 </div>
@@ -495,13 +524,6 @@
     position: relative;
   }
 
-  /* Scrollytelling narrative container */
-  .scrolly-narrative-container {
-    position: relative;
-    width: 100%;
-    margin-top: 4rem;
-  }
-
   /* Container for the entire scrollytelling scene */
   .scrolly-narrative-container {
     position: relative;
@@ -509,28 +531,7 @@
     margin-top: 4rem;
   }
 
-  /* The absolute wrapper that covers the entire scrollable height of the narrative container */
-  .sticky-board-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Let scroll events pass to track elements below */
-    z-index: 5;
-  }
-
-  /* The sticky inner wrapper that remains vertically centered in the viewport */
-  .sticky-board-inner {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-  }
-
+  /* Sticky Board Container: Toggled positioning state to avoid parent overflow:hidden bugs */
   .sticky-board-container {
     pointer-events: auto; /* Re-enable click for board controls */
     display: flex;
@@ -543,6 +544,33 @@
     max-width: 380px;
     width: 90%;
     will-change: transform, opacity;
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 801px) {
+    .sticky-board-container.state-before {
+      position: absolute;
+      top: 15vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .sticky-board-container.state-active {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+    }
+
+    .sticky-board-container.state-after {
+      position: absolute;
+      bottom: 25vh; /* Positions it nicely next to the last step cards, above the CTA section */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
   }
 
   /* Scrolling track containing the descriptive steps */
@@ -799,18 +827,13 @@
 
   /* Responsive styling for Tablet / Mobile */
   @media (max-width: 800px) {
-    .sticky-board-wrapper {
-      position: relative;
-      height: auto;
-      top: 0;
-      margin-bottom: 2rem;
-      pointer-events: auto;
-    }
-
-    .sticky-board-inner {
-      position: relative;
-      height: auto;
-      top: 0;
+    .sticky-board-container {
+      position: relative !important;
+      margin: 0 auto 2rem auto;
+      transform: none !important;
+      top: auto !important;
+      left: auto !important;
+      bottom: auto !important;
     }
     
     .scrolly-scroll-track {
