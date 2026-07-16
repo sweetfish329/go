@@ -51,12 +51,16 @@ func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *AdminHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || os.Getenv("COOKIE_SECURE") == "true"
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
 	})
 	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
 }
