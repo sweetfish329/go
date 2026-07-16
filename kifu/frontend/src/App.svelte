@@ -271,7 +271,7 @@
   }}
 />
 
-<div class="app-shell" style="min-height: 100vh; padding-bottom: 2rem; overflow-x: hidden; position: relative;">
+<div class="app-shell" style="min-height: 100vh; padding-bottom: 2rem; position: relative;">
   <!-- Parallax Scrolling Dots Background: Moves slower than content to create depth -->
   <div 
     class="em-bg-pulse-dots em-bg-pulse-dots-parallax" 
@@ -381,6 +381,10 @@
 {/if}
 
 <style>
+  :global(body) {
+    overflow-x: hidden;
+  }
+
   /* ---- Masthead Header Styling ---- */
   header.container {
     margin-top: 3rem !important;

@@ -827,14 +827,11 @@
   /* Responsive styling for Tablet / Mobile split-screen scrollytelling */
   @media (max-width: 800px) {
     .sticky-board-container {
-      position: sticky !important;
-      top: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
       margin: 0 !important;
       transform: none !important;
       left: auto !important;
-      bottom: auto !important;
       box-shadow: none !important;
       border-left: none !important;
       border-right: none !important;
@@ -849,6 +846,35 @@
       align-items: center;
       z-index: 100;
       box-sizing: border-box;
+      transition: opacity 0.3s ease !important;
+    }
+
+    .sticky-board-container.state-before {
+      position: absolute !important;
+      top: 0 !important;
+      bottom: auto !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .sticky-board-container.state-active {
+      position: sticky !important;
+      top: 0 !important;
+      bottom: auto !important;
+      opacity: 1 !important;
+    }
+
+    .sticky-board-container.state-after {
+      position: absolute !important;
+      bottom: 25vh !important;
+      top: auto !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .sticky-board-container .em-float-badge {
+      top: 6px !important;
+      left: 16px !important;
     }
 
     /* Shrink the board and hide player metadata on mobile to save viewport height */
