@@ -757,6 +757,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    will-change: transform;
   }
 
   .kifu-tile-card:hover {
@@ -793,6 +794,7 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.4s ease;
+    will-change: transform;
   }
 
   .kifu-tile-card:hover .kifu-tile-image {

@@ -2003,6 +2003,7 @@
     box-shadow: 0 -4px 0 0 var(--wc-text);
     padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-radius: 0;
+    will-change: transform;
   }
 
   @keyframes slideUp {
