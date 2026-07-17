@@ -628,7 +628,7 @@
     font-family: 'Outfit', sans-serif;
     font-weight: 500;
     font-size: 0.93rem;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
     color: var(--nm-text-main) !important;
   }
 
@@ -670,7 +670,7 @@
     background: rgba(245, 240, 232, 0.45) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    transition: all 0.25s ease;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
   }
 
   .nav-theme-btn:hover {
