@@ -4,7 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/kifu-favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kifu_store</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>碁盤・棋譜ストア (kifu_store) - 囲碁の棋譜記録・共有・SGFダウンロード</title>
+    <meta name="description" content="ブラウザで手軽に囲碁の対局を再生・検討できる「碁盤・棋譜ストア」です。SGFファイルの読み込み・作成・ダウンロードに対応し、限定公開や一般公開でのURL共有、SNS用のOGP画像自動生成機能で対局をスマートに共有できます。" />
+    <meta name="keywords" content="囲碁,棋譜,碁盤,SGF,SGFダウンロード,棋譜共有,棋譜保存,対局検討,AI分析,kifu_store" />
+    <meta name="author" content="kifu_store" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph Protocol (OGP) -->
+    <meta property="og:title" content="碁盤・棋譜ストア (kifu_store) - 囲碁の棋譜記録・共有・SGFダウンロード" />
+    <meta property="og:description" content="ブラウザで手軽に囲碁の対局を再生・検討できる「碁盤・棋譜ストア」。SGFファイルの読み込み・作成・ダウンロード、URLでの棋譜共有に対応。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="碁盤・棋譜ストア (kifu_store)" />
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="碁盤・棋譜ストア (kifu_store) - 囲碁の棋譜記録・共有・SGFダウンロード" />
+    <meta name="twitter:description" content="ブラウザで手軽に囲碁の対局を再生・検討できる「碁盤・棋譜ストア」。SGFの編集・保存・共有が簡単にできます。" />
+
     <!-- Import Google Icon Font -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Washi Clay Typography Stack — 和紙とクレイ -->
@@ -20,7 +38,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   </head>
   <body class="grey lighten-4" style="font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
-    <div id="app"></div>
+    <div id="app">
+      <!-- 検索エンジン向けの静的なコンテンツ ＆ ロード中のフォールバック -->
+      <div class="initial-loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; font-family: 'Shippori Mincho B1', 'Noto Sans JP', serif; color: #2e2e2a; padding: 2rem; text-align: center; box-sizing: border-box;">
+        <h1 style="font-size: 1.8rem; margin-bottom: 1rem; font-weight: 700; border-bottom: 1.5px solid #2e2e2a; padding-bottom: 8px; display: inline-block;">碁盤・棋譜ストア (kifu_store)</h1>
+        <p style="max-width: 480px; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; color: #5f5f59;">
+          囲碁の対局をブラウザ上で再生・検討できるツールです。棋譜（SGFファイル）の編集、コメントや変化図の保存、限定公開・一般公開による棋譜共有、そしてSGF形式でのダウンロードをシームレスに行えます。
+        </p>
+        <div class="spinner" style="border: 2.5px solid #2e2e2a; border-radius: 50%; width: 28px; height: 28px; border-top-color: transparent; animation: spin 0.8s linear infinite; margin-bottom: 12px; box-sizing: border-box;"></div>
+        <div style="font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; color: #8e8e88; text-transform: uppercase;">LOADING APPLICATION...</div>
+      </div>
+      <style>
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
     
     <!-- Import materialize.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
