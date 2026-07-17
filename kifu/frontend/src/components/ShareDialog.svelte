@@ -764,9 +764,48 @@
     }
   }
 
+  let modalEl = $state<HTMLElement | null>(null);
+  let previousActiveElement = $state<HTMLElement | null>(null);
+
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+      previousActiveElement = document.activeElement as HTMLElement;
+      // Focus the close button or first action button initially
+      const btn = modalEl?.querySelector('button');
+      if (btn) {
+        btn.focus();
+      }
+    }
+    return () => {
+      if (previousActiveElement) {
+        previousActiveElement.focus();
+      }
+    };
+  });
+
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       props.onClose();
+    }
+    if (e.key === 'Tab' && modalEl) {
+      const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+      const focusableElements = Array.from(modalEl.querySelectorAll(focusableSelectors)) as HTMLElement[];
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
     }
   }
 </script>
@@ -782,7 +821,7 @@
 <!-- Backdrop click triggers onClose -->
 <div transition:fade={{ duration: 180 }} class="share-modal-backdrop" onclick={props.onClose} role="presentation">
   <!-- Content click propagation stopped to avoid closing -->
-  <div transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-describedby="share-modal-desc">
+  <div bind:this={modalEl} transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-describedby="share-modal-desc">
     
     <!-- Header with Washi Clay Design Style -->
     <div class="share-modal-header">

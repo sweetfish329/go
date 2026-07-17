@@ -52,9 +52,48 @@
     }
   }
 
+  let modalEl = $state<HTMLElement | null>(null);
+  let previousActiveElement = $state<HTMLElement | null>(null);
+
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+      previousActiveElement = document.activeElement as HTMLElement;
+      // Focus the text input initially
+      const input = modalEl?.querySelector('input');
+      if (input) {
+        input.focus();
+      }
+    }
+    return () => {
+      if (previousActiveElement) {
+        previousActiveElement.focus();
+      }
+    };
+  });
+
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       onClose();
+    }
+    if (e.key === 'Tab' && modalEl) {
+      const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+      const focusableElements = Array.from(modalEl.querySelectorAll(focusableSelectors)) as HTMLElement[];
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
     }
   }
 
@@ -69,7 +108,7 @@
 
 <div class="modal-backdrop animate-fade-in" onclick={handleBackdropClick} role="presentation">
   <!-- Content click propagation stopped to avoid closing on inner click -->
-  <div class="modal-content nm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc" tabindex="-1">
+  <div bind:this={modalEl} class="modal-content nm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc" tabindex="-1">
     <form onsubmit={handleSave}>
       
       <!-- Header -->
