@@ -1094,7 +1094,7 @@
 
         <div class="card-content" style="padding: 12px 0 0 0;">
           <!-- Slider -->
-          <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+          <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem; gap: 8px;">
             <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-text); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-text); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
             <input
               type="range"
@@ -1104,6 +1104,16 @@
               oninput={handleSliderChange}
               style="margin: 0 15px; flex-grow: 1;"
             />
+            <!-- 表示オプションアイコンボタン (Mobile Only) -->
+            <button
+              type="button"
+              class="nm-btn-flat settings-icon-btn mobile-only-settings-btn {showSettingsModal ? 'active' : ''}"
+              onclick={() => showSettingsModal = true}
+              title="表示オプション"
+              aria-label="表示オプションを開く"
+            >
+              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; color: var(--wc-text);">tune</i>
+            </button>
           </div>
 
 
@@ -1130,10 +1140,10 @@
             <button type="button" class="nm-btn-flat" onclick={goLast} title="最後へ" aria-label="最後の手へ移動">
               <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
             </button>
-            <!-- 表示オプションアイコンボタン -->
+            <!-- 表示オプションアイコンボタン (Desktop/Tablet Only) -->
             <button
               type="button"
-              class="nm-btn-flat settings-icon-btn {showSettingsModal ? 'active' : ''}"
+              class="nm-btn-flat settings-icon-btn desktop-only-settings-btn {showSettingsModal ? 'active' : ''}"
               onclick={() => showSettingsModal = true}
               title="表示オプション"
               aria-label="表示オプションを開く"
@@ -2153,5 +2163,33 @@
   }
   .settings-icon-btn.active i {
     color: var(--wc-surface) !important;
+  }
+
+  /* Playback Settings Button placement responsive helpers */
+  .mobile-only-settings-btn {
+    display: none !important;
+  }
+  .desktop-only-settings-btn {
+    display: inline-flex !important;
+  }
+
+  @media only screen and (max-width: 800px) {
+    .mobile-only-settings-btn {
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      height: 28px !important;
+      width: 28px !important;
+      min-width: 28px !important;
+      padding: 0 !important;
+      border: 1.5px solid var(--wc-text) !important;
+      box-shadow: 2px 2px 0px var(--wc-text) !important;
+      background: var(--wc-surface) !important;
+      border-radius: 0 !important;
+      cursor: pointer;
+    }
+    .desktop-only-settings-btn {
+      display: none !important;
+    }
   }
 </style>

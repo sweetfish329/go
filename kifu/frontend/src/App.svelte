@@ -715,4 +715,35 @@
       animation-timeline: scroll(root);
     }
   }
+
+  /* スマホ版：共有URLアクセス時でなくても詳細・作成画面ではヘッダーをミニマルに調整 */
+  @media only screen and (max-width: 800px) {
+    header.container.compact-header {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    header.container.compact-header .masthead-bg-title,
+    header.container.compact-header .parallax-tag-left,
+    header.container.compact-header .parallax-tag-right,
+    header.container.compact-header .masthead-ornament-text,
+    header.container.compact-header .em-newspaper-meta-bar {
+      display: none !important;
+    }
+    header.container.compact-header .em-newspaper-masthead {
+      padding: 8px 0 4px 0 !important;
+      border-bottom: 1px solid var(--wc-border, rgba(37,53,48,0.15)) !important;
+      margin-bottom: 0 !important;
+    }
+    header.container.compact-header .masthead-flex-row {
+      justify-content: center !important;
+      margin-bottom: 0 !important;
+    }
+    header.container.compact-header .masthead-site-title {
+      font-size: 1.1rem !important;
+      letter-spacing: 0.25em !important;
+      opacity: 0.55 !important;
+    }
+  }
 </style>
