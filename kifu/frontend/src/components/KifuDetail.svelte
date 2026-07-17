@@ -1093,14 +1093,14 @@
         </span>
 
         <div class="card-content" style="padding: 12px 0 0 0;">
-          <!-- Slider -->
-          <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem; gap: 8px;">
-            <div class="range-info-row">
+          <!-- Slider & Info -->
+          <div class="range-field" style="display: flex; flex-direction: column; margin-bottom: 0.75rem; gap: 6px; width: 100%;">
+            <div class="range-info-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
               <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-text); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-text); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
-              <!-- 表示オプションアイコンボタン (Mobile Only) -->
+              <!-- 表示オプションアイコンボタン -->
               <button
                 type="button"
-                class="nm-btn-flat settings-icon-btn mobile-only-settings-btn"
+                class="nm-btn-flat settings-icon-btn"
                 class:active={showSettingsModal}
                 onclick={() => showSettingsModal = true}
                 title="表示オプション"
@@ -1115,7 +1115,7 @@
               max={maxIndex}
               value={currentIndex}
               oninput={handleSliderChange}
-              style="margin: 0 15px; flex-grow: 1;"
+              style="margin: 4px 0 0 0; width: 100%; flex-grow: 1;"
             />
           </div>
 
@@ -1142,17 +1142,6 @@
             </button>
             <button type="button" class="nm-btn-flat" onclick={goLast} title="最後へ" aria-label="最後の手へ移動">
               <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">last_page</i>
-            </button>
-            <!-- 表示オプションアイコンボタン (Desktop/Tablet Only) -->
-            <button
-              type="button"
-              class="nm-btn-flat settings-icon-btn desktop-only-settings-btn"
-              class:active={showSettingsModal}
-              onclick={() => showSettingsModal = true}
-              title="表示オプション"
-              aria-label="表示オプションを開く"
-            >
-              <i class="material-icons" aria-hidden="true" style="font-size: 1.2rem; color: var(--wc-text);">tune</i>
             </button>
           </div>
 
@@ -2169,41 +2158,29 @@
     color: var(--wc-surface) !important;
   }
 
-  /* Playback Settings Button placement responsive helpers */
-  .mobile-only-settings-btn {
-    display: none !important;
-  }
-  .desktop-only-settings-btn {
+  /* Playback Settings Button style */
+  .settings-icon-btn {
     display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    border: 1.5px solid var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    background: var(--wc-surface) !important;
+    border-radius: 0 !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-  .range-info-row {
-    display: contents;
+  .settings-icon-btn:hover {
+    background: var(--wc-surface-alt) !important;
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0px var(--wc-text) !important;
   }
-
-  @media (pointer: coarse), only screen and (max-width: 1024px) {
-    .range-info-row {
-      display: flex !important;
-      justify-content: space-between !important;
-      align-items: center !important;
-      width: 100% !important;
-      margin-bottom: 4px;
-    }
-    .mobile-only-settings-btn {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      height: 32px !important;
-      width: 32px !important;
-      min-width: 32px !important;
-      padding: 0 !important;
-      border: 1.5px solid var(--wc-text) !important;
-      box-shadow: 2px 2px 0px var(--wc-text) !important;
-      background: var(--wc-surface) !important;
-      border-radius: 0 !important;
-      cursor: pointer;
-    }
-    .desktop-only-settings-btn {
-      display: none !important;
-    }
+  .settings-icon-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-text) !important;
   }
 </style>
