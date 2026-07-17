@@ -12,6 +12,12 @@
       "sourceType": "github",
       "skillPath": "skills/fixing-motion-performance/SKILL.md",
       "computedHash": "c1aca76fe18e8594f401cf78e5e76be24f182ce63167a398bdd4458f2a07639f"
+    },
+    "seo-audit": {
+      "source": "MengTo/Skills",
+      "sourceType": "github",
+      "skillPath": "agent-skills/ui/seo-audit/SKILL.md",
+      "computedHash": "9f4942328975d7b310e335c198b743118024bd5b9ff82210341ce31021335276"
     }
   }
 }

@@ -746,8 +746,8 @@ func BuildUserListOgpMeta(escapedTabName string, ogUrl string) string {
 }
 
 func BuildDefaultOgpMeta(escapedTabName string, ogUrl string) string {
-	description := "モダンで美しい囲碁棋譜管理・添削ツール。Web上で棋譜を記録、保存、共有、そしてAIや指導碁での添削が簡単に行えます。あなたの大切な対局記録（棋譜）を美しく保存しましょう。"
-	keywords := "囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, 棋譜ストア, 添削, 対局記録"
+	description := "「碁盤・棋譜ストア」は、ブラウザで手軽に囲碁の対局を再生・検討できるWebツールです。SGFファイルの読み込み・作成・ダウンロードに対応し、限定公開や一般公開でのURL共有やSNS向けのOGP画像自動生成機能で対局をスマートに共有できます。"
+	keywords := "囲碁,棋譜,碁盤,SGF,SGFダウンロード,棋譜共有,棋譜保存,対局検討,AI分析,kifu_store"
 	return fmt.Sprintf(`
 	<meta name="robots" content="index, follow" />
 	<meta name="description" content="%s" />
@@ -787,8 +787,8 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Replace title tag
 	tabName := settings["tab_name"]
-	if tabName == "" {
-		tabName = "kifu_store"
+	if tabName == "" || tabName == "kifu_store" {
+		tabName = "碁盤・棋譜ストア (kifu_store) - 囲碁の棋譜記録・共有・SGFダウンロード"
 	}
 	escapedTabName := html.EscapeString(tabName)
 	htmlContent = strings.Replace(htmlContent, "<title>kifu_store</title>", "<title>"+escapedTabName+"</title>", 1)
