@@ -1095,7 +1095,19 @@
         <div class="card-content" style="padding: 12px 0 0 0;">
           <!-- Slider -->
           <div class="range-field d-flex align-center" style="display: flex; align-items: center; margin-bottom: 0.75rem; gap: 8px;">
-            <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-text); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-text); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
+            <div class="range-info-row">
+              <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-text); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-text); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
+              <!-- 表示オプションアイコンボタン (Mobile Only) -->
+              <button
+                type="button"
+                class="nm-btn-flat settings-icon-btn mobile-only-settings-btn {showSettingsModal ? 'active' : ''}"
+                onclick={() => showSettingsModal = true}
+                title="表示オプション"
+                aria-label="表示オプションを開く"
+              >
+                <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; color: var(--wc-text);">tune</i>
+              </button>
+            </div>
             <input
               type="range"
               min="0"
@@ -1104,16 +1116,6 @@
               oninput={handleSliderChange}
               style="margin: 0 15px; flex-grow: 1;"
             />
-            <!-- 表示オプションアイコンボタン (Mobile Only) -->
-            <button
-              type="button"
-              class="nm-btn-flat settings-icon-btn mobile-only-settings-btn {showSettingsModal ? 'active' : ''}"
-              onclick={() => showSettingsModal = true}
-              title="表示オプション"
-              aria-label="表示オプションを開く"
-            >
-              <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; color: var(--wc-text);">tune</i>
-            </button>
           </div>
 
 
@@ -2172,15 +2174,25 @@
   .desktop-only-settings-btn {
     display: inline-flex !important;
   }
+  .range-info-row {
+    display: contents;
+  }
 
-  @media only screen and (max-width: 800px) {
+  @media (pointer: coarse), only screen and (max-width: 1024px) {
+    .range-info-row {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      width: 100% !important;
+      margin-bottom: 4px;
+    }
     .mobile-only-settings-btn {
       display: inline-flex !important;
-      align-items: center;
-      justify-content: center;
-      height: 28px !important;
-      width: 28px !important;
-      min-width: 28px !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 32px !important;
+      width: 32px !important;
+      min-width: 32px !important;
       padding: 0 !important;
       border: 1.5px solid var(--wc-text) !important;
       box-shadow: 2px 2px 0px var(--wc-text) !important;
