@@ -1,15 +1,15 @@
-import { mount } from 'svelte'
-import App from './App.svelte'
-import './neumorphism.css'
+import { mount } from "svelte";
+import App from "./App.svelte";
+import "./neumorphism.css";
 
-
-const target = document.getElementById('app')
+const target = document.getElementById("app");
 if (!target) {
-  throw new Error('No element with id "app" found')
+  throw new Error('No element with id "app" found');
 }
+target.innerHTML = "";
 
 const app = mount(App, {
   target,
-})
+});
 
-export default app
+export default app;

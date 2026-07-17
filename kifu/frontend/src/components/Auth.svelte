@@ -76,10 +76,19 @@
 
     // 3. Initialize SgfPlayer
     if (sgfText) {
-      boardSize = sgfText.includes("SZ[9]") ? 9 : sgfText.includes("SZ[13]") ? 13 : 19;
-      player = new SgfPlayer(sgfText, boardSize);
-      updateBoardState();
-      startAutoplay();
+      try {
+        boardSize = sgfText.includes("SZ[9]") ? 9 : sgfText.includes("SZ[13]") ? 13 : 19;
+        player = new SgfPlayer(sgfText, boardSize);
+        updateBoardState();
+        startAutoplay();
+        console.log("SgfPlayer initialized successfully. Board size:", boardSize, "Board state length:", boardState.length);
+        if (typeof window !== 'undefined') {
+          (window as any)._testPlayer = player;
+          (window as any)._testBoardState = boardState;
+        }
+      } catch (err: any) {
+        console.error("Failed to initialize SgfPlayer:", err);
+      }
     }
 
     // 4. Setup pre-measured layout offsets & event listeners
@@ -877,6 +886,7 @@
     .scrolly-narrative-container {
       height: 320vh !important; /* Prevents 0px height collapse on mobile */
       margin-top: 2rem !important;
+      overflow: hidden !important; /* Clips the 400% width track to prevent pinch-out horizontal scroll bugs */
     }
 
     .sticky-board-container {
