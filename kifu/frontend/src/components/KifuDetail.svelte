@@ -1100,7 +1100,8 @@
               <!-- 表示オプションアイコンボタン (Mobile Only) -->
               <button
                 type="button"
-                class="nm-btn-flat settings-icon-btn mobile-only-settings-btn {showSettingsModal ? 'active' : ''}"
+                class="nm-btn-flat settings-icon-btn mobile-only-settings-btn"
+                class:active={showSettingsModal}
                 onclick={() => showSettingsModal = true}
                 title="表示オプション"
                 aria-label="表示オプションを開く"
@@ -1145,7 +1146,8 @@
             <!-- 表示オプションアイコンボタン (Desktop/Tablet Only) -->
             <button
               type="button"
-              class="nm-btn-flat settings-icon-btn desktop-only-settings-btn {showSettingsModal ? 'active' : ''}"
+              class="nm-btn-flat settings-icon-btn desktop-only-settings-btn"
+              class:active={showSettingsModal}
               onclick={() => showSettingsModal = true}
               title="表示オプション"
               aria-label="表示オプションを開く"
