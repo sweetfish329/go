@@ -4,6 +4,7 @@
   import { auth } from '../lib/auth.svelte';
   import { stringifySgf } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
+  import { compressRequestBody } from '../lib/compress';
 
   let { onSaveSuccess, onCancel } = $props<{
     onSaveSuccess: () => void;
@@ -203,13 +204,19 @@
     const titleVal = gameTitle.trim() || `${blackPlayer || '黒'} vs ${whitePlayer || '白'}`;
 
     try {
+      const payload = {
+        title: titleVal,
+        sgf_data: sgfStr
+      };
+      const compressed = await compressRequestBody(payload);
+
       const res = await fetch('/api/kifus', {
         method: 'POST',
-        headers: auth.getHeaders(),
-        body: JSON.stringify({
-          title: titleVal,
-          sgf_data: sgfStr
-        })
+        headers: {
+          ...auth.getHeaders(),
+          ...compressed.headers
+        },
+        body: compressed.body
       });
 
       if (!res.ok) {

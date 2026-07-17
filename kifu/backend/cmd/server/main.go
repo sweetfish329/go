@@ -1,10 +1,13 @@
 package main
 
 import (
+	"compress/gzip"
+	"io"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/CAFxX/httpcompression"
 	"github.com/sweetfish329/go/kifu/backend/internal/db"
 	"github.com/sweetfish329/go/kifu/backend/internal/handler"
 	"github.com/sweetfish329/go/kifu/backend/internal/repository"
@@ -63,14 +66,50 @@ func main() {
 	mux.HandleFunc("GET /share/{token}/sgf", kifuHandler.GetSharedSgf)
 	mux.Handle("/", fs)
 
-	// Wrap Mux with CORS and CSRF middleware
+	// Wrap Mux with CORS, CSRF, request decompression and response compression middleware
 	handlerWithCORS := enableCORS(mux)
 	handlerWithCSRF := handler.CSRFMiddleware(handlerWithCORS)
+	handlerWithDecompression := requestDecompression(handlerWithCSRF)
+
+	compressor, err := httpcompression.DefaultAdapter()
+	if err != nil {
+		log.Fatalf("Failed to initialize httpcompression adapter: %v", err)
+	}
+	handlerWithCompression := compressor(handlerWithDecompression)
 
 	log.Printf("Server listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, handlerWithCSRF); err != nil {
+	if err := http.ListenAndServe(":"+port, handlerWithCompression); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+}
+
+// requestDecompression Middleware handles decompressing request body if Content-Encoding is gzip
+func requestDecompression(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Encoding") == "gzip" {
+			gzipReader, err := gzip.NewReader(r.Body)
+			if err != nil {
+				http.Error(w, "Failed to initialize gzip reader: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			r.Body = &gzipReadCloser{Reader: gzipReader, OriginalBody: r.Body}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+type gzipReadCloser struct {
+	*gzip.Reader
+	OriginalBody io.ReadCloser
+}
+
+func (g *gzipReadCloser) Close() error {
+	err1 := g.Reader.Close()
+	err2 := g.OriginalBody.Close()
+	if err1 != nil {
+		return err1
+	}
+	return err2
 }
 
 // CORS Middleware
