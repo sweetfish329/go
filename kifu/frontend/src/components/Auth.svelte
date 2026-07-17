@@ -399,17 +399,17 @@
         </div>
 
         <!-- Playback Mini Controls -->
-        <div class="board-mini-controls" style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 100%;">
-          <button type="button" class="nm-btn-flat font-mono" onclick={handlePrevMove} aria-label="1手戻る" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+        <div class="board-mini-controls font-mono">
+          <button type="button" class="nm-btn-flat" onclick={handlePrevMove} aria-label="1手戻る">
             <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_left</i>
           </button>
-          <button type="button" class="nm-btn-flat font-mono" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"} style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+          <button type="button" class="nm-btn-flat" onclick={handleTogglePlay} aria-label={autoplayDirection === 0 ? "再生" : "一時停止"}>
             <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">{autoplayDirection === 0 ? 'play_arrow' : 'pause'}</i>
           </button>
-          <button type="button" class="nm-btn-flat font-mono" onclick={handleNextMove} aria-label="1手進む" style="padding: 2px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; cursor: pointer; height: 30px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+          <button type="button" class="nm-btn-flat" onclick={handleNextMove} aria-label="1手進む">
             <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">chevron_right</i>
           </button>
-          <span class="move-counter font-mono" style="font-weight: 700; color: var(--wc-text); margin-left: 12px; font-size: 0.85rem; border: 1.5px solid var(--wc-text); padding: 4px 8px; background: var(--wc-surface);">
+          <span class="move-counter">
             {player.currentIndex} / {player.history.length - 1} 手目
           </span>
         </div>
@@ -570,6 +570,55 @@
       transform: translateX(-50%);
       z-index: 10;
     }
+  }
+
+  /* Playback Controls styling */
+  .board-mini-controls {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .board-mini-controls .nm-btn-flat {
+    height: 32px;
+    width: 32px;
+    padding: 0;
+    border: 1.5px solid var(--wc-text) !important;
+    border-radius: 0 !important;
+    background: var(--wc-surface) !important;
+    color: var(--wc-text) !important;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  
+  .board-mini-controls .nm-btn-flat:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-text) !important;
+  }
+
+  .board-mini-controls .move-counter {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    border: 1.5px solid var(--wc-text) !important;
+    border-radius: 0 !important;
+    background: var(--wc-surface) !important;
+    color: var(--wc-text) !important;
+    font-weight: 700;
+    font-size: 0.82rem;
+    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    box-sizing: border-box;
   }
 
   /* Scrolling track containing the descriptive steps */
@@ -825,6 +874,11 @@
 
   /* Responsive styling for Tablet / Mobile split-screen scrollytelling */
   @media (max-width: 800px) {
+    .scrolly-narrative-container {
+      height: 320vh !important; /* Prevents 0px height collapse on mobile */
+      margin-top: 2rem !important;
+    }
+
     .sticky-board-container {
       width: 90% !important;
       max-width: 340px !important;
@@ -886,20 +940,21 @@
       display: none !important;
     }
 
-    .sticky-board-container .board-mini-controls {
+    .board-mini-controls {
       margin-top: 6px !important;
-      font-size: 0.72rem !important;
+      gap: 6px !important;
     }
 
-    .sticky-board-container .move-counter {
-      font-size: 0.75rem !important;
-      padding: 2px 6px !important;
-      margin-left: 6px !important;
+    .board-mini-controls .nm-btn-flat {
+      height: 28px !important;
+      width: 28px !important;
+      padding: 0 !important;
     }
 
-    .sticky-board-container .nm-btn-flat {
-      height: 26px !important;
-      padding: 2px 6px !important;
+    .board-mini-controls .move-counter {
+      height: 28px !important;
+      font-size: 0.76rem !important;
+      padding: 0 8px !important;
     }
     
     .scrolly-scroll-track {
