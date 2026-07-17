@@ -110,6 +110,7 @@ func runMigrations(db *sql.DB) error {
 		share_expires_at TIMESTAMP,
 		is_private BOOLEAN NOT NULL DEFAULT TRUE,
 		ogp_image BLOB,
+		thumbnail_image BLOB,
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);`
@@ -212,6 +213,33 @@ func runMigrations(db *sql.DB) error {
 		_, err = db.Exec("ALTER TABLE reviews ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL")
 		if err != nil {
 			log.Printf("Warning: failed to add user_id column to reviews table (might already exist): %v", err)
+		}
+	}
+
+	// Run migration to add thumbnail_image to kifus if it doesn't exist
+	var hasThumbnailImage bool
+	kifusRows, err := db.Query("PRAGMA table_info(kifus)")
+	if err != nil {
+		return fmt.Errorf("failed to check kifus table info: %w", err)
+	}
+	defer kifusRows.Close()
+	for kifusRows.Next() {
+		var cid int
+		var name string
+		var ctype string
+		var notnull int
+		var dfltValue interface{}
+		var pk int
+		if err := kifusRows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err == nil {
+			if name == "thumbnail_image" {
+				hasThumbnailImage = true
+			}
+		}
+	}
+	if !hasThumbnailImage {
+		_, err = db.Exec("ALTER TABLE kifus ADD COLUMN thumbnail_image BLOB")
+		if err != nil {
+			log.Printf("Warning: failed to add thumbnail_image column to kifus table (might already exist): %v", err)
 		}
 	}
 

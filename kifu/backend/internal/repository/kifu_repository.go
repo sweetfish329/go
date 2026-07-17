@@ -256,11 +256,11 @@ func (r *KifuRepository) Delete(id string) error {
 	return nil
 }
 
-func (r *KifuRepository) UpdateOgpImage(id string, imgData []byte) error {
-	query := `UPDATE kifus SET ogp_image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
-	_, err := r.db.Exec(query, imgData, id)
+func (r *KifuRepository) UpdateOgpImage(id string, ogpData []byte, thumbnailData []byte) error {
+	query := `UPDATE kifus SET ogp_image = $1, thumbnail_image = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`
+	_, err := r.db.Exec(query, ogpData, thumbnailData, id)
 	if err != nil {
-		return fmt.Errorf("failed to update ogp image: %w", err)
+		return fmt.Errorf("failed to update ogp and thumbnail image: %w", err)
 	}
 	return nil
 }
@@ -287,6 +287,38 @@ func (r *KifuRepository) GetOgpImageByShareToken(token string) ([]byte, error) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get ogp image by share token: %w", err)
+	}
+	return imgData, nil
+}
+
+func (r *KifuRepository) GetThumbnailImage(id string) ([]byte, error) {
+	query := `SELECT thumbnail_image FROM kifus WHERE id = $1`
+	var imgData []byte
+	err := r.db.QueryRow(query, id).Scan(&imgData)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get thumbnail image: %w", err)
+	}
+	if len(imgData) == 0 {
+		return r.GetOgpImage(id)
+	}
+	return imgData, nil
+}
+
+func (r *KifuRepository) GetThumbnailImageByShareToken(token string) ([]byte, error) {
+	query := `SELECT thumbnail_image FROM kifus WHERE share_token = $1`
+	var imgData []byte
+	err := r.db.QueryRow(query, token).Scan(&imgData)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get thumbnail image by share token: %w", err)
+	}
+	if len(imgData) == 0 {
+		return r.GetOgpImageByShareToken(token)
 	}
 	return imgData, nil
 }

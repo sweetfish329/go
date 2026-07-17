@@ -402,7 +402,7 @@
               <div class="kifu-tile-image-container">
                 {#if k.has_ogp}
                   <img
-                    src={publicMode ? `/api/u/${userId}/kifus/${k.id}/og-image` : `/api/kifus/${k.id}/og-image`}
+                    src={publicMode ? `/api/u/${userId}/kifus/${k.id}/thumbnail` : `/api/kifus/${k.id}/thumbnail`}
                     alt="OGP preview"
                     class="kifu-tile-image"
                     loading="lazy"

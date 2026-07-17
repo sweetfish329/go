@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sweetfish329/go/kifu/backend/internal/imgutil"
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
 	"github.com/sweetfish329/go/kifu/backend/internal/repository"
 	"github.com/sweetfish329/go/kifu/backend/internal/sgf"
@@ -52,15 +53,18 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("PUT /api/kifus/{id}/privacy", AuthMiddleware(http.HandlerFunc(h.UpdatePrivacy)))
 	mux.Handle("PUT /api/kifus/{id}/ogp", AuthMiddleware(http.HandlerFunc(h.UpdateOgpImage)))
 	mux.Handle("GET /api/kifus/{id}/og-image", AuthMiddleware(http.HandlerFunc(h.GetOgImage)))
+	mux.Handle("GET /api/kifus/{id}/thumbnail", AuthMiddleware(http.HandlerFunc(h.GetThumbnail)))
 	mux.Handle("DELETE /api/kifus/{id}", AuthMiddleware(http.HandlerFunc(h.Delete)))
 
 	// Public routes
 	mux.HandleFunc("GET /api/public/random", h.GetRandomPublic)
 	mux.HandleFunc("GET /api/share/{token}", h.GetShared)
 	mux.HandleFunc("GET /api/share/{token}/og-image", h.GetSharedOgImage)
+	mux.HandleFunc("GET /api/share/{token}/thumbnail", h.GetSharedThumbnail)
 	mux.HandleFunc("GET /api/u/{userId}/kifus", h.ListPublic)
 	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}", h.GetPublicKifu)
 	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}/og-image", h.GetPublicKifuOgImage)
+	mux.HandleFunc("GET /api/u/{userId}/kifus/{kifuId}/thumbnail", h.GetPublicKifuThumbnail)
 }
 
 func (h *KifuHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -522,9 +526,16 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.repo.UpdateOgpImage(id, imgData)
+	// Generate compressed thumbnail (400px width, quality 75)
+	thumbData, err := imgutil.ResizeAndCompressToJPEG(imgData, 400, 75)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP image: "+err.Error())
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate thumbnail: "+err.Error())
+		return
+	}
+
+	err = h.repo.UpdateOgpImage(id, imgData, thumbData)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP and thumbnail image: "+err.Error())
 		return
 	}
 
@@ -944,4 +955,113 @@ func (h *KifuHandler) GetRandomPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondWithJSON(w, http.StatusOK, kifu)
+}
+
+// GetThumbnail retrieves and returns thumbnail image for owner's kifu
+func (h *KifuHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing ID")
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	kifu, err := h.repo.FindByID(id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	// Verify ownership
+	if kifu.UploadedBy == nil || *kifu.UploadedBy != userID {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// Try getting from DB first
+	imgData, err := h.repo.GetThumbnailImage(id)
+	if err == nil && len(imgData) > 0 {
+		contentType := http.DetectContentType(imgData)
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
+		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+		_, _ = w.Write(imgData)
+		return
+	}
+
+	// Fallback to auto generation
+	h.serveGeneratedOgImage(w, kifu)
+}
+
+// GetSharedThumbnail retrieves and returns thumbnail image for shared kifu
+func (h *KifuHandler) GetSharedThumbnail(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	if token == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing token")
+		return
+	}
+
+	kifu, err := h.repo.FindByShareToken(token)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Shared kifu not found")
+		return
+	}
+
+	if kifu.ShareExpiresAt != nil && kifu.ShareExpiresAt.Before(time.Now()) {
+		respondWithError(w, http.StatusGone, "Shared link has expired")
+		return
+	}
+
+	// Try getting from DB first
+	imgData, err := h.repo.GetThumbnailImageByShareToken(token)
+	if err == nil && len(imgData) > 0 {
+		contentType := http.DetectContentType(imgData)
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
+		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+		_, _ = w.Write(imgData)
+		return
+	}
+
+	// Fallback to auto generation
+	h.serveGeneratedOgImage(w, kifu)
+}
+
+// GetPublicKifuThumbnail retrieves and returns thumbnail image for public kifu
+func (h *KifuHandler) GetPublicKifuThumbnail(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	kifuId := r.PathValue("kifuId")
+
+	kifu, err := h.repo.FindByIDAndUser(kifuId, userId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+	if kifu == nil || kifu.IsPrivate {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// Try getting from DB first
+	imgData, err := h.repo.GetThumbnailImage(kifuId)
+	if err == nil && len(imgData) > 0 {
+		contentType := http.DetectContentType(imgData)
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
+		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+		_, _ = w.Write(imgData)
+		return
+	}
+
+	// Fallback to auto generation
+	h.serveGeneratedOgImage(w, kifu)
 }

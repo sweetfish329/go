@@ -4,7 +4,9 @@ Disallow: /*?*share=
 Disallow: /?admin
 Disallow: /*?*admin
 Allow: /api/share/*/og-image
+Allow: /api/share/*/thumbnail
 Allow: /api/u/*/kifus/*/og-image
+Allow: /api/u/*/kifus/*/thumbnail
 Disallow: /api/
 Allow: /
 
