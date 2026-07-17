@@ -445,7 +445,7 @@
     </div>
 
     <!-- Scrolling Text Steps -->
-    <div class="scrolly-scroll-track">
+    <div class="scrolly-scroll-track state-{scrollStatus}" style="--mobile-translate: -{(activeSection - 1) * 25}%;">
       <div class="scrolly-step left-side" id="scrolly-sec-1" class:active={activeSection === 1}>
         <div class="scrolly-card">
           <span class="scrolly-tag font-mono">01 / REPLAY</span>
@@ -485,36 +485,36 @@
           </p>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Bottom Login Call To Action -->
-      <div class="bottom-cta-section center-align animate-fade-in" style="padding: 6rem 1rem 8rem 1rem; border-top: 1px dashed var(--wc-border); margin-top: 2rem;">
-        <p class="cta-text font-sans" style="font-size: 0.95rem; color: var(--wc-text); margin-bottom: 24px; font-weight: 700; font-family: 'Shippori Mincho B1', serif;">
-          対局の保存・検討を始める
-        </p>
-        
-        {#if !providers.google && !providers.line && !providers.meta}
-          <p style="font-size: 0.8rem; color: var(--wc-text-muted);">ログインは現在無効化されています</p>
-        {:else}
-          <div class="bottom-login-row" style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; max-width: 500px; margin: 0 auto;">
-            {#if providers.google}
-              <button type="button" class="social-btn google-btn font-sans" onclick={() => handleOAuth('google')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
-                <span>Googleでログイン</span>
-              </button>
-            {/if}
-            {#if providers.line}
-              <button type="button" class="social-btn line-btn font-sans" onclick={() => handleOAuth('line')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
-                <span>LINEでログイン</span>
-              </button>
-            {/if}
-            {#if providers.meta}
-              <button type="button" class="social-btn meta-btn font-sans" onclick={() => handleOAuth('meta')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
-                <span>Metaでログイン</span>
-              </button>
-            {/if}
-          </div>
+  <!-- Bottom Login Call To Action -->
+  <div class="bottom-cta-section center-align animate-fade-in" style="padding: 6rem 1rem 8rem 1rem; border-top: 1px dashed var(--wc-border); margin-top: 2rem;">
+    <p class="cta-text font-sans" style="font-size: 0.95rem; color: var(--wc-text); margin-bottom: 24px; font-weight: 700; font-family: 'Shippori Mincho B1', serif;">
+      対局の保存・検討を始める
+    </p>
+    
+    {#if !providers.google && !providers.line && !providers.meta}
+      <p style="font-size: 0.8rem; color: var(--wc-text-muted);">ログインは現在無効化されています</p>
+    {:else}
+      <div class="bottom-login-row" style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; max-width: 500px; margin: 0 auto;">
+        {#if providers.google}
+          <button type="button" class="social-btn google-btn font-sans" onclick={() => handleOAuth('google')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+            <span>Googleでログイン</span>
+          </button>
+        {/if}
+        {#if providers.line}
+          <button type="button" class="social-btn line-btn font-sans" onclick={() => handleOAuth('line')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+            <span>LINEでログイン</span>
+          </button>
+        {/if}
+        {#if providers.meta}
+          <button type="button" class="social-btn meta-btn font-sans" onclick={() => handleOAuth('meta')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+            <span>Metaでログイン</span>
+          </button>
         {/if}
       </div>
-    </div>
+    {/if}
   </div>
 </div>
 
@@ -524,7 +524,6 @@
     position: relative;
   }
 
-  /* Container for the entire scrollytelling scene */
   .scrolly-narrative-container {
     position: relative;
     width: 100%;
@@ -827,19 +826,15 @@
   /* Responsive styling for Tablet / Mobile split-screen scrollytelling */
   @media (max-width: 800px) {
     .sticky-board-container {
-      width: 100% !important;
-      max-width: 100% !important;
-      margin: 0 !important;
-      transform: none !important;
-      left: auto !important;
-      box-shadow: none !important;
-      border-left: none !important;
-      border-right: none !important;
-      border-top: none !important;
-      border-bottom: 2px solid var(--wc-text) !important;
+      width: 90% !important;
+      max-width: 340px !important;
+      margin: 0 auto !important;
+      box-shadow: 6px 6px 0px var(--wc-text) !important;
+      border: 2.5px solid var(--wc-text) !important;
       background: var(--wc-surface-alt) !important;
-      padding: 10px 16px !important;
-      height: 40vh !important;
+      padding: 12px 16px !important;
+      height: auto !important;
+      max-height: 48vh !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -851,16 +846,18 @@
 
     .sticky-board-container.state-before {
       position: absolute !important;
-      top: 0 !important;
-      bottom: auto !important;
+      top: 10vh !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
       opacity: 0 !important;
       pointer-events: none !important;
     }
 
     .sticky-board-container.state-active {
-      position: sticky !important;
-      top: 0 !important;
-      bottom: auto !important;
+      position: fixed !important;
+      top: 15vh !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
       opacity: 1 !important;
     }
 
@@ -868,6 +865,8 @@
       position: absolute !important;
       bottom: 25vh !important;
       top: auto !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
       opacity: 0 !important;
       pointer-events: none !important;
     }
@@ -904,32 +903,67 @@
     }
     
     .scrolly-scroll-track {
+      display: flex !important;
+      flex-direction: row !important;
+      width: 400% !important;
+      transform: translateX(var(--mobile-translate, 0%)) !important;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease !important;
+      will-change: transform;
+      box-sizing: border-box;
       margin-top: 0;
+    }
+
+    .scrolly-scroll-track.state-before {
+      position: absolute !important;
+      top: 0 !important;
+      bottom: auto !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .scrolly-scroll-track.state-active {
+      position: fixed !important;
+      bottom: 8vh !important;
+      top: auto !important;
+      left: 0 !important;
+      opacity: 1 !important;
+      z-index: 90;
+    }
+
+    .scrolly-scroll-track.state-after {
+      position: absolute !important;
+      bottom: 25vh !important;
+      top: auto !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
 
     /* Scroll steps: height of 80vh, align cards to bottom so they scroll past underneath board */
     .scrolly-step {
-      height: 80vh;
-      padding: 0 16px 4vh 16px;
-      display: flex;
-      align-items: flex-end;
+      width: 25% !important;
+      height: auto !important;
+      padding: 0 24px !important;
+      display: flex !important;
       justify-content: center !important;
+      align-items: center !important;
       box-sizing: border-box;
     }
 
     .scrolly-card {
       width: 100%;
+      max-width: 320px !important;
       opacity: 0.35;
-      transform: translateY(15px);
+      transform: scale(0.95) !important;
       transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.25s ease, box-shadow 0.25s ease;
       background: var(--wc-surface) !important;
       padding: 1.2rem !important;
       box-shadow: 4px 4px 0px var(--wc-text) !important;
+      box-sizing: border-box;
     }
 
     .scrolly-step.active .scrolly-card {
       opacity: 1;
-      transform: translateY(0);
+      transform: scale(1.0) !important;
       border-color: var(--wc-accent) !important;
       box-shadow: 6px 6px 0px var(--wc-accent) !important;
     }
