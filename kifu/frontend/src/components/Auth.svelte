@@ -31,6 +31,7 @@
   let autoplayInterval: any = null;
   let autoplayDirection = $state(1); // 1 = forward, -1 = backward, 0 = paused/manual
   let userInteracted = $state(false);
+  let observer: IntersectionObserver | null = null;
 
   // Layout Cache to avoid Reflow during scrolling (Fixing Motion Performance guideline)
   let containerOffsetTop = 0;
@@ -80,7 +81,26 @@
         boardSize = sgfText.includes("SZ[9]") ? 9 : sgfText.includes("SZ[13]") ? 13 : 19;
         player = new SgfPlayer(sgfText, boardSize);
         updateBoardState();
-        startAutoplay();
+        
+        // 3b. Use IntersectionObserver to pause autoplay when off-screen to save CPU
+        if (typeof window !== 'undefined' && 'IntersectionObserver' in window && containerEl) {
+          observer = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                startAutoplay();
+              } else {
+                if (autoplayInterval) {
+                  clearInterval(autoplayInterval);
+                  autoplayInterval = null;
+                }
+              }
+            }
+          }, { threshold: 0.02 });
+          observer.observe(containerEl);
+        } else {
+          startAutoplay();
+        }
+
         console.log("SgfPlayer initialized successfully. Board size:", boardSize, "Board state length:", boardState.length);
         if (typeof window !== 'undefined') {
           (window as any)._testPlayer = player;
@@ -106,6 +126,7 @@
     if (autoplayInterval) clearInterval(autoplayInterval);
     if (animationTimer) clearTimeout(animationTimer);
     if (transitionTimer) clearTimeout(transitionTimer);
+    if (observer) observer.disconnect();
     window.removeEventListener('resize', measureContainer);
     window.removeEventListener('scroll', handleScroll);
   });
@@ -149,7 +170,17 @@
   }
 
   // Scroll handler using pre-cached variables (Reflow-free scroll animation)
+  let scrollTick = false;
   function handleScroll() {
+    if (scrollTick) return;
+    scrollTick = true;
+    requestAnimationFrame(() => {
+      scrollTick = false;
+      runScrollLogic();
+    });
+  }
+
+  function runScrollLogic() {
     if (!player || containerHeight === 0) return;
     
     const scrollTop = window.scrollY || window.pageYOffset;

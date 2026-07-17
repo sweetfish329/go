@@ -718,6 +718,10 @@
 
   /* スマホ版：共有URLアクセス時でなくても詳細・作成画面ではヘッダーをミニマルに調整 */
   @media only screen and (max-width: 800px) {
+    :global(.em-bg-pulse-dots) {
+      animation: none !important; /* Disables continuous infinite background position animation on mobile to save GPU repaints */
+    }
+
     header.container.compact-header {
       margin-top: 0 !important;
       margin-bottom: 0 !important;
