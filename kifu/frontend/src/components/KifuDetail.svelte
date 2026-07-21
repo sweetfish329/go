@@ -1995,9 +1995,10 @@
 
   :global(.settings-sheet) {
     position: fixed;
-    left: 50%;
+    left: 0;
+    right: 0;
     bottom: 0;
-    transform: translateX(-50%);
+    margin: 0 auto;
     width: min(480px, 100%);
     z-index: 901;
     background: var(--wc-surface);
@@ -2009,9 +2010,9 @@
     will-change: transform;
   }
 
-  @keyframes slideUp {
-    from { transform: translateX(-50%) translateY(100%); }
-    to   { transform: translateX(-50%) translateY(0); }
+  :global(@keyframes slideUp) {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
   }
   :global(.animate-slide-up) {
     animation: slideUp 0.22s cubic-bezier(0.25, 0.8, 0.25, 1) both;
