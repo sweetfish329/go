@@ -2010,7 +2010,7 @@
     will-change: transform;
   }
 
-  :global(@keyframes slideUp) {
+  @keyframes -global-slideUp {
     from { transform: translateY(100%); }
     to   { transform: translateY(0); }
   }
