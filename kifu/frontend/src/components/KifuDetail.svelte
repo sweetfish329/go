@@ -2000,6 +2000,8 @@
     bottom: 0;
     margin: 0 auto;
     width: min(480px, 100%);
+    max-height: 80dvh;
+    overflow-y: auto;
     z-index: 901;
     background: var(--wc-surface);
     border: 2px solid var(--wc-text);
