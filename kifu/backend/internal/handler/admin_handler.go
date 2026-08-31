@@ -171,20 +171,7 @@ func (h *AdminHandler) SaveSiteSettings(w http.ResponseWriter, r *http.Request) 
 	for k, v := range req {
 		if k == "title" || k == "tab_name" || k == "favicon" || k == "theme_color" || k == "external_url" {
 			if k == "theme_color" {
-				isValidColor := false
-				if len(v) > 0 && v[0] == '#' {
-					isValidColor = true
-					for _, c := range v[1:] {
-						if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-							isValidColor = false
-							break
-						}
-					}
-					if len(v) != 4 && len(v) != 7 {
-						isValidColor = false
-					}
-				}
-				if !isValidColor {
+				if !isValidHexColor(v) {
 					respondWithError(w, http.StatusBadRequest, "Invalid theme color format")
 					return
 				}

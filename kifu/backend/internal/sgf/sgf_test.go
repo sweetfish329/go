@@ -98,3 +98,54 @@ func TestParseInvalid(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanDate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"YYYY-MM-DD", "2026-03-19", "2026-03-19"},
+		{"YYYY/MM/DD", "2026/03/19", "2026-03-19"},
+		{"YYYY-MM-DD with time", "2026-03-19 02:02:54", "2026-03-19"},
+		{"YYYYMMDD", "20260319", "2026-03-19"},
+		{"Year only YYYY", "2026", "2026-01-01"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := cleanDate(tt.input)
+			if got != tt.expected {
+				t.Errorf("cleanDate(%q) = %q, expected %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+
+	// Empty string should return non-empty valid date (today's date)
+	emptyDate := cleanDate("")
+	if len(emptyDate) != 10 {
+		t.Errorf("cleanDate(\"\") should return YYYY-MM-DD format, got %q", emptyDate)
+	}
+}
+
+func TestGenerateBoardImage(t *testing.T) {
+	sgfStr := `(;GM[1]FF[4]SZ[19]KM[6.5]PB[Honinbo Shusaku]PW[Honinbo Shuwa];B[qd];W[dc];B[pq];W[cp])`
+	root, err := Parse(sgfStr)
+	if err != nil {
+		t.Fatalf("Failed to parse SGF: %v", err)
+	}
+
+	meta := ExtractMetadata(root)
+	lastNode := root.GetEnd()
+	board := lastNode.Board()
+
+	img := GenerateBoardImage(board, root, meta.Size)
+	if img == nil {
+		t.Fatal("GenerateBoardImage returned nil")
+	}
+
+	bounds := img.Bounds()
+	if bounds.Dx() != 1200 || bounds.Dy() != 630 {
+		t.Errorf("Expected 1200x630 image dimensions, got %dx%d", bounds.Dx(), bounds.Dy())
+	}
+}

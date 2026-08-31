@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -361,16 +362,22 @@ func TestMultipleMoves(t *testing.T) {
 	}
 }
 
-// helper
-func containsSubstring(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && findSubstring(s, substr))
+func TestGetBoardState(t *testing.T) {
+	ge := NewGame()
+	_ = ge.PlayMove(3, 3)
+
+	state := ge.GetBoardState()
+	if state.Stones[3][3] != 1 {
+		t.Errorf("Expected black stone (1) at (3,3), got %d", state.Stones[3][3])
+	}
+	if state.Player != 2 {
+		t.Errorf("Expected next player to be white (2), got %d", state.Player)
+	}
+	if state.MoveNum != 1 {
+		t.Errorf("Expected move number 1, got %d", state.MoveNum)
+	}
 }
 
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+func containsSubstring(s, substr string) bool {
+	return strings.Contains(s, substr)
 }

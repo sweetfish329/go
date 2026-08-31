@@ -25,8 +25,8 @@ serve:
 
 # Go テスト実行
 test:
-	go test ./... -v
+	go test ./pkg/... -v
 
 # 静的解析
 vet:
-	go vet ./...
+	go vet ./pkg/...

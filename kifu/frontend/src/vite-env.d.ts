@@ -20,6 +20,7 @@ declare function wasmGetCurrentPlayer(): number;
 declare function wasmGetMoveNumber(): number;
 declare function wasmGetBoardState(): string;
 declare function wasmAnalyzeBoardImage(imageData: string, width: number, height: number): string;
+declare function wasmAnalyzeBoardFeatures(featuresJSON: string): string;
 declare function wasmApplyDetectedMove(x: number, y: number, color: number): number;
 declare function wasmGetLastMoveInfo(): string;
 
@@ -46,6 +47,7 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     x: number;
     y: number;
     color: string;
+    score?: number;
   }
 
   export interface AnalysisResult {
@@ -53,6 +55,16 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     removed?: DetectedMove[];
     errors?: string[];
     confidence: number;
+  }
+
+  export interface IntersectionFeature {
+    x: number;
+    y: number;
+    l: number;
+    c: number;
+    d: number;
+    h: number;
+    s: number;
   }
 
   export class WasmKifu {
@@ -71,6 +83,7 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     getMoveNumber(): number;
     getBoardState(): BoardState;
     analyzeBoardImage(intersections: Int8Array): AnalysisResult;
+    analyzeBoardFeatures(features: IntersectionFeature[]): AnalysisResult;
     applyDetectedMove(x: number, y: number, color: number): number;
     getLastMoveInfo(): LastMoveInfo;
   }
@@ -88,6 +101,14 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
     whiteMaxSaturation: number;
   }
 
+  export interface StreamFrameResult {
+    motionLevel: number;
+    stableProgress: number;
+    isStable: boolean;
+    isTriggered: boolean;
+    features: import("@wasm-kifu/web/js/wasm-bridge.js").IntersectionFeature[] | null;
+  }
+
   export class BoardDetector {
     constructor();
     waitForOpenCV(): Promise<void>;
@@ -96,7 +117,16 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
     hasCornersSet(): boolean;
     resetCorners(): void;
     setThresholds(thresholds: Partial<DetectorThresholds>): void;
+    autoDetectCorners(
+      source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement,
+    ): Point2D[] | null;
     detect(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): Int8Array;
+    extractFeatures(
+      source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement,
+    ): import("@wasm-kifu/web/js/wasm-bridge.js").IntersectionFeature[];
+    initStreamTracker(): void;
+    processStreamFrame(source: HTMLCanvasElement | HTMLVideoElement): StreamFrameResult;
+    resetStreamTracker(): void;
     startCamera(
       videoElement: HTMLVideoElement,
       facingMode?: "user" | "environment",

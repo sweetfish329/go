@@ -18,6 +18,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "skipLibCheck": true,
+    "types": ["bun-types"],
     "paths": {
       "$lib/*": ["./src/lib/*"],
       "$components/*": ["./src/components/*"]

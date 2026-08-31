@@ -327,17 +327,25 @@ document.getElementById('btn-download-sgf').addEventListener('click', () => {
 });
 
 // ======================
-// カメラ制御
 // ======================
+// カメラ制御 & リアルタイム自動追跡
+// ======================
+let streamMode = false;
+let streamAnimationId = null;
+
 document.getElementById('btn-camera').addEventListener('click', async () => {
     cameraMode = !cameraMode;
     const cameraSection = document.getElementById('camera-section');
+    const autoDetectBtn = document.getElementById('btn-auto-detect');
+    const streamBtn = document.getElementById('btn-stream-mode');
     const captureBtn = document.getElementById('btn-capture');
     const resetBtn = document.getElementById('btn-reset-corners');
     const cameraBtn = document.getElementById('btn-camera');
 
     if (cameraMode) {
         cameraSection.classList.remove('hidden');
+        autoDetectBtn.classList.remove('hidden');
+        streamBtn.classList.remove('hidden');
         captureBtn.classList.remove('hidden');
         resetBtn.classList.remove('hidden');
         cameraBtn.textContent = '📷 カメラ閉じる';
@@ -351,6 +359,8 @@ document.getElementById('btn-camera').addEventListener('click', async () => {
             showToast(`📷 カメラエラー: ${err.message}`);
             cameraMode = false;
             cameraSection.classList.add('hidden');
+            autoDetectBtn.classList.add('hidden');
+            streamBtn.classList.add('hidden');
             captureBtn.classList.add('hidden');
             resetBtn.classList.add('hidden');
             cameraBtn.textContent = '📷 カメラ';
@@ -361,10 +371,14 @@ document.getElementById('btn-camera').addEventListener('click', async () => {
 });
 
 function closeCameraMode() {
+    stopStreamTracking();
     cameraMode = false;
     document.getElementById('camera-section').classList.add('hidden');
+    document.getElementById('btn-auto-detect').classList.add('hidden');
+    document.getElementById('btn-stream-mode').classList.add('hidden');
     document.getElementById('btn-capture').classList.add('hidden');
     document.getElementById('btn-reset-corners').classList.add('hidden');
+    document.getElementById('stream-indicator').classList.add('hidden');
     document.getElementById('btn-camera').textContent = '📷 カメラ';
 
     if (cameraStream) {
@@ -372,6 +386,33 @@ function closeCameraMode() {
         cameraStream = null;
     }
 }
+
+// 4隅の自動検出
+document.getElementById('btn-auto-detect').addEventListener('click', () => {
+    if (!detector.isReady()) {
+        showToast('⚠ OpenCV.js のロードをお待ちください');
+        return;
+    }
+
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    detector.captureFrame(video, canvas);
+
+    try {
+        const detected = detector.autoDetectCorners(canvas);
+        if (detected && detected.length === 4) {
+            cornerPoints = detected;
+            updateCornerDots();
+            drawCornerMarkers();
+            showToast('🎯 碁盤の4隅を自動検出しました！');
+        } else {
+            showToast('⚠ 自動検出できませんでした。手動で4隅をタップしてください');
+        }
+    } catch (err) {
+        console.error('Auto detect error:', err);
+        showToast(`⚠ 自動検出エラー: ${err.message}`);
+    }
+});
 
 // 4隅タップ
 document.getElementById('camera-video').addEventListener('click', (e) => {
@@ -392,7 +433,7 @@ document.getElementById('camera-video').addEventListener('click', (e) => {
 
     if (cornerPoints.length === 4) {
         detector.setCorners(cornerPoints);
-        showToast('✅ 4隅を設定しました。📸撮影ボタンで認識開始');
+        showToast('✅ 4隅を設定しました。「⚡自動記録」または「📸手動撮影」で認識');
     }
 });
 
@@ -457,6 +498,7 @@ function drawCornerMarkers() {
 
 // 4隅リセット
 document.getElementById('btn-reset-corners').addEventListener('click', () => {
+    stopStreamTracking();
     cornerPoints = [];
     detector.resetCorners();
     updateCornerDots();
@@ -467,7 +509,132 @@ document.getElementById('btn-reset-corners').addEventListener('click', () => {
     showToast('🔄 4隅をリセットしました');
 });
 
-// 撮影 & 認識
+// ======================
+// リアルタイム自動追跡 (Stream Mode)
+// ======================
+const streamBtn = document.getElementById('btn-stream-mode');
+const streamIndicator = document.getElementById('stream-indicator');
+const stabilityBar = document.getElementById('stability-bar');
+const stabilityPercent = document.getElementById('stability-percent');
+const motionStatusBadge = document.getElementById('motion-status-badge');
+
+streamBtn.addEventListener('click', () => {
+    if (!detector.hasCornersSet()) {
+        showToast('⚠ 碁盤の4隅を先に指定してください');
+        return;
+    }
+
+    streamMode = !streamMode;
+    if (streamMode) {
+        startStreamTracking();
+    } else {
+        stopStreamTracking();
+    }
+});
+
+function startStreamTracking() {
+    streamMode = true;
+    streamBtn.textContent = '⚡ 自動記録: ON';
+    streamBtn.className = 'btn btn-success';
+    streamIndicator.classList.remove('hidden');
+    detector.initStreamTracker();
+    showToast('⚡ リアルタイム自動着手検知を開始しました');
+    streamLoop();
+}
+
+function stopStreamTracking() {
+    streamMode = false;
+    streamBtn.textContent = '⚡ 自動記録: OFF';
+    streamBtn.className = 'btn btn-accent';
+    streamIndicator.classList.add('hidden');
+    if (streamAnimationId) {
+        cancelAnimationFrame(streamAnimationId);
+        streamAnimationId = null;
+    }
+    detector.resetStreamTracker();
+}
+
+let lastFrameTime = 0;
+function streamLoop(timestamp) {
+    if (!streamMode || !cameraMode) return;
+
+    // 約 20fps にスロットリング（過剰なCPU消費を防止）
+    if (!timestamp || timestamp - lastFrameTime > 50) {
+        lastFrameTime = timestamp || 0;
+        const video = document.getElementById('camera-video');
+
+        if (video && video.readyState >= 2) {
+            try {
+                const res = detector.processStreamFrame(video);
+                
+                // UI インジケーター更新
+                const percent = Math.round(res.stableProgress * 100);
+                stabilityBar.style.width = `${percent}%`;
+                stabilityPercent.textContent = `${percent}%`;
+
+                if (res.isStable) {
+                    motionStatusBadge.textContent = '🕊 盤面静止中';
+                    motionStatusBadge.className = 'badge stable';
+                } else {
+                    motionStatusBadge.textContent = `🖐 動体検知中 (${res.motionLevel})`;
+                    motionStatusBadge.className = 'badge';
+                }
+
+                // 静止安定トリガーが発火した瞬間
+                if (res.isTriggered && res.features) {
+                    processDetectedFeatures(res.features, true);
+                }
+            } catch (err) {
+                console.warn('Stream processing warning:', err);
+            }
+        }
+    }
+
+    streamAnimationId = requestAnimationFrame(streamLoop);
+}
+
+// 多次元特徴量から着手を適用
+function processDetectedFeatures(features, isAutoTriggered = false) {
+    try {
+        const analysis = kifu.analyzeBoardFeatures(features);
+
+        if (analysis.moves && analysis.moves.length === 1) {
+            const move = analysis.moves[0];
+            const colorNum = move.color === 'B' ? 1 : 2;
+            const result = kifu.applyDetectedMove(move.x, move.y, colorNum);
+
+            if (result === 0) {
+                drawBoard();
+                const colorName = move.color === 'B' ? '黒' : '白';
+                const prefix = isAutoTriggered ? '⚡ [自動検知]' : '✅';
+                showToast(`${prefix} ${colorName} (${move.x},${move.y})`);
+            } else {
+                if (!isAutoTriggered) {
+                    showToast('❌ 検出された着手は違法手です');
+                }
+            }
+        } else if (analysis.moves && analysis.moves.length > 1) {
+            if (!isAutoTriggered) {
+                showToast(`⚠ ${analysis.moves.length}個の変化を検出。手動で確認してください`);
+            }
+        } else {
+            if (!isAutoTriggered) {
+                showToast('ℹ 変化が検出されませんでした');
+            }
+        }
+
+        if (analysis.errors && analysis.errors.length > 0 && !isAutoTriggered) {
+            console.warn('Detection warnings:', analysis.errors);
+        }
+    } catch (err) {
+        console.error('Feature analysis error:', err);
+        if (!isAutoTriggered) {
+            showToast(`❌ 認識エラー: ${err.message}`);
+        }
+    }
+}
+
+// 手動撮影 & 認識
 document.getElementById('btn-capture').addEventListener('click', () => {
     if (!detector.hasCornersSet()) {
         showToast('⚠ 碁盤の4隅を先にタップしてください');
@@ -479,29 +646,9 @@ document.getElementById('btn-capture').addEventListener('click', () => {
     detector.captureFrame(video, canvas);
 
     try {
-        const intersections = detector.detect(canvas);
-        const analysis = kifu.analyzeBoardImage(intersections);
-
-        if (analysis.moves && analysis.moves.length === 1) {
-            const move = analysis.moves[0];
-            const colorNum = move.color === 'B' ? 1 : 2;
-            const result = kifu.applyDetectedMove(move.x, move.y, colorNum);
-            if (result === 0) {
-                drawBoard();
-                const colorName = move.color === 'B' ? '黒' : '白';
-                showToast(`✅ ${colorName}の着手を検出 (${move.x},${move.y})`);
-            } else {
-                showToast('❌ 検出された着手は違法手です');
-            }
-        } else if (analysis.moves && analysis.moves.length > 1) {
-            showToast(`⚠ ${analysis.moves.length}個の変化を検出。手動で確認してください`);
-        } else {
-            showToast('ℹ 変化が検出されませんでした');
-        }
-
-        if (analysis.errors && analysis.errors.length > 0) {
-            console.warn('Detection warnings:', analysis.errors);
-        }
+        // 多次元特徴量抽出 (ドーナツ走査 + Dani Ferrari 動的平均石アルゴリズム)
+        const features = detector.extractFeatures(canvas);
+        processDetectedFeatures(features, false);
     } catch (err) {
         showToast(`❌ 認識エラー: ${err.message}`);
         console.error('Detection error:', err);
@@ -517,3 +664,4 @@ init();
 window.onOpenCVReady = () => {
     console.log('OpenCV.js loaded');
 };
+

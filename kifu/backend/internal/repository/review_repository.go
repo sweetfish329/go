@@ -49,6 +49,19 @@ func (r *ReviewRepository) Save(review *model.Review) error {
 	return nil
 }
 
+func scanReview(s rowScanner) (*model.Review, error) {
+	rev := &model.Review{}
+	err := s.Scan(
+		&rev.ID, &rev.KifuID, &rev.UserID, &rev.MoveNumber, &rev.NodePath,
+		&rev.ReviewerName, &rev.Comment, &rev.Variations,
+		&rev.CreatedAt, &rev.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rev, nil
+}
+
 func (r *ReviewRepository) FindByKifuID(kifuID string) ([]*model.Review, error) {
 	query := `
 	SELECT id, kifu_id, user_id, move_number, node_path, reviewer_name, comment, variations, created_at, updated_at
@@ -64,12 +77,7 @@ func (r *ReviewRepository) FindByKifuID(kifuID string) ([]*model.Review, error) 
 
 	reviews := []*model.Review{}
 	for rows.Next() {
-		rev := &model.Review{}
-		err := rows.Scan(
-			&rev.ID, &rev.KifuID, &rev.UserID, &rev.MoveNumber, &rev.NodePath,
-			&rev.ReviewerName, &rev.Comment, &rev.Variations,
-			&rev.CreatedAt, &rev.UpdatedAt,
-		)
+		rev, err := scanReview(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan review row: %w", err)
 		}
@@ -120,12 +128,7 @@ func (r *ReviewRepository) FindByID(id string) (*model.Review, error) {
 	FROM reviews
 	WHERE id = $1`
 
-	rev := &model.Review{}
-	err := r.db.QueryRow(query, id).Scan(
-		&rev.ID, &rev.KifuID, &rev.UserID, &rev.MoveNumber, &rev.NodePath,
-		&rev.ReviewerName, &rev.Comment, &rev.Variations,
-		&rev.CreatedAt, &rev.UpdatedAt,
-	)
+	rev, err := scanReview(r.db.QueryRow(query, id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

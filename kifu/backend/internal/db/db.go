@@ -190,24 +190,9 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	// Run migration to add user_id to reviews if it doesn't exist
-	var hasUserID bool
-	rows, err := db.Query("PRAGMA table_info(reviews)")
+	hasUserID, err := hasColumn(db, "reviews", "user_id")
 	if err != nil {
 		return fmt.Errorf("failed to check reviews table info: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var cid int
-		var name string
-		var ctype string
-		var notnull int
-		var dfltValue interface{}
-		var pk int
-		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err == nil {
-			if name == "user_id" {
-				hasUserID = true
-			}
-		}
 	}
 	if !hasUserID {
 		_, err = db.Exec("ALTER TABLE reviews ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL")
@@ -217,24 +202,9 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	// Run migration to add thumbnail_image to kifus if it doesn't exist
-	var hasThumbnailImage bool
-	kifusRows, err := db.Query("PRAGMA table_info(kifus)")
+	hasThumbnailImage, err := hasColumn(db, "kifus", "thumbnail_image")
 	if err != nil {
 		return fmt.Errorf("failed to check kifus table info: %w", err)
-	}
-	defer kifusRows.Close()
-	for kifusRows.Next() {
-		var cid int
-		var name string
-		var ctype string
-		var notnull int
-		var dfltValue interface{}
-		var pk int
-		if err := kifusRows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err == nil {
-			if name == "thumbnail_image" {
-				hasThumbnailImage = true
-			}
-		}
 	}
 	if !hasThumbnailImage {
 		_, err = db.Exec("ALTER TABLE kifus ADD COLUMN thumbnail_image BLOB")
@@ -260,4 +230,27 @@ func runMigrations(db *sql.DB) error {
 
 	log.Println("Database migrations applied successfully.")
 	return nil
+}
+
+func hasColumn(db *sql.DB, tableName, columnName string) (bool, error) {
+	rows, err := db.Query(fmt.Sprintf("PRAGMA table_info(%s)", tableName))
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name string
+		var ctype string
+		var notnull int
+		var dfltValue interface{}
+		var pk int
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err == nil {
+			if name == columnName {
+				return true, nil
+			}
+		}
+	}
+	return false, rows.Err()
 }

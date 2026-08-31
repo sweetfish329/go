@@ -592,30 +592,6 @@
     cursor: pointer !important;
   }
 
-  /* ---- Nav Logo ---- */
-  .nav-logo-icon {
-    font-size: 1rem;
-    color: var(--wc-accent-warm);
-    display: inline-block;
-    line-height: 1;
-    transition: var(--wc-transition-fast);
-    opacity: 0.85;
-  }
-
-  .brand-logo:hover .nav-logo-icon {
-    opacity: 1;
-    transform: rotate(180deg);
-  }
-
-  .nav-logo-text {
-    font-family: 'Cormorant Garamond', serif !important;
-    font-size: 1.25rem;
-    font-weight: 500;
-    letter-spacing: 0.16em;
-    color: var(--wc-text);
-    text-transform: uppercase;
-  }
-
   /* ---- Nav Links ---- */
   .nav-link {
     display: inline-flex !important;
@@ -635,48 +611,6 @@
   .nav-link:hover {
     background: var(--wc-accent-soft) !important;
     color: var(--wc-accent) !important;
-  }
-
-  /* User chip */
-  .nav-user-chip {
-    border: 1px solid var(--wc-border) !important;
-    background: rgba(245, 240, 232, 0.45) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-
-  .nav-user-chip:hover {
-    background: var(--wc-accent-soft) !important;
-    border-color: rgba(124, 107, 82, 0.4) !important;
-  }
-
-  .user-avatar {
-    font-size: 0.95rem;
-    color: var(--wc-accent);
-    opacity: 0.7;
-  }
-
-  /* Theme toggle button */
-  .nav-theme-btn {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    color: var(--wc-accent) !important;
-    border: 1px solid var(--wc-border) !important;
-    background: rgba(245, 240, 232, 0.45) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
-  }
-
-  .nav-theme-btn:hover {
-    background: var(--wc-accent-soft) !important;
-    border-color: rgba(124, 107, 82, 0.4) !important;
-    transform: rotate(15deg);
   }
 
   /* ---- Scroll-Driven Parallax ---- */

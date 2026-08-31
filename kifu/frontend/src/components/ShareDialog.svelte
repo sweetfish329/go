@@ -819,9 +819,9 @@
 </div>
 
 <!-- Backdrop click triggers onClose -->
-<div transition:fade={{ duration: 180 }} class="share-modal-backdrop" onclick={props.onClose} role="presentation">
+<div transition:fade={{ duration: 180 }} class="share-modal-backdrop" onclick={props.onClose} onkeydown={(e) => { if (e.key === 'Escape') props.onClose(); }} role="presentation">
   <!-- Content click propagation stopped to avoid closing -->
-  <div bind:this={modalEl} transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-describedby="share-modal-desc">
+  <div bind:this={modalEl} transition:scale={{ duration: 220, start: 0.96 }} class="share-modal-content nm-modal" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') props.onClose(); }} tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-describedby="share-modal-desc">
     
     <!-- Header with Washi Clay Design Style -->
     <div class="share-modal-header">

@@ -1,14 +1,16 @@
 import { createBoard, placeStone, sgfToCoords, coordsToSgf } from "./goEngine";
-import { parseAIAnalysis } from "./aiAnalysis";
+import { parseAIAnalysis, type AIAnalysisMove } from "./aiAnalysis";
 import { parse as sabakiParse, stringify as sabakiStringify } from "@sabaki/sgf";
 import GameTree from "@sabaki/immutable-gametree";
 
+export type NodeId = number | string;
+
 export interface SgfNode {
-  id?: any; // Added for @sabaki/immutable-gametree support
+  id?: NodeId; // Added for @sabaki/immutable-gametree support
   properties: Record<string, string[]>;
   children: SgfNode[];
   parent: SgfNode | null;
-  aiAnalysis?: any;
+  aiAnalysis?: AIAnalysisMove | null;
 }
 
 export interface HistoryEntry {
@@ -18,11 +20,25 @@ export interface HistoryEntry {
   node: SgfNode | null;
 }
 
+interface SabakiParseNode {
+  id?: NodeId;
+  data?: Record<string, string[]>;
+  children?: SabakiParseNode[];
+  parentId?: NodeId | null;
+}
+
+interface SabakiRawNode {
+  id: NodeId;
+  data: Record<string, string[]>;
+  children: SabakiRawNode[];
+  parentId: NodeId | null;
+}
+
 // Convert Sabaki's SGF Node to our internal SgfNode structure (with parent pointers)
 function convertSabakiNode(
-  sabakiNode: any,
+  sabakiNode: SabakiParseNode,
   parent: SgfNode | null = null,
-  nodeMap?: Map<any, SgfNode>,
+  nodeMap?: Map<NodeId, SgfNode>,
 ): SgfNode {
   const node: SgfNode = {
     id: sabakiNode.id,
@@ -36,7 +52,7 @@ function convertSabakiNode(
   }
 
   if (sabakiNode.children && sabakiNode.children.length > 0) {
-    node.children = sabakiNode.children.map((child: any) =>
+    node.children = sabakiNode.children.map((child: SabakiParseNode) =>
       convertSabakiNode(child, node, nodeMap),
     );
   }
@@ -45,9 +61,9 @@ function convertSabakiNode(
 }
 
 // Convert our SgfNode back to Sabaki Sgf node structure for serialization
-function convertToSabakiNode(node: SgfNode, idCounter = { val: 1 }): any {
+function convertToSabakiNode(node: SgfNode, idCounter = { val: 1 }): SabakiRawNode {
   const currentId = node.id !== undefined ? node.id : idCounter.val++;
-  const sabakiNode: any = {
+  const sabakiNode: SabakiRawNode = {
     id: currentId,
     data: node.properties,
     parentId: node.parent?.id || null,
@@ -63,6 +79,26 @@ function convertToSabakiNode(node: SgfNode, idCounter = { val: 1 }): any {
   return sabakiNode;
 }
 
+function getMaxNodeId(node: SabakiParseNode): number {
+  let max = typeof node.id === "number" ? node.id : 0;
+  if (node.children) {
+    for (const child of node.children) {
+      const childMax = getMaxNodeId(child);
+      if (childMax > max) max = childMax;
+    }
+  }
+  return max;
+}
+
+export function createGameTree(rootNode?: SabakiParseNode): GameTree {
+  if (!rootNode) return new GameTree();
+  let maxId = getMaxNodeId(rootNode);
+  return new GameTree({
+    root: rootNode as Parameters<typeof GameTree.prototype.mutate>[0] extends never ? any : any,
+    getId: () => ++maxId,
+  });
+}
+
 // Parse SGF string into a JS tree structure using @sabaki/sgf
 export function parseSgf(sgfStr: string): SgfNode | null {
   sgfStr = sgfStr.trim();
@@ -72,8 +108,8 @@ export function parseSgf(sgfStr: string): SgfNode | null {
     const rootNodes = sabakiParse(sgfStr);
     if (!rootNodes || rootNodes.length === 0) return null;
 
-    // Build a GameTree to ensure valid and consistent IDs
-    const tree = new GameTree({ root: rootNodes[0] });
+    // Build a GameTree with collision-free ID generator
+    const tree = createGameTree(rootNodes[0]);
     return convertSabakiNode(tree.root);
   } catch (err) {
     console.error("Failed to parse SGF with @sabaki/sgf:", err);
@@ -99,7 +135,7 @@ export class SgfPlayer {
   history: HistoryEntry[];
   currentIndex: number;
   tree: GameTree;
-  nodeMap: Map<any, SgfNode>;
+  nodeMap: Map<NodeId, SgfNode>;
 
   constructor(sgfText: string, boardSize: number = 19) {
     this.boardSize = boardSize;
@@ -107,11 +143,11 @@ export class SgfPlayer {
 
     const rootNodes = sabakiParse(sgfText.trim());
     if (rootNodes && rootNodes.length > 0) {
-      this.tree = new GameTree({ root: rootNodes[0] });
+      this.tree = createGameTree(rootNodes[0]);
       this.root = convertSabakiNode(this.tree.root, null, this.nodeMap);
       this.attachAIAnalysis(this.root);
     } else {
-      this.tree = new GameTree();
+      this.tree = createGameTree();
       this.root = null;
     }
 
@@ -121,7 +157,7 @@ export class SgfPlayer {
   }
 
   // Update GameTree state and rebuild the SgfNode tree and node references
-  updateTree(newTree: GameTree, selectNodeId?: any): void {
+  updateTree(newTree: GameTree, selectNodeId?: NodeId): void {
     const oldCurrentNode = this.getCurrentState()?.node;
     const oldCurrentId = oldCurrentNode ? oldCurrentNode.id : null;
 
@@ -372,38 +408,16 @@ export class SgfPlayer {
       return { success: false, error: res.error };
     }
 
-    let newNodeId: any = null;
+    let newNodeId: NodeId | null = null;
     const newTree = this.tree.mutate((draft) => {
       newNodeId = draft.appendNode(currentNode.id, {
         [key]: [coordStr],
       });
     });
 
-    this.updateTree(newTree, newNodeId);
+    this.updateTree(newTree, newNodeId ?? undefined);
 
-    const updatedCurrentState = this.history[this.currentIndex];
-    const nextCaptives = { ...updatedCurrentState.captives };
-    if (color === 1) {
-      nextCaptives.W += res.captured;
-    } else {
-      nextCaptives.B += res.captured;
-    }
-
-    const newNode = this.nodeMap.get(newNodeId);
-    if (!newNode) return { success: false, error: "Failed to find new node" };
-
-    const nextState: HistoryEntry = {
-      board: res.board,
-      lastMove: { x, y },
-      captives: nextCaptives,
-      node: newNode,
-    };
-
-    this.history = this.history.slice(0, this.currentIndex + 1);
-    this.history.push(nextState);
-    this.currentIndex++;
-    this.calculateMainPath();
-
+    const newNode = newNodeId !== null ? this.nodeMap.get(newNodeId) : undefined;
     return { success: true, isNew: true, node: newNode };
   }
 

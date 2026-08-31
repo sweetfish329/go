@@ -26,6 +26,10 @@ func main() {
 		log.Fatalf("ADMIN_USERNAME and ADMIN_PASSWORD environment variables must be set")
 	}
 
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatalf("JWT_SECRET environment variable must be set")
+	}
+
 	if os.Getenv("ALLOWED_ORIGIN") == "" {
 		log.Fatalf("ALLOWED_ORIGIN environment variable must be set (wildcard * is disabled for security)")
 	}

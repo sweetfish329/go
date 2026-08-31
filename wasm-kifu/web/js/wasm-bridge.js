@@ -131,7 +131,7 @@ class WasmKifu {
     }
 
     /**
-     * 画像認識の結果を解析して着手を推定
+     * 画像認識の結果を解析して着手を推定 (旧フォーマット)
      * @param {Int8Array} intersections - 361要素の交点状態配列 (0=空, 1=黒, 2=白)
      * @returns {Object} AnalysisResult {moves: Array, removed: Array, errors: Array, confidence: number}
      */
@@ -141,6 +141,19 @@ class WasmKifu {
         const result = wasmAnalyzeBoardImage(data, 19, 19);
         return JSON.parse(result);
     }
+
+    /**
+     * 多次元特徴量 (L, C, D, H, S) と動的平均石モデルを用いて着手を高精度に推定
+     * @param {Array<Object>} features - 361要素の特徴量配列 [{x, y, l, c, d, h, s}, ...]
+     * @returns {Object} AnalysisResult {moves: Array, removed: Array, errors: Array, confidence: number}
+     */
+    analyzeBoardFeatures(features) {
+        this._checkReady();
+        const data = JSON.stringify({ features: features });
+        const result = wasmAnalyzeBoardFeatures(data);
+        return JSON.parse(result);
+    }
+
 
     /**
      * 検出された着手を適用

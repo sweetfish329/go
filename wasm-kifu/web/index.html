@@ -42,6 +42,18 @@
                 <video id="camera-video" playsinline autoplay></video>
                 <canvas id="corner-overlay-canvas"></canvas>
             </div>
+            
+            <!-- ストリーム自動追跡インジケーター -->
+            <div id="stream-indicator" class="hidden">
+                <div class="stream-status-row">
+                    <span id="motion-status-badge" class="badge">🖐 手を検知中</span>
+                    <span id="stability-label">静止安定度: <b id="stability-percent">0%</b></span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="stability-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
             <div id="corner-instructions">
                 <p>碁盤の4隅をタップしてください</p>
                 <p class="corner-order">左上 → 右上 → 右下 → 左下</p>
@@ -65,11 +77,14 @@
             </div>
             <div class="control-group secondary">
                 <button id="btn-camera" class="btn btn-accent" disabled title="カメラ">📷 カメラ</button>
-                <button id="btn-capture" class="btn btn-accent hidden" title="撮影して認識">📸 撮影</button>
+                <button id="btn-auto-detect" class="btn btn-accent hidden" title="碁盤の4隅を自動検出">🎯 自動検出</button>
+                <button id="btn-stream-mode" class="btn btn-accent hidden" title="リアルタイム自動着手検知（静止安定トリガー）">⚡ 自動記録: OFF</button>
+                <button id="btn-capture" class="btn btn-accent hidden" title="撮影して認識">📸 手動撮影</button>
                 <button id="btn-reset-corners" class="btn hidden" title="4隅リセット">🔄 4隅リセット</button>
                 <button id="btn-export" class="btn btn-success" title="SGF出力">📄 SGF出力</button>
             </div>
         </section>
+
 
         <!-- SGF表示 -->
         <section id="sgf-output" class="hidden">

@@ -75,8 +75,11 @@ func ExtractMetadata(n *Node) *Metadata {
 	return meta
 }
 
-var dateRegex = regexp.MustCompile(`(\d{4})[-/](\d{2})[-/](\d{2})`)
-var simpleDateRegex = regexp.MustCompile(`(\d{4})(\d{2})(\d{2})`)
+var (
+	dateRegex       = regexp.MustCompile(`(\d{4})[-/](\d{2})[-/](\d{2})`)
+	simpleDateRegex = regexp.MustCompile(`(\d{4})(\d{2})(\d{2})`)
+	yearRegex       = regexp.MustCompile(`^(\d{4})$`)
+)
 
 func cleanDate(dt string) string {
 	dt = strings.TrimSpace(dt)
@@ -95,7 +98,6 @@ func cleanDate(dt string) string {
 	}
 
 	// 3. Check if it's just a year YYYY
-	var yearRegex = regexp.MustCompile(`^(\d{4})$`)
 	if yearRegex.MatchString(dt) {
 		return dt + "-01-01"
 	}

@@ -111,6 +111,15 @@ func (ge *GameEngine) MoveNumber() int {
 	return ge.moveNumber
 }
 
+// MoveResult represents the result of applying a detected move
+type MoveResult int
+
+const (
+	MoveResultSuccess   MoveResult = 0
+	MoveResultIllegal   MoveResult = 1
+	MoveResultGameEnded MoveResult = 2
+)
+
 // BoardState は盤面の状態を表す
 type BoardState struct {
 	// Stones は 19x19 の盤面。0=空, 1=黒, 2=白
@@ -123,8 +132,8 @@ type BoardState struct {
 	Resigned  bool         `json:"resigned"`
 }
 
-// BoardStateJSON は盤面状態をJSON文字列で返す
-func (ge *GameEngine) BoardStateJSON() string {
+// GetBoardState は盤面状態を構造体として直接返す（JSONオーバーヘッドなし）
+func (ge *GameEngine) GetBoardState() BoardState {
 	board := ge.current.Board()
 	state := BoardState{
 		Player:    int(board.Player),
@@ -144,6 +153,12 @@ func (ge *GameEngine) BoardStateJSON() string {
 		}
 	}
 
+	return state
+}
+
+// BoardStateJSON は盤面状態をJSON文字列で返す
+func (ge *GameEngine) BoardStateJSON() string {
+	state := ge.GetBoardState()
 	data, _ := json.Marshal(state)
 	return string(data)
 }
@@ -193,10 +208,10 @@ func (ge *GameEngine) LastMoveInfoJSON() string {
 }
 
 // ApplyDetectedMove は画像認識で検出された着手を適用する
-// 戻り値: 0=成功, 1=違法手, 2=ゲーム終了
-func (ge *GameEngine) ApplyDetectedMove(x, y, color int) int {
+// 戻り値: 0=成功 (MoveResultSuccess), 1=違法手 (MoveResultIllegal), 2=ゲーム終了 (MoveResultGameEnded)
+func (ge *GameEngine) ApplyDetectedMove(x, y, color int) MoveResult {
 	if ge.resigned {
-		return 2
+		return MoveResultGameEnded
 	}
 
 	// 手番チェック
@@ -207,23 +222,23 @@ func (ge *GameEngine) ApplyDetectedMove(x, y, color int) int {
 		p := sgf.Point(x, y)
 		next, err := ge.current.PlayColour(p, sgf.Colour(color))
 		if err != nil {
-			return 1 // 違法手
+			return MoveResultIllegal
 		}
 		ge.current = next
 		ge.moveNumber++
-		return 0
+		return MoveResultSuccess
 	}
 
 	return ge.playMoveInternal(x, y)
 }
 
-func (ge *GameEngine) playMoveInternal(x, y int) int {
+func (ge *GameEngine) playMoveInternal(x, y int) MoveResult {
 	p := sgf.Point(x, y)
 	next, err := ge.current.Play(p)
 	if err != nil {
-		return 1
+		return MoveResultIllegal
 	}
 	ge.current = next
 	ge.moveNumber++
-	return 0
+	return MoveResultSuccess
 }

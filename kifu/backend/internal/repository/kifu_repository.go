@@ -55,6 +55,43 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 	return nil
 }
 
+func scanKifuSummary(s rowScanner) (*model.Kifu, error) {
+	k := &model.Kifu{}
+	var gameDate string
+	err := s.Scan(
+		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+		&k.HasOgp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(gameDate) >= 10 {
+		k.GameDate = gameDate[:10]
+	} else {
+		k.GameDate = gameDate
+	}
+	return k, nil
+}
+
+func scanKifuDetail(s rowScanner) (*model.Kifu, error) {
+	k := &model.Kifu{}
+	var gameDate string
+	err := s.Scan(
+		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(gameDate) >= 10 {
+		k.GameDate = gameDate[:10]
+	} else {
+		k.GameDate = gameDate
+	}
+	return k, nil
+}
+
 func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 	query := `
 	SELECT id, title, black_player, black_rank, white_player, white_rank,
@@ -72,20 +109,9 @@ func (r *KifuRepository) FindAllByUser(userID string) ([]*model.Kifu, error) {
 
 	kifus := []*model.Kifu{}
 	for rows.Next() {
-		k := &model.Kifu{}
-		var gameDate string
-		err := rows.Scan(
-			&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
-			&k.HasOgp,
-		)
+		k, err := scanKifuSummary(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan kifu row: %w", err)
-		}
-		if len(gameDate) >= 10 {
-			k.GameDate = gameDate[:10]
-		} else {
-			k.GameDate = gameDate
 		}
 		kifus = append(kifus, k)
 	}
@@ -100,24 +126,12 @@ func (r *KifuRepository) FindByID(id string) (*model.Kifu, error) {
 	FROM kifus
 	WHERE id = $1`
 
-	k := &model.Kifu{}
-	var gameDate string
-	err := r.db.QueryRow(query, id).Scan(
-		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
-	)
-
+	k, err := scanKifuDetail(r.db.QueryRow(query, id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // not found
 		}
 		return nil, fmt.Errorf("failed to find kifu by id: %w", err)
-	}
-
-	if len(gameDate) >= 10 {
-		k.GameDate = gameDate[:10]
-	} else {
-		k.GameDate = gameDate
 	}
 
 	return k, nil
@@ -130,24 +144,12 @@ func (r *KifuRepository) FindByShareToken(token string) (*model.Kifu, error) {
 	FROM kifus
 	WHERE share_token = $1`
 
-	k := &model.Kifu{}
-	var gameDate string
-	err := r.db.QueryRow(query, token).Scan(
-		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
-	)
-
+	k, err := scanKifuDetail(r.db.QueryRow(query, token))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to find kifu by share token: %w", err)
-	}
-
-	if len(gameDate) >= 10 {
-		k.GameDate = gameDate[:10]
-	} else {
-		k.GameDate = gameDate
 	}
 
 	return k, nil
@@ -170,20 +172,9 @@ func (r *KifuRepository) FindAllPublicByUser(userID string) ([]*model.Kifu, erro
 
 	kifus := []*model.Kifu{}
 	for rows.Next() {
-		k := &model.Kifu{}
-		var gameDate string
-		err := rows.Scan(
-			&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-			&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
-			&k.HasOgp,
-		)
+		k, err := scanKifuSummary(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan public kifu row: %w", err)
-		}
-		if len(gameDate) >= 10 {
-			k.GameDate = gameDate[:10]
-		} else {
-			k.GameDate = gameDate
 		}
 		kifus = append(kifus, k)
 	}
@@ -198,24 +189,12 @@ func (r *KifuRepository) FindByIDAndUser(id string, userID string) (*model.Kifu,
 	FROM kifus
 	WHERE id = $1 AND uploaded_by = $2`
 
-	k := &model.Kifu{}
-	var gameDate string
-	err := r.db.QueryRow(query, id, userID).Scan(
-		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
-	)
-
+	k, err := scanKifuDetail(r.db.QueryRow(query, id, userID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // not found
 		}
 		return nil, fmt.Errorf("failed to find kifu by id and user: %w", err)
-	}
-
-	if len(gameDate) >= 10 {
-		k.GameDate = gameDate[:10]
-	} else {
-		k.GameDate = gameDate
 	}
 
 	return k, nil
@@ -332,24 +311,12 @@ func (r *KifuRepository) FindRandomPublic() (*model.Kifu, error) {
 	ORDER BY RANDOM()
 	LIMIT 1`
 
-	k := &model.Kifu{}
-	var gameDate string
-	err := r.db.QueryRow(query).Scan(
-		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
-	)
-
+	k, err := scanKifuDetail(r.db.QueryRow(query))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // not found
 		}
 		return nil, fmt.Errorf("failed to find random public kifu: %w", err)
-	}
-
-	if len(gameDate) >= 10 {
-		k.GameDate = gameDate[:10]
-	} else {
-		k.GameDate = gameDate
 	}
 
 	return k, nil

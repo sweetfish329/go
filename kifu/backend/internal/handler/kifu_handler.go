@@ -420,18 +420,6 @@ func (h *KifuHandler) GetPublicKifu(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, kifu)
 }
 
-// Helpers for JSON response
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	_, _ = w.Write(response)
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"error": message})
-}
-
 // GetSharedOgImage generates and returns a PNG image representing the final board state of a shared kifu
 func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
@@ -818,21 +806,7 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Inject CSS variable for theme color
 	themeColor := settings["theme_color"]
-	// Strictly validate themeColor hex format to prevent XSS
-	isValidColor := false
-	if len(themeColor) > 0 && themeColor[0] == '#' {
-		isValidColor = true
-		for _, c := range themeColor[1:] {
-			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-				isValidColor = false
-				break
-			}
-		}
-		if len(themeColor) != 4 && len(themeColor) != 7 {
-			isValidColor = false
-		}
-	}
-	if !isValidColor {
+	if !isValidHexColor(themeColor) {
 		themeColor = "#4e342e"
 	}
 	themeStyle := fmt.Sprintf("\n\t<style>:root { --theme-color: %s; }</style>", themeColor)

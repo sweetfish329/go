@@ -100,17 +100,29 @@ kifu.getLastMoveInfo();  // {x, y, color, moveNumber, isPass}
 kifu.exportSGF();        // SGF文字列
 kifu.importSGF(sgfStr);  // true/false
 
-// 画像認識
-kifu.analyzeBoardImage(intersections); // 差分解析
+// 画像認識 (OpenCV.js)
+import { BoardDetector } from './js/board-detector.js';
+
+const detector = new BoardDetector();
+await detector.waitForOpenCV();
+
+// 4隅の自動検出 (ハフ変換＋幾何学的整合性検証)
+const corners = detector.autoDetectCorners(canvas); // [topLeft, topRight, bottomRight, bottomLeft]
+
+// 盤面石検出
+const intersections = detector.detect(canvas);
+const analysis = kifu.analyzeBoardImage(intersections); // 差分解析
 kifu.applyDetectedMove(x, y, color);  // 検出着手の適用
 ```
 
 ## カメラによる画像認識
 
 1. 「📷 カメラ」ボタンでカメラを起動
-2. 碁盤の4隅をタップ (左上 → 右上 → 右下 → 左下)
-3. 「📸 撮影」ボタンで盤面を認識
-4. 検出された着手が自動的に記録される
+2. **4隅の指定**:
+   - **自動検出**: 「🎯 自動検出」ボタンを押すと、Cannyエッジ＋ハフ変換＋幾何検証により4隅を自動特定します
+   - **手動タップ**: 碁盤の4隅をタップ (左上 → 右上 → 右下 → 左下) して微調整や指定も可能
+3. 「📸 撮影」ボタンで盤面を認識（平滑化・木目マスク・HSVサンプリング）
+4. 検出された着手が自動的に棋譜エンジンに反映・記録される
 
 ## ライセンス
 

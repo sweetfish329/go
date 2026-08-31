@@ -166,18 +166,21 @@
   }
 </script>
 
-<div class="board-container">
+<div
+  class="board-container"
+  tabindex={interactive ? 0 : -1}
+  role="button"
+  aria-label="碁盤。マウスで交点を選択するか、Enterまたはスペースキーで選択中の交点に石を置きます。"
+  onclick={handleSvgClick}
+  onmousemove={handleMouseMove}
+  onmouseleave={handleMouseLeave}
+  onkeydown={handleSvgKeyDown}
+>
   <svg
     bind:this={svgElement}
     viewBox="0 0 {boardSize} {boardSize}"
     class="go-board"
-    onclick={handleSvgClick}
-    onmousemove={handleMouseMove}
-    onmouseleave={handleMouseLeave}
-    onkeydown={handleSvgKeyDown}
-    tabindex="0"
-    role="application"
-    aria-label="碁盤。マウスで交点を選択するか、Enterまたはスペースキーで選択中の交点に石を置きます。"
+    aria-hidden="true"
   >
     <!-- Board background (Nordic pastel flat style) -->
     <rect width={boardSize} height={boardSize} fill="var(--wc-board)" />

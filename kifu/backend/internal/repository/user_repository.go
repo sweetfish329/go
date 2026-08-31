@@ -100,6 +100,15 @@ func (r *UserRepository) CreateWithOAuth(user *model.User, oauth *model.UserOAut
 	return nil
 }
 
+func scanUser(s rowScanner) (*model.User, error) {
+	var user model.User
+	err := s.Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *UserRepository) FindByOAuth(provider string, providerUserID string) (*model.User, error) {
 	query := `
 	SELECT u.id, u.username, u.password_hash, u.created_at, u.updated_at
@@ -107,8 +116,7 @@ func (r *UserRepository) FindByOAuth(provider string, providerUserID string) (*m
 	INNER JOIN user_oauths o ON u.id = o.user_id
 	WHERE o.provider = $1 AND o.provider_user_id = $2`
 
-	var user model.User
-	err := r.db.QueryRow(query, provider, providerUserID).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+	user, err := scanUser(r.db.QueryRow(query, provider, providerUserID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -116,7 +124,7 @@ func (r *UserRepository) FindByOAuth(provider string, providerUserID string) (*m
 		return nil, fmt.Errorf("failed to find user by OAuth: %w", err)
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func (r *UserRepository) FindByUsername(username string) (*model.User, error) {
@@ -125,8 +133,7 @@ func (r *UserRepository) FindByUsername(username string) (*model.User, error) {
 	FROM users
 	WHERE username = $1`
 
-	var user model.User
-	err := r.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+	user, err := scanUser(r.db.QueryRow(query, username))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -134,7 +141,7 @@ func (r *UserRepository) FindByUsername(username string) (*model.User, error) {
 		return nil, fmt.Errorf("failed to find user by username: %w", err)
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func (r *UserRepository) FindByID(id string) (*model.User, error) {
@@ -143,8 +150,7 @@ func (r *UserRepository) FindByID(id string) (*model.User, error) {
 	FROM users
 	WHERE id = $1`
 
-	var user model.User
-	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+	user, err := scanUser(r.db.QueryRow(query, id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -152,5 +158,5 @@ func (r *UserRepository) FindByID(id string) (*model.User, error) {
 		return nil, fmt.Errorf("failed to find user by id: %w", err)
 	}
 
-	return &user, nil
+	return user, nil
 }

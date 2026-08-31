@@ -716,20 +716,6 @@
       font-size: 1.6rem !important;
       margin-bottom: 12px !important;
     }
-    
-    /* Stack players and metadata vertically on mobile to prevent overflow */
-    .em-vogue-editorial-item > .card-content > div:last-child {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 12px !important;
-    }
-    .kifu-meta {
-      text-align: left !important;
-      border-top: 1px dashed var(--wc-border) !important;
-      width: 100% !important;
-      padding-top: 8px !important;
-      margin-top: 4px !important;
-    }
 
     /* Expand filter drawer ribbon toggle for easier tapping */
     .em-vogue-drawer-toggle {
@@ -859,6 +845,7 @@
     line-height: 1.25 !important;
     color: var(--wc-text);
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;

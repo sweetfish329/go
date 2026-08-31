@@ -1688,10 +1688,6 @@
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .controls-panel {
-    border-radius: 8px;
-    overflow: hidden;
-  }
   .comments-list::-webkit-scrollbar {
     width: 6px;
   }
@@ -1841,9 +1837,6 @@
     }
     .review-edit-panel .row .input-field {
       margin-bottom: 5px !important;
-    }
-    h5 {
-      font-size: 1.25rem !important;
     }
   }
 

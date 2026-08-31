@@ -96,6 +96,14 @@ func analyzeBoardImageWrapper(this js.Value, args []js.Value) any {
 	return vision.AnalyzeBoardDiff(gameEngine, imageData, width, height)
 }
 
+func analyzeBoardFeaturesWrapper(this js.Value, args []js.Value) any {
+	if len(args) < 1 {
+		return "{}"
+	}
+	featuresJSON := args[0].String()
+	return vision.AnalyzeBoardFeatures(gameEngine, featuresJSON)
+}
+
 func applyDetectedMoveWrapper(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
 		return 1
@@ -124,9 +132,11 @@ func main() {
 	js.Global().Set("wasmGetMoveNumber", js.FuncOf(getMoveNumberWrapper))
 	js.Global().Set("wasmGetBoardState", js.FuncOf(getBoardStateWrapper))
 	js.Global().Set("wasmAnalyzeBoardImage", js.FuncOf(analyzeBoardImageWrapper))
+	js.Global().Set("wasmAnalyzeBoardFeatures", js.FuncOf(analyzeBoardFeaturesWrapper))
 	js.Global().Set("wasmApplyDetectedMove", js.FuncOf(applyDetectedMoveWrapper))
 	js.Global().Set("wasmGetLastMoveInfo", js.FuncOf(getLastMoveInfoWrapper))
 
 	// WASM の実行を維持するためにチャネルで待機する
 	select {}
 }
+
