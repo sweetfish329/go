@@ -11,6 +11,8 @@ class BoardDetector {
         this.cvReady = false;
         this.cornerPoints = null; // 4隅の座標 [{x,y}, ...]
         this.boardSize = 19;
+        this.recordedSpacingsX = null; // 実測間隔 X [x0, x1, ... x18]
+        this.recordedSpacingsY = null; // 実測間隔 Y [y0, y1, ... y18]
 
         // 石判定の閾値（チューニング可能）
         this.thresholds = {
@@ -205,23 +207,10 @@ class BoardDetector {
             // 2. Canny エッジ検出
             cv.Canny(blurred, edges, 30, 200, 3, false);
 
-            // 3. 【img2sgf 知見】石消去による格子線復元 (Circle Erasure)
-            // 石が多く置かれている盤面では石が線を途切れさせるため、円を検出して黒でマスク消去
-            const minRadius = Math.floor(Math.min(width, height) / 45);
-            const maxRadius = Math.floor(Math.min(width, height) / 18);
-            try {
-                cv.HoughCircles(blurred, circles, cv.HOUGH_GRADIENT, 1, minRadius * 1.8, 100, 30, minRadius, maxRadius);
-                if (circles.cols > 0) {
-                    for (let i = 0; i < circles.cols; i++) {
-                        const cx = Math.round(circles.data32F[i * 3]);
-                        const cy = Math.round(circles.data32F[i * 3 + 1]);
-                        const r = Math.round(circles.data32F[i * 3 + 2]) + 2;
-                        // 円領域をマスク消去して格子線を強調
-                        cv.circle(edges, new cv.Point(cx, cy), r, new cv.Scalar(0, 0, 0), -1);
-                    }
-                }
-            } catch {
-                // HoughCircles がスキップされても続行
+            // 3. 【img2sgf & 学術調査】4層マルチスケール円形先検出 (Circle-First) による格子線復元
+            const circles = this._detectStonesMultiScale(gray, width, height);
+            for (const c of circles) {
+                cv.circle(edges, new cv.Point(c.cx, c.cy), c.r + 2, new cv.Scalar(0, 0, 0), -1);
             }
 
             // 4. モルフォロジー演算 (膨張 -> 収縮) で格子線を連結
@@ -550,6 +539,183 @@ class BoardDetector {
     }
 
     /**
+     * 4層マルチスケール・ガウシアンフィルタによる碁石（円形）の相補的検出
+     * 鮮明な石（小スケール）とボケた石・密集した黒石クラスタ（大スケール）を統合
+     * @param {cv.Mat} grayMat - グレースケール画像
+     * @param {number} width - 幅
+     * @param {number} height - 高さ
+     * @returns {Array<{cx: number, cy: number, r: number}>} 重複排除された円のリスト
+     * @private
+     */
+    _detectStonesMultiScale(grayMat, width, height) {
+        const minRadius = Math.floor(Math.min(width, height) / 45);
+        const maxRadius = Math.floor(Math.min(width, height) / 18);
+        const scales = [
+            new cv.Size(3, 3),
+            new cv.Size(5, 5),
+            new cv.Size(7, 7),
+            new cv.Size(9, 9),
+        ];
+
+        const detectedCircles = [];
+        const circlesMat = new cv.Mat();
+        const blurMat = new cv.Mat();
+
+        try {
+            for (const ksize of scales) {
+                cv.GaussianBlur(grayMat, blurMat, ksize, 0);
+                try {
+                    cv.HoughCircles(blurMat, circlesMat, cv.HOUGH_GRADIENT, 1, minRadius * 1.6, 90, 25, minRadius, maxRadius);
+                    if (circlesMat.cols > 0) {
+                        for (let i = 0; i < circlesMat.cols; i++) {
+                            const cx = Math.round(circlesMat.data32F[i * 3]);
+                            const cy = Math.round(circlesMat.data32F[i * 3 + 1]);
+                            const r = Math.round(circlesMat.data32F[i * 3 + 2]);
+
+                            // 既存の円と近接している場合は重複排除（距離が minRadius * 0.8 未満）
+                            const isDuplicate = detectedCircles.some(c => {
+                                const dist2 = (c.cx - cx) ** 2 + (c.cy - cy) ** 2;
+                                return dist2 < (minRadius * 0.8) ** 2;
+                            });
+
+                            if (!isDuplicate) {
+                                detectedCircles.push({ cx, cy, r });
+                            }
+                        }
+                    }
+                } catch {
+                    // スキップ
+                }
+            }
+            return detectedCircles;
+        } finally {
+            circlesMat.delete();
+            blurMat.delete();
+        }
+    }
+
+    /**
+     * 実測間隔（Recorded Spacings）モデルのキャリブレーション
+     * 単純な19等分ではなく、検出された格子線間の実測ピクセル間隔を保持して歪みに高精度追従
+     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source
+     * @returns {{spacingsX: number[], spacingsY: number[]}}
+     */
+    calibrateRecordedSpacings(source) {
+        if (!this.cvReady) throw new Error('OpenCV.js not loaded');
+        if (!this.cornerPoints) {
+            this.autoDetectCorners(source);
+        }
+        if (!this.cornerPoints) {
+            throw new Error('Corners not set');
+        }
+
+        const srcMat = cv.imread(source);
+        try {
+            const warped = this._perspectiveTransform(srcMat);
+            try {
+                const gray = new cv.Mat();
+                cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
+
+                const equalized = new cv.Mat();
+                try {
+                    if (typeof cv.createCLAHE === 'function') {
+                        const clahe = cv.createCLAHE(2.0, new cv.Size(8, 8));
+                        clahe.apply(gray, equalized);
+                        clahe.delete();
+                    } else {
+                        cv.equalizeHist(gray, equalized);
+                    }
+                } catch {
+                    gray.copyTo(equalized);
+                }
+
+                const dstSize = warped.cols;
+                const expectedSpacing = dstSize / (this.boardSize - 1);
+
+                // 縦・横の1D Sobelプロファイルから19本のピークを検出
+                const spacingsX = this._findLinePeaks1D(equalized, 'horizontal', dstSize, expectedSpacing);
+                const spacingsY = this._findLinePeaks1D(equalized, 'vertical', dstSize, expectedSpacing);
+
+                this.recordedSpacingsX = spacingsX;
+                this.recordedSpacingsY = spacingsY;
+
+                equalized.delete();
+                gray.delete();
+
+                return {
+                    spacingsX: this.recordedSpacingsX,
+                    spacingsY: this.recordedSpacingsY,
+                };
+            } finally {
+                warped.delete();
+            }
+        } finally {
+            srcMat.delete();
+        }
+    }
+
+    /**
+     * 1D 射影プロファイルから19本の格子線ピークを検出
+     * @private
+     */
+    _findLinePeaks1D(grayMat, orientation, size, expectedSpacing) {
+        const peaks = [];
+        const sobel = new cv.Mat();
+
+        try {
+            if (orientation === 'horizontal') {
+                cv.Sobel(grayMat, sobel, cv.CV_32F, 1, 0, 3);
+            } else {
+                cv.Sobel(grayMat, sobel, cv.CV_32F, 0, 1, 3);
+            }
+
+            // 1D プロファイルを計算 (絶対値の平均)
+            const profile = new Float32Array(size);
+            const cols = sobel.cols;
+            const rows = sobel.rows;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const val = Math.abs(sobel.floatAt(r, c));
+                    if (orientation === 'horizontal') {
+                        profile[c] += val;
+                    } else {
+                        profile[r] += val;
+                    }
+                }
+            }
+
+            const normalizer = orientation === 'horizontal' ? rows : cols;
+            for (let i = 0; i < size; i++) {
+                profile[i] /= normalizer;
+            }
+
+            // 各理論交点付近 (± expectedSpacing * 0.35) で局所最大値を探索
+            const searchWindow = Math.round(expectedSpacing * 0.35);
+            for (let i = 0; i < this.boardSize; i++) {
+                const theoreticalPos = Math.round(i * expectedSpacing);
+                let maxVal = -1;
+                let bestPos = theoreticalPos;
+
+                const start = Math.max(0, theoreticalPos - searchWindow);
+                const end = Math.min(size - 1, theoreticalPos + searchWindow);
+
+                for (let pos = start; pos <= end; pos++) {
+                    if (profile[pos] > maxVal) {
+                        maxVal = profile[pos];
+                        bestPos = pos;
+                    }
+                }
+                peaks.push(bestPos);
+            }
+
+            return peaks;
+        } finally {
+            sobel.delete();
+        }
+    }
+
+    /**
      * 画像から多次元特徴量 (L, C, D, H, S) を抽出する (Dani Ferrari / NotebookLM手法)
      * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source - 入力画像
      * @returns {Array<{x: number, y: number, l: number, c: number, d: number, h: number, s: number}>} 361要素の特徴量配列
@@ -603,8 +769,12 @@ class BoardDetector {
         try {
             for (let y = 0; y < this.boardSize; y++) {
                 for (let x = 0; x < this.boardSize; x++) {
-                    const cx = Math.round(x * spacing);
-                    const cy = Math.round(y * spacing);
+                    const cx = (this.recordedSpacingsX && this.recordedSpacingsX.length === this.boardSize)
+                        ? this.recordedSpacingsX[x]
+                        : Math.round(x * spacing);
+                    const cy = (this.recordedSpacingsY && this.recordedSpacingsY.length === this.boardSize)
+                        ? this.recordedSpacingsY[y]
+                        : Math.round(y * spacing);
 
                     const feat = this._sampleDonutFeatures(smoothed, gray, hsv, cx, cy, innerRadius, outerRadius);
                     features.push({

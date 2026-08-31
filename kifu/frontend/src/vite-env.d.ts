@@ -124,6 +124,12 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
     extractFeatures(
       source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement,
     ): import("@wasm-kifu/web/js/wasm-bridge.js").IntersectionFeature[];
+    recordedSpacingsX: number[] | null;
+    recordedSpacingsY: number[] | null;
+    calibrateRecordedSpacings(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): {
+      spacingsX: number[];
+      spacingsY: number[];
+    };
     initStreamTracker(): void;
     processStreamFrame(source: HTMLCanvasElement | HTMLVideoElement): StreamFrameResult;
     resetStreamTracker(): void;

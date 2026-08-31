@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [svelte()],
   resolve: {
     alias: {
-      "@wasm-kifu": path.resolve(__dirname, "../wasm-kifu"),
+      "@wasm-kifu": path.resolve(__dirname, "../../wasm-kifu"),
     },
   },
   build: {
@@ -36,7 +36,7 @@ export default defineConfig({
     port: 5173,
     host: "0.0.0.0",
     fs: {
-      allow: [".", "../wasm-kifu"],
+      allow: [".", "../../wasm-kifu"],
     },
     proxy: {
       "/api": {

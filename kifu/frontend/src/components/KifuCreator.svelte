@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { createBoard, placeStone, coordsToSgf } from '../lib/goEngine';
+  import { createBoard, copyBoard, placeStone, coordsToSgf } from '../lib/goEngine';
   import Board from './Board.svelte';
+  import CameraCaptureModal from './CameraCaptureModal.svelte';
   import { auth } from '../lib/auth.svelte';
   import { stringifySgf } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
@@ -10,6 +11,9 @@
     onSaveSuccess: () => void;
     onCancel: () => void;
   }>();
+
+  // Modal State
+  let showCameraModal = $state(false);
 
   // Game Info Form States
   let gameTitle = $state("");
@@ -145,6 +149,59 @@
     currentMoveIndex = moves.length - 1;
   }
 
+  function handleImportFromCamera(detected: { board: number[][]; blackCount: number; whiteCount: number }) {
+    let curBoard = createBoard(size);
+    const newMoves: CreatorMove[] = [];
+
+    // Collect all black and white coordinates
+    const blackStones: { x: number; y: number }[] = [];
+    const whiteStones: { x: number; y: number }[] = [];
+
+    for (let y = 0; y < 19; y++) {
+      for (let x = 0; x < 19; x++) {
+        if (detected.board[y][x] === 1) blackStones.push({ x, y });
+        if (detected.board[y][x] === 2) whiteStones.push({ x, y });
+      }
+    }
+
+    // Apply black stones
+    for (const b of blackStones) {
+      curBoard = copyBoard(curBoard);
+      curBoard[b.y][b.x] = 1;
+      newMoves.push({
+        x: b.x,
+        y: b.y,
+        color: 1,
+        board: curBoard,
+        capturedCount: 0,
+      });
+    }
+
+    // Apply white stones
+    for (const w of whiteStones) {
+      curBoard = copyBoard(curBoard);
+      curBoard[w.y][w.x] = 2;
+      newMoves.push({
+        x: w.x,
+        y: w.y,
+        color: 2,
+        board: curBoard,
+        capturedCount: 0,
+      });
+    }
+
+    moves = newMoves;
+    currentMoveIndex = newMoves.length - 1;
+
+    const M = getM();
+    if (M) {
+      M.toast({
+        html: `📸 盤面を取り込みました (黒: ${detected.blackCount}子, 白: ${detected.whiteCount}子)`,
+        classes: 'green darken-2'
+      });
+    }
+  }
+
   function generateSgf(): string {
     const ev = gameTitle.trim() || "ブラウザ対局";
     const pb = blackPlayer.trim() || "黒番";
@@ -250,7 +307,10 @@
       </span>
       <h1 class="em-newspaper-headline" style="margin: 6px 0 0 0; font-size: 1.6rem; font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text);">新規棋譜の作成 — Record Creator</h1>
     </div>
-    <div style="display: flex; gap: 10px;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button type="button" class="nm-btn-flat" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface-alt) !important; font-weight: bold;" onclick={() => showCameraModal = true}>
+        <i class="material-icons" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">camera_enhance</i>写真から取り込み
+      </button>
       <button class="nm-btn-flat" style="border-radius: 0 !important; font-weight: bold;" onclick={onCancel} disabled={saving}>キャンセル</button>
       <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; font-weight: bold;" onclick={handleSave} disabled={moves.length === 0 || saving}>
         <i class="material-icons" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">save</i>{saving ? '保存中...' : 'ライブラリに保存'}
@@ -366,6 +426,9 @@
 
         <!-- Action Buttons -->
         <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="nm-btn" style="width: 100%; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface-alt) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important; font-weight: bold;" onclick={() => showCameraModal = true} disabled={saving}>
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">camera_enhance</i>盤面写真からAI自動取り込み
+          </button>
           <button type="button" class="nm-btn em-pulse-button" style="width: 100%; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important; font-weight: bold;" onclick={handlePass} disabled={saving}>
             <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">redo</i>パスする (Pass)
           </button>
@@ -374,6 +437,12 @@
     </div>
   </div>
 </div>
+
+<CameraCaptureModal
+  isOpen={showCameraModal}
+  onClose={() => showCameraModal = false}
+  onImport={handleImportFromCamera}
+/>
 
 <style>
   .animate-fade-in {
