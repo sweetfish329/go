@@ -778,6 +778,8 @@ class BoardDetector {
                         d: feat.D,
                         h: feat.H,
                         s: feat.S,
+                        r: feat.R,
+                        b: feat.B,
                         rmb: feat.RMB
                     });
                 }
@@ -813,30 +815,41 @@ class BoardDetector {
         const splitBlack = (cBlack + cBoard) / 2;
         const splitWhite = (cBoard + cWhite) / 2;
 
-        // 局所背景適応 (Local Background Estimation)
-        // 各交点の近傍 (半径2交点) の輝度中央値を算出し、局所的な影・照明ムラを正規化
-        const localNormL = new Float32Array(features.length);
+        // 【skolchin/gbr Channel Splitting ＋ 局所背景適応】
+        // 白石は木目の照り返しに影響されない Red チャンネルで評価
+        // 黒石はテカリの白色光と黒石本体(B~0)を最も明確に分離する Blue チャンネルで評価
+        const localNormR = new Float32Array(features.length);
+        const localNormB = new Float32Array(features.length);
         for (let y = 0; y < this.boardSize; y++) {
             for (let x = 0; x < this.boardSize; x++) {
-                const neighbors = [];
+                const neighborsR = [];
+                const neighborsB = [];
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
                         const nx = x + dx;
                         const ny = y + dy;
                         if (nx >= 0 && nx < this.boardSize && ny >= 0 && ny < this.boardSize) {
-                            neighbors.push(features[ny * this.boardSize + nx].l);
+                            const feat = features[ny * this.boardSize + nx];
+                            neighborsR.push(feat.r ?? feat.l);
+                            neighborsB.push(feat.b ?? feat.l);
                         }
                     }
                 }
-                neighbors.sort((a, b) => a - b);
-                const localBg = neighbors[Math.floor(neighbors.length / 2)] || 128;
-                localNormL[y * this.boardSize + x] = features[y * this.boardSize + x].l / Math.max(10, localBg);
+                neighborsR.sort((a, b) => a - b);
+                neighborsB.sort((a, b) => a - b);
+                const bgR = Math.max(10, neighborsR[Math.floor(neighborsR.length / 2)] || 128);
+                const bgB = Math.max(10, neighborsB[Math.floor(neighborsB.length / 2)] || 128);
+
+                const idx = y * this.boardSize + x;
+                localNormR[idx] = (features[idx].r ?? features[idx].l) / bgR;
+                localNormB[idx] = (features[idx].b ?? features[idx].l) / bgB;
             }
         }
 
         for (let i = 0; i < features.length; i++) {
             const f = features[i];
-            const normL = localNormL[i];
+            const normR = localNormR[i];
+            const normB = localNormB[i];
             const x = f.x;
             const y = f.y;
             const isBorder = (x === 0 || x === this.boardSize - 1 || y === 0 || y === this.boardSize - 1);
@@ -849,28 +862,31 @@ class BoardDetector {
                 continue;
             }
 
-            // 白石判定: 木目度が低く、高輝度または局所背景より明確に明るい
-            if (f.rmb < 30 && f.c < 25) {
-                if (f.l > 160 || (normL > 1.20 && f.l > 120)) {
+            const rVal = f.r ?? f.l;
+            const bVal = f.b ?? f.l;
+
+            // 1. 白石判定 (Redチャンネル優先: 照り返し防止)
+            if (f.rmb < 32 && f.c < 25) {
+                if (rVal > 165 || (normR > 1.15 && rVal > 120)) {
                     stone = 2;
-                } else if (f.rmb < 10 && normL > 1.05 && f.l > 105) {
+                } else if (f.rmb < 10 && normR > 1.04 && f.l > 105) {
                     stone = 2;
                 }
             }
-            if (stone === 0 && f.l > 185 && f.s < 85 && f.rmb < 35) {
+            if (stone === 0 && rVal > 185 && f.rmb < 35) {
                 stone = 2;
             }
 
-            // 黒石判定: 無彩色かつ木目度が低く、低輝度または局所背景より明確に暗い
+            // 2. 黒石判定 (Blueチャンネル優先: テカリ防止)
             if (stone === 0) {
-                if (!isBorder && f.rmb < 20 && f.c < 16) {
-                    if (f.l < 75 || normL < 0.72) {
+                if (!isBorder && f.rmb < 22 && f.c < 16) {
+                    if (bVal < 65 || normB < 0.72) {
                         stone = 1;
-                    } else if (f.l < 95 && f.c < 8 && f.rmb < 10) {
+                    } else if (bVal < 85 && f.c < 8 && f.rmb < 10) {
                         stone = 1;
                     }
                 }
-                if (stone === 0 && !isBorder && normL < 0.60 && f.c < 18 && f.rmb < 25) {
+                if (stone === 0 && !isBorder && normB < 0.60 && f.c < 18 && f.rmb < 25) {
                     stone = 1;
                 }
             }
@@ -979,6 +995,8 @@ class BoardDetector {
             D: disuniformity,
             H: avgH,
             S: avgS,
+            R: avgR,
+            B: avgB,
             RMB: rmb
         };
     }

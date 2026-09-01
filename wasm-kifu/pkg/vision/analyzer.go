@@ -38,6 +38,8 @@ type IntersectionFeatures struct {
 	D float64 `json:"d"` // Disuniformity (らせん不均一性: 木目+線は高, 石は低)
 	H   float64 `json:"h"`   // Hue (色相: 0-360)
 	S   float64 `json:"s"`   // Saturation (彩度: 0-255)
+	R   float64 `json:"r"`   // Red channel (0-255: skolchin/gbr 白石評価用)
+	B   float64 `json:"b"`   // Blue channel (0-255: skolchin/gbr 黒石評価用)
 	RMB float64 `json:"rmb"` // Woodness (R - B: 木目度は高, 石は低/無彩色)
 }
 
@@ -428,6 +430,7 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 		f       IntersectionFeatures
 		localBg float64
 		normL   float64
+		normB   float64
 	}
 	var grid [BoardSize][BoardSize]gridItem
 	for i, f := range featData.Features {
@@ -440,25 +443,53 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 		grid[y][x].f = f
 	}
 
-	// 局所背景適応 (半径2交点の輝度中央値)
+	// 【skolchin/gbr Channel Splitting ＋ 局所背景適応】
+	// 白石は木目の照り返しに強い Red チャンネル、黒石はテカリに強い Blue チャンネルで評価
 	for y := 0; y < BoardSize; y++ {
 		for x := 0; x < BoardSize; x++ {
-			var nList []float64
+			var rList, bList []float64
 			for dy := -2; dy <= 2; dy++ {
 				for dx := -2; dx <= 2; dx++ {
 					nx, ny := x+dx, y+dy
 					if nx >= 0 && nx < BoardSize && ny >= 0 && ny < BoardSize {
-						nList = append(nList, grid[ny][nx].f.L)
+						feat := grid[ny][nx].f
+						rVal := feat.R
+						if rVal == 0 {
+							rVal = feat.L
+						}
+						bVal := feat.B
+						if bVal == 0 {
+							bVal = feat.L
+						}
+						rList = append(rList, rVal)
+						bList = append(bList, bVal)
 					}
 				}
 			}
-			sort.Float64s(nList)
-			bg := nList[len(nList)/2]
-			if bg < 10 {
-				bg = 10
+			sort.Float64s(rList)
+			sort.Float64s(bList)
+			bgR := rList[len(rList)/2]
+			bgB := bList[len(bList)/2]
+			if bgR < 10 {
+				bgR = 10
 			}
-			grid[y][x].localBg = bg
-			grid[y][x].normL = grid[y][x].f.L / bg
+			if bgB < 10 {
+				bgB = 10
+			}
+
+			feat := grid[y][x].f
+			rVal := feat.R
+			if rVal == 0 {
+				rVal = feat.L
+			}
+			bVal := feat.B
+			if bVal == 0 {
+				bVal = feat.L
+			}
+
+			grid[y][x].localBg = bgR
+			grid[y][x].normL = rVal / bgR // normR
+			grid[y][x].normB = bVal / bgB // normB
 		}
 	}
 
@@ -469,7 +500,16 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 		for x := 0; x < BoardSize; x++ {
 			item := grid[y][x]
 			f := item.f
-			normL := item.normL
+			normR := item.normL
+			normB := item.normB
+			rVal := f.R
+			if rVal == 0 {
+				rVal = f.L
+			}
+			bVal := f.B
+			if bVal == 0 {
+				bVal = f.L
+			}
 			isBorder := (x == 0 || x == BoardSize-1 || y == 0 || y == BoardSize-1)
 
 			stone := int8(0)
@@ -478,28 +518,28 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 			if x == 0 || (y == 0 && f.L < 100.0) || (y == BoardSize-1 && f.L < 100.0) {
 				stone = 0
 			} else {
-				// 白石判定: 木目度が低く、高輝度または局所背景より明確に明るい
-				if f.RMB < 30.0 && f.C < 25.0 {
-					if f.L > 160.0 || (normL > 1.20 && f.L > 120.0) {
+				// 1. 白石判定 (Redチャンネル優先: 照り返し防止)
+				if f.RMB < 32.0 && f.C < 25.0 {
+					if rVal > 165.0 || (normR > 1.15 && rVal > 120.0) {
 						stone = 2
-					} else if f.RMB < 10.0 && normL > 1.05 && f.L > 105.0 {
+					} else if f.RMB < 10.0 && normR > 1.04 && f.L > 105.0 {
 						stone = 2
 					}
 				}
-				if stone == 0 && f.L > 185.0 && f.S < 85.0 && f.RMB < 35.0 {
+				if stone == 0 && rVal > 185.0 && f.RMB < 35.0 {
 					stone = 2
 				}
 
-				// 黒石判定: 無彩色かつ木目度が低く、低輝度または局所背景より明確に暗い
+				// 2. 黒石判定 (Blueチャンネル優先: テカリ防止)
 				if stone == 0 {
-					if !isBorder && f.RMB < 20.0 && f.C < 16.0 {
-						if f.L < 75.0 || normL < 0.72 {
+					if !isBorder && f.RMB < 22.0 && f.C < 16.0 {
+						if bVal < 65.0 || normB < 0.72 {
 							stone = 1
-						} else if f.L < 95.0 && f.C < 8.0 && f.RMB < 10.0 {
+						} else if bVal < 85.0 && f.C < 8.0 && f.RMB < 10.0 {
 							stone = 1
 						}
 					}
-					if stone == 0 && !isBorder && normL < 0.60 && f.C < 18.0 && f.RMB < 25.0 {
+					if stone == 0 && !isBorder && normB < 0.60 && f.C < 18.0 && f.RMB < 25.0 {
 						stone = 1
 					}
 				}

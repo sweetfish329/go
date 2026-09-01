@@ -128,3 +128,15 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * **EfficientFormer**: 19×19解像度をプーリングせず完全維持し、Wasm上で10ms以下の超低遅延推論を実現。
 * **詳細仕様**: [VISION_ALGORITHM_GUIDE.md](file:///D:/project/go/github.com/sweetfish329/go/wasm-kifu/VISION_ALGORITHM_GUIDE.md) に詳細な数式、アーキテクチャ図、実装ロードマップを記録。
 
+### ⑫ 光学チャンネル分割と接触石分離・消失点幾何復元知見（skolchin/gbr & Kaya Moku AI 統合）
+* **チャンネル分割（Channel Splitting: skolchin/gbr知見）**:
+  * **白石評価（Redチャンネル優先）**: 木製盤面の黄色・茶色反射光はRed成分が強いため、白石側面が木目色を照り返してもRedチャンネル内では一貫して高輝度を維持し、照り返しによる誤判定を防止。
+  * **黒石評価（Blueチャンネル優先）**: 木製盤面はBlue成分が極めて低い（黄=R+G）。天井照明のテカリ（白色鏡面反射）はBlueを含むが、黒石本体はBlueがほぼ0。Blueチャンネルで評価することで、木目とテカリのコントラストを抑え、黒石を最も安定して二値化。白石の黒石誤認を0%に抑制。
+* **密集・接触石の分離（Distance Transform + Watershed + Grid Snapping）**:
+  * 石が団子状にくっついて境界エッジが消失した場合、二値化マップに `cv.distanceTransform` を適用し、各石の中心部（極大値）をシードとして `cv.watershed` を実行。分割した中心を19×19の格子交点にユークリッド距離でスナップ。
+* **消失点（Vanishing Point）の正弦波2段ハフ変換**:
+  * 透視投影歪みを受けた格子線群をハフ空間（$r, \theta$）に写像すると、1本の正弦波（sinusoid）上に並ぶ。手前側の信頼性の高い線分群に対して2回目のハフ変換を適用し、正弦波パラメータを一意に決定することで、奥の影や石で隠れた格子線を数学的に外挿復元。
+* **エッジAI・OSSモデルリファレンス**:
+  * オープンソース囲碁アプリ Kaya (kaya-go/kaya) および Hugging Face (kaya-go/moku-v2, moku-v3) にて、ブラウザ内WASM/ONNX推論用のRT-DETR碁盤・石検出モデル（`model.onnx`）が公開されている。
+
+
