@@ -497,6 +497,33 @@ class BoardDetector {
     }
 
     /**
+     * 碁盤画像から全361交点の多次元特徴量（L, C, D, H, S, R, B, RMB）を抽出
+     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source
+     * @returns {Array<Object>}
+     */
+    extractFeatures(source) {
+        if (!this.cvReady) throw new Error('OpenCV.js not loaded');
+        if (!this.hasCornersSet()) {
+            const detected = this.autoDetectCorners(source);
+            if (!detected) {
+                throw new Error('Corner points not set and auto-detection failed.');
+            }
+        }
+
+        const srcMat = cv.imread(source);
+        try {
+            const warped = this._perspectiveTransform(srcMat);
+            try {
+                return this._extractFeaturesFromWarped(warped);
+            } finally {
+                warped.delete();
+            }
+        } finally {
+            srcMat.delete();
+        }
+    }
+
+    /**
      * 射影変換で碁盤を正面から見た画像に補正
      * @param {cv.Mat} srcMat - 入力画像
      * @returns {cv.Mat} 射影変換済み画像
