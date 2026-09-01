@@ -202,11 +202,13 @@ main {
     overflow: hidden;
 }
 
-#camera-video {
+#camera-video,
+#camera-image {
     width: 100%;
     display: block;
     border-radius: var(--radius-md);
 }
+
 
 #corner-overlay-canvas {
     position: absolute;

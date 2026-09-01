@@ -387,6 +387,82 @@ function closeCameraMode() {
     }
 }
 
+let imageMode = false;
+
+// サンプル画像 (test_image.jpg) 読み込み
+document.getElementById('btn-load-sample').addEventListener('click', () => {
+    loadImageSource('test_image.jpg');
+});
+
+// 任意の画像ファイル選択
+document.getElementById('btn-upload-image').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        loadImageSource(event.target.result);
+    };
+    reader.readAsDataURL(file);
+});
+
+function loadImageSource(src) {
+    if (cameraStream) {
+        detector.stopCamera(cameraStream);
+        cameraStream = null;
+    }
+    stopStreamTracking();
+
+    cameraMode = true;
+    imageMode = true;
+
+    const cameraSection = document.getElementById('camera-section');
+    const autoDetectBtn = document.getElementById('btn-auto-detect');
+    const streamBtn = document.getElementById('btn-stream-mode');
+    const captureBtn = document.getElementById('btn-capture');
+    const resetBtn = document.getElementById('btn-reset-corners');
+    const cameraBtn = document.getElementById('btn-camera');
+    const video = document.getElementById('camera-video');
+    const img = document.getElementById('camera-image');
+
+    cameraSection.classList.remove('hidden');
+    autoDetectBtn.classList.remove('hidden');
+    streamBtn.classList.add('hidden'); // 静止画ではストリーム追跡不要
+    captureBtn.classList.remove('hidden');
+    resetBtn.classList.remove('hidden');
+    cameraBtn.textContent = '📷 カメラ起動';
+
+    video.classList.add('hidden');
+    img.classList.remove('hidden');
+    img.src = src;
+
+    img.onload = () => {
+        cornerPoints = [];
+        detector.resetCorners();
+        updateCornerDots();
+        drawCornerMarkers();
+        showToast('🖼 画像を読み込みました。「🎯自動検出」または4隅タップで開始');
+
+        // 自動検出を自動試行
+        if (detector.isReady()) {
+            try {
+                const detected = detector.autoDetectCorners(img);
+                if (detected && detected.length === 4) {
+                    cornerPoints = detected;
+                    updateCornerDots();
+                    drawCornerMarkers();
+                    showToast('🎯 碁盤の4隅を自動検出しました！');
+                }
+            } catch (err) {
+                console.warn('Auto detect notice:', err);
+            }
+        }
+    };
+}
+
 // 4隅の自動検出
 document.getElementById('btn-auto-detect').addEventListener('click', () => {
     if (!detector.isReady()) {
@@ -394,12 +470,17 @@ document.getElementById('btn-auto-detect').addEventListener('click', () => {
         return;
     }
 
-    const video = document.getElementById('camera-video');
-    const canvas = document.getElementById('camera-canvas');
-    detector.captureFrame(video, canvas);
+    const source = imageMode ? document.getElementById('camera-image') : document.getElementById('camera-video');
+    let canvasSource = source;
+
+    if (!imageMode) {
+        const canvas = document.getElementById('camera-canvas');
+        detector.captureFrame(source, canvas);
+        canvasSource = canvas;
+    }
 
     try {
-        const detected = detector.autoDetectCorners(canvas);
+        const detected = detector.autoDetectCorners(canvasSource);
         if (detected && detected.length === 4) {
             cornerPoints = detected;
             updateCornerDots();
@@ -414,14 +495,12 @@ document.getElementById('btn-auto-detect').addEventListener('click', () => {
     }
 });
 
-// 4隅タップ
-document.getElementById('camera-video').addEventListener('click', (e) => {
+function handleCornerClick(e, elem, naturalWidth, naturalHeight) {
     if (!cameraMode || cornerPoints.length >= 4) return;
 
-    const video = e.target;
-    const rect = video.getBoundingClientRect();
-    const scaleX = video.videoWidth / rect.width;
-    const scaleY = video.videoHeight / rect.height;
+    const rect = elem.getBoundingClientRect();
+    const scaleX = naturalWidth / rect.width;
+    const scaleY = naturalHeight / rect.height;
 
     const point = {
         x: (e.clientX - rect.left) * scaleX,
@@ -433,9 +512,22 @@ document.getElementById('camera-video').addEventListener('click', (e) => {
 
     if (cornerPoints.length === 4) {
         detector.setCorners(cornerPoints);
-        showToast('✅ 4隅を設定しました。「⚡自動記録」または「📸手動撮影」で認識');
+        showToast('✅ 4隅を設定しました。「📸認識実行」で認識');
     }
+}
+
+// 4隅タップ (Video)
+document.getElementById('camera-video').addEventListener('click', (e) => {
+    const video = e.target;
+    handleCornerClick(e, video, video.videoWidth, video.videoHeight);
 });
+
+// 4隅タップ (Image)
+document.getElementById('camera-image').addEventListener('click', (e) => {
+    const img = e.target;
+    handleCornerClick(e, img, img.naturalWidth, img.naturalHeight);
+});
+
 
 function updateCornerDots() {
     const dots = document.querySelectorAll('.corner-dot');
@@ -445,21 +537,25 @@ function updateCornerDots() {
 }
 
 function drawCornerMarkers() {
-    const video = document.getElementById('camera-video');
+    const targetElem = imageMode ? document.getElementById('camera-image') : document.getElementById('camera-video');
     const overlay = document.getElementById('corner-overlay-canvas');
-    overlay.width = video.clientWidth;
-    overlay.height = video.clientHeight;
+    overlay.width = targetElem.clientWidth;
+    overlay.height = targetElem.clientHeight;
 
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-    const scaleX = video.clientWidth / video.videoWidth;
-    const scaleY = video.clientHeight / video.videoHeight;
+    const naturalWidth = imageMode ? targetElem.naturalWidth : targetElem.videoWidth;
+    const naturalHeight = imageMode ? targetElem.naturalHeight : targetElem.videoHeight;
+
+    const scaleX = targetElem.clientWidth / naturalWidth;
+    const scaleY = targetElem.clientHeight / naturalHeight;
 
     // マーカーを描画
     cornerPoints.forEach((p, i) => {
         const x = p.x * scaleX;
         const y = p.y * scaleY;
+
 
         ctx.beginPath();
         ctx.arc(x, y, 8, 0, Math.PI * 2);
@@ -634,26 +730,31 @@ function processDetectedFeatures(features, isAutoTriggered = false) {
     }
 }
 
-// 手動撮影 & 認識
+// 認識実行 (撮影 / 静止画)
 document.getElementById('btn-capture').addEventListener('click', () => {
     if (!detector.hasCornersSet()) {
         showToast('⚠ 碁盤の4隅を先にタップしてください');
         return;
     }
 
-    const video = document.getElementById('camera-video');
-    const canvas = document.getElementById('camera-canvas');
-    detector.captureFrame(video, canvas);
+    let source = document.getElementById('camera-image');
+    if (!imageMode) {
+        const video = document.getElementById('camera-video');
+        const canvas = document.getElementById('camera-canvas');
+        detector.captureFrame(video, canvas);
+        source = canvas;
+    }
 
     try {
         // 多次元特徴量抽出 (ドーナツ走査 + Dani Ferrari 動的平均石アルゴリズム)
-        const features = detector.extractFeatures(canvas);
+        const features = detector.extractFeatures(source);
         processDetectedFeatures(features, false);
     } catch (err) {
         showToast(`❌ 認識エラー: ${err.message}`);
         console.error('Detection error:', err);
     }
 });
+
 
 // ======================
 // 起動

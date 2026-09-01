@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"syscall/js"
 
 	"github.com/sweetfish329/go/wasm-kifu/pkg/engine"
@@ -104,6 +105,18 @@ func analyzeBoardFeaturesWrapper(this js.Value, args []js.Value) any {
 	return vision.AnalyzeBoardFeatures(gameEngine, featuresJSON)
 }
 
+func analyzeFullBoardWrapper(this js.Value, args []js.Value) any {
+	if len(args) < 1 {
+		return "{}"
+	}
+	featuresJSON := args[0].String()
+	res, err := vision.AnalyzeFullBoard(featuresJSON)
+	if err != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, err.Error())
+	}
+	return res
+}
+
 func applyDetectedMoveWrapper(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
 		return 1
@@ -133,6 +146,7 @@ func main() {
 	js.Global().Set("wasmGetBoardState", js.FuncOf(getBoardStateWrapper))
 	js.Global().Set("wasmAnalyzeBoardImage", js.FuncOf(analyzeBoardImageWrapper))
 	js.Global().Set("wasmAnalyzeBoardFeatures", js.FuncOf(analyzeBoardFeaturesWrapper))
+	js.Global().Set("wasmAnalyzeFullBoard", js.FuncOf(analyzeFullBoardWrapper))
 	js.Global().Set("wasmApplyDetectedMove", js.FuncOf(applyDetectedMoveWrapper))
 	js.Global().Set("wasmGetLastMoveInfo", js.FuncOf(getLastMoveInfoWrapper))
 

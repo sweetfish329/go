@@ -154,6 +154,18 @@ class WasmKifu {
         return JSON.parse(result);
     }
 
+    /**
+     * 多次元特徴量から静止画全体の盤面状態 (19x19) を一括復元
+     * @param {Array<Object>} features - 361要素の特徴量配列 [{x, y, l, c, d, h, s, rmb}, ...]
+     * @returns {Object} FullBoardResult {grid: number[], confidence: number, blackCount: number, whiteCount: number, emptyCount: number}
+     */
+    analyzeFullBoard(features) {
+        this._checkReady();
+        const data = JSON.stringify({ features: features });
+        const result = wasmAnalyzeFullBoard(data);
+        return JSON.parse(result);
+    }
+
 
     /**
      * 検出された着手を適用

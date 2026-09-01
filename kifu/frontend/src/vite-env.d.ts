@@ -21,6 +21,7 @@ declare function wasmGetMoveNumber(): number;
 declare function wasmGetBoardState(): string;
 declare function wasmAnalyzeBoardImage(imageData: string, width: number, height: number): string;
 declare function wasmAnalyzeBoardFeatures(featuresJSON: string): string;
+declare function wasmAnalyzeFullBoard(featuresJSON: string): string;
 declare function wasmApplyDetectedMove(x: number, y: number, color: number): number;
 declare function wasmGetLastMoveInfo(): string;
 
@@ -57,6 +58,14 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     confidence: number;
   }
 
+  export interface FullBoardResult {
+    grid: number[]; // 361 elements: 0=Empty, 1=Black, 2=White (row-major: y*19+x)
+    confidence: number;
+    blackCount: number;
+    whiteCount: number;
+    emptyCount: number;
+  }
+
   export interface IntersectionFeature {
     x: number;
     y: number;
@@ -65,6 +74,7 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     d: number;
     h: number;
     s: number;
+    rmb?: number;
   }
 
   export class WasmKifu {
@@ -84,6 +94,7 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     getBoardState(): BoardState;
     analyzeBoardImage(intersections: Int8Array): AnalysisResult;
     analyzeBoardFeatures(features: IntersectionFeature[]): AnalysisResult;
+    analyzeFullBoard(features: IntersectionFeature[]): FullBoardResult;
     applyDetectedMove(x: number, y: number, color: number): number;
     getLastMoveInfo(): LastMoveInfo;
   }

@@ -142,9 +142,9 @@ class BoardDetector {
         const result = new cv.Mat();
 
         try {
-            // RGBA -> BGR -> LAB
+            // RGBA -> BGR -> Lab
             cv.cvtColor(srcMat, bgr, cv.COLOR_RGBA2BGR);
-            cv.cvtColor(bgr, lab, cv.COLOR_BGR2LAB);
+            cv.cvtColor(bgr, lab, cv.COLOR_BGR2Lab);
 
             cv.split(lab, channels);
             channels.get(0).copyTo(lChannel);
@@ -160,7 +160,8 @@ class BoardDetector {
                 }
                 channels.set(0, claheL);
                 cv.merge(channels, mergedLab);
-                cv.cvtColor(mergedLab, result, cv.COLOR_LAB2RGBA);
+                cv.cvtColor(mergedLab, bgr, cv.COLOR_Lab2BGR);
+                cv.cvtColor(bgr, result, cv.COLOR_BGR2RGBA);
                 return result.clone();
             } catch {
                 // フォールバック: 元の画像をそのまま返す
@@ -207,105 +208,98 @@ class BoardDetector {
             // 2. Canny エッジ検出
             cv.Canny(blurred, edges, 30, 200, 3, false);
 
-            // 3. 【img2sgf & 学術調査】4層マルチスケール円形先検出 (Circle-First) による格子線復元
+            // 3. 【Circle-First】円形先検出による格子線の石マスク
             const circles = this._detectStonesMultiScale(gray, width, height);
             for (const c of circles) {
-                cv.circle(edges, new cv.Point(c.cx, c.cy), c.r + 2, new cv.Scalar(0, 0, 0), -1);
+                cv.circle(edges, new cv.Point(c.cx, c.cy), Math.round(c.r + 2), new cv.Scalar(0, 0, 0), -1);
             }
 
-            // 4. モルフォロジー演算 (膨張 -> 収縮) で格子線を連結
-            cv.dilate(edges, dilated, ellipseKernel, new cv.Point(-1, -1), 1);
-            cv.erode(dilated, eroded, ellipseKernel, new cv.Point(-1, -1), 1);
+            // 4. 方向性モルフォロジーで格子線を連結
+            const kernelH = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(15, 1));
+            const kernelV = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(1, 15));
+            const edgesH = new cv.Mat();
+            const edgesV = new cv.Mat();
+            cv.morphologyEx(edges, edgesH, cv.MORPH_CLOSE, kernelH);
+            cv.morphologyEx(edges, edgesV, cv.MORPH_CLOSE, kernelV);
 
-            // 5. 確率的ハフ変換 (HoughLinesP)
-            const minLineLen = Math.floor(Math.min(width, height) / 12);
-            const maxLineGap = Math.floor(minLineLen / 3);
-            cv.HoughLinesP(eroded, lines, 1, Math.PI / 180, 40, minLineLen, maxLineGap);
+            // 5. 確率的ハフ変換で横線と縦線を独立検出
+            const linesH = new cv.Mat();
+            const linesV = new cv.Mat();
+            const minLineLen = Math.floor(Math.min(width, height) / 16);
+            cv.HoughLinesP(edgesH, linesH, 1, Math.PI / 180, 50, minLineLen, 25);
+            cv.HoughLinesP(edgesV, linesV, 1, Math.PI / 180, 50, minLineLen, 25);
 
-            if (lines.rows < 4) {
-                return this._detectBoardContour(srcMat);
-            }
+            // 線分の収集と角度分類
+            const horizLines = [];
+            const vertLines = [];
 
-            // 線分配列と角度を計算
-            const lineData = [];
-            for (let i = 0; i < lines.rows; i++) {
-                const x1 = lines.data32S[i * 4];
-                const y1 = lines.data32S[i * 4 + 1];
-                const x2 = lines.data32S[i * 4 + 2];
-                const y2 = lines.data32S[i * 4 + 3];
+            const collectLines = (mat, isHorizTarget) => {
+                for (let i = 0; i < mat.rows; i++) {
+                    const x1 = mat.data32S[i * 4];
+                    const y1 = mat.data32S[i * 4 + 1];
+                    const x2 = mat.data32S[i * 4 + 2];
+                    const y2 = mat.data32S[i * 4 + 3];
+                    const dx = x2 - x1, dy = y2 - y1;
+                    const len = Math.hypot(dx, dy);
+                    let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+                    if (deg < -90) deg += 180;
+                    if (deg > 90) deg -= 180;
 
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                let angle = Math.atan2(dy, dx);
-                if (angle < -Math.PI / 2) angle += Math.PI;
-                if (angle > Math.PI / 2) angle -= Math.PI;
+                    const mx = (x1 + x2) / 2;
+                    const my = (y1 + y2) / 2;
 
-                lineData.push({ x1, y1, x2, y2, angle });
-            }
+                    // 画面の最端（ノイズ）を除外
+                    if (mx < width * 0.03 || mx > width * 0.97 || my < height * 0.08 || my > height * 0.92) {
+                        continue;
+                    }
 
-            lineData.sort((a, b) => a.angle - b.angle);
-
-            // 縦線と横線のグループ化
-            let maxDiff = 0;
-            let splitIndex = 0;
-            for (let i = 0; i < lineData.length - 1; i++) {
-                const diff = lineData[i + 1].angle - lineData[i].angle;
-                if (diff > maxDiff) {
-                    maxDiff = diff;
-                    splitIndex = i + 1;
-                }
-            }
-
-            if (maxDiff < Math.PI / 7) {
-                return this._detectBoardContour(srcMat);
-            }
-
-            const group1 = lineData.slice(0, splitIndex);
-            const meanAngle1 = group1.reduce((sum, l) => sum + l.angle, 0) / group1.length;
-
-            // 主軸角度の ±45度で4隅の極値を探索
-            const primaryAngle = meanAngle1;
-            const testAngles = [
-                primaryAngle + Math.PI / 4,
-                primaryAngle - Math.PI / 4
-            ];
-
-            const corners = [];
-            for (const theta of testAngles) {
-                const cosT = Math.cos(theta);
-                const sinT = Math.sin(theta);
-
-                let minVal = Infinity;
-                let maxVal = -Infinity;
-                let minPoint = null;
-                let maxPoint = null;
-
-                for (const line of lineData) {
-                    const pts = [
-                        { x: line.x1, y: line.y1 },
-                        { x: line.x2, y: line.y2 }
-                    ];
-
-                    for (const pt of pts) {
-                        const proj = pt.y * cosT - pt.x * sinT;
-                        if (proj < minVal) {
-                            minVal = proj;
-                            minPoint = pt;
-                        }
-                        if (proj > maxVal) {
-                            maxVal = proj;
-                            maxPoint = pt;
-                        }
+                    if (isHorizTarget && Math.abs(deg) <= 25) {
+                        horizLines.push({ x1, y1, x2, y2, mx, my, deg, len });
+                    } else if (!isHorizTarget && (deg <= -65 || deg >= 65)) {
+                        vertLines.push({ x1, y1, x2, y2, mx, my, deg, len });
                     }
                 }
+            };
 
-                if (minPoint && maxPoint) {
-                    corners.push(minPoint, maxPoint);
-                }
+            collectLines(linesH, true);
+            collectLines(linesV, false);
+
+            kernelH.delete(); kernelV.delete(); edgesH.delete(); edgesV.delete();
+            linesH.delete(); linesV.delete();
+
+            if (horizLines.length < 2 || vertLines.length < 2) {
+                return this._detectBoardContour(srcMat);
             }
 
-            if (corners.length === 4) {
-                return corners;
+            // 直線群をソート (横線はY順、縦線はX順)
+            horizLines.sort((a, b) => a.my - b.my);
+            vertLines.sort((a, b) => a.mx - b.mx);
+
+            // 最外周の横線と縦線を選択 (外れ値除外: 1% - 99%)
+            const topH = horizLines[Math.floor(horizLines.length * 0.02)];
+            const botH = horizLines[Math.floor(horizLines.length * 0.98)];
+            const leftV = vertLines[Math.floor(vertLines.length * 0.02)];
+            const rightV = vertLines[Math.floor(vertLines.length * 0.98)];
+
+            // 2直線の交点を計算
+            const intersect = (l1, l2) => {
+                const x1 = l1.x1, y1 = l1.y1, x2 = l1.x2, y2 = l1.y2;
+                const x3 = l2.x1, y3 = l2.y1, x4 = l2.x2, y4 = l2.y2;
+                const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                if (Math.abs(denom) < 1e-4) return null;
+                const px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+                const py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+                return { x: Math.round(px), y: Math.round(py) };
+            };
+
+            const tl = intersect(topH, leftV);
+            const tr = intersect(topH, rightV);
+            const br = intersect(botH, rightV);
+            const bl = intersect(botH, leftV);
+
+            if (tl && tr && br && bl) {
+                // 順序: [左上, 右上, 右下, 左下]
+                return [tl, tr, br, bl];
             }
 
             return this._detectBoardContour(srcMat);
@@ -319,7 +313,6 @@ class BoardDetector {
             dilated.delete();
             eroded.delete();
             lines.delete();
-            circles.delete();
             ellipseKernel.delete();
         }
     }
@@ -784,7 +777,8 @@ class BoardDetector {
                         c: feat.C,
                         d: feat.D,
                         h: feat.H,
-                        s: feat.S
+                        s: feat.S,
+                        rmb: feat.RMB
                     });
                 }
             }
@@ -814,33 +808,74 @@ class BoardDetector {
         const features = this._extractFeaturesFromWarped(warpedMat);
         const brightnessList = features.map(f => f.l);
 
-        // 1D K-means (k=3) で環境適応的なクラスタ中心 [cBlack, cBoard, cWhite] を算出
+        // 1D K-means (k=3) で大域的なクラスタ中心 [cBlack, cBoard, cWhite] を算出
         const [cBlack, cBoard, cWhite] = this._kmeans3(brightnessList);
+        const splitBlack = (cBlack + cBoard) / 2;
+        const splitWhite = (cBoard + cWhite) / 2;
+
+        // 局所背景適応 (Local Background Estimation)
+        // 各交点の近傍 (半径2交点) の輝度中央値を算出し、局所的な影・照明ムラを正規化
+        const localNormL = new Float32Array(features.length);
+        for (let y = 0; y < this.boardSize; y++) {
+            for (let x = 0; x < this.boardSize; x++) {
+                const neighbors = [];
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx >= 0 && nx < this.boardSize && ny >= 0 && ny < this.boardSize) {
+                            neighbors.push(features[ny * this.boardSize + nx].l);
+                        }
+                    }
+                }
+                neighbors.sort((a, b) => a - b);
+                const localBg = neighbors[Math.floor(neighbors.length / 2)] || 128;
+                localNormL[y * this.boardSize + x] = features[y * this.boardSize + x].l / Math.max(10, localBg);
+            }
+        }
 
         for (let i = 0; i < features.length; i++) {
             const f = features[i];
-            const splitBlack = (cBlack + cBoard) / 2;
-            const splitWhite = (cBoard + cWhite) / 2;
+            const normL = localNormL[i];
+            const x = f.x;
+            const y = f.y;
+            const isBorder = (x === 0 || x === this.boardSize - 1 || y === 0 || y === this.boardSize - 1);
 
-            // 1. 黒石判定: 輝度が黒中心に近く、かつクロミナンス(C)が極めて低い（無彩色）
-            // 木目の暗い影は茶色(Cが高い)ため、C > 18 の場合は除外
-            if (f.l < splitBlack && f.l < this.thresholds.blackMaxBrightness + 15) {
-                if (f.c < 16 && f.d < 65) {
-                    result[i] = 1; // 黒石
-                    continue;
+            let stone = 0;
+
+            // 盤外・最外周境界の影保護
+            if (x === 0 || (y === 0 && f.l < 100) || (y === this.boardSize - 1 && f.l < 100)) {
+                result[i] = 0;
+                continue;
+            }
+
+            // 白石判定: 木目度が低く、高輝度または局所背景より明確に明るい
+            if (f.rmb < 30 && f.c < 25) {
+                if (f.l > 160 || (normL > 1.20 && f.l > 120)) {
+                    stone = 2;
+                } else if (f.rmb < 10 && normL > 1.05 && f.l > 105) {
+                    stone = 2;
+                }
+            }
+            if (stone === 0 && f.l > 185 && f.s < 85 && f.rmb < 35) {
+                stone = 2;
+            }
+
+            // 黒石判定: 無彩色かつ木目度が低く、低輝度または局所背景より明確に暗い
+            if (stone === 0) {
+                if (!isBorder && f.rmb < 20 && f.c < 16) {
+                    if (f.l < 75 || normL < 0.72) {
+                        stone = 1;
+                    } else if (f.l < 95 && f.c < 8 && f.rmb < 10) {
+                        stone = 1;
+                    }
+                }
+                if (stone === 0 && !isBorder && normL < 0.60 && f.c < 18 && f.rmb < 25) {
+                    stone = 1;
                 }
             }
 
-            // 2. 白石判定: 輝度が高く、彩度(S)が低く、不均一性(D)が小さい（平滑）
-            if (f.l > splitWhite && f.s < this.thresholds.whiteMaxSaturation + 20) {
-                if (f.d < 80 || f.l > 210) {
-                    result[i] = 2; // 白石
-                    continue;
-                }
-            }
-
-            // 3. 空交点
-            result[i] = 0;
+            result[i] = stone;
         }
 
         return result;
@@ -862,6 +897,8 @@ class BoardDetector {
         let totalC = 0;
         let totalH = 0;
         let totalS = 0;
+        let totalR = 0;
+        let totalB = 0;
         let count = 0;
 
         const rIn2 = innerRadius * innerRadius;
@@ -892,6 +929,8 @@ class BoardDetector {
                 totalC += chrominance;
                 totalH += h;
                 totalS += s;
+                totalR += r;
+                totalB += b;
                 count++;
             }
         }
@@ -900,6 +939,9 @@ class BoardDetector {
         const avgC = count > 0 ? totalC / count : 25;
         const avgH = count > 0 ? totalH / count : 40;
         const avgS = count > 0 ? totalS / count : 80;
+        const avgR = count > 0 ? totalR / count : 128;
+        const avgB = count > 0 ? totalB / count : 128;
+        const rmb = avgR - avgB; // 木目度 (茶色度)
 
         // らせん不均一性 D (Disuniformity) の計算: 中心から外側へのらせん走査
         let disuniformity = 0;
@@ -936,7 +978,8 @@ class BoardDetector {
             C: avgC,
             D: disuniformity,
             H: avgH,
-            S: avgS
+            S: avgS,
+            RMB: rmb
         };
     }
 

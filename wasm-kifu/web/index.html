@@ -36,10 +36,11 @@
             </div>
         </section>
 
-        <!-- カメラ入力 -->
+        <!-- カメラ / 画像入力 -->
         <section id="camera-section" class="hidden">
             <div id="camera-container">
                 <video id="camera-video" playsinline autoplay></video>
+                <img id="camera-image" class="hidden" alt="碁盤画像プレビュー">
                 <canvas id="corner-overlay-canvas"></canvas>
             </div>
             
@@ -77,13 +78,17 @@
             </div>
             <div class="control-group secondary">
                 <button id="btn-camera" class="btn btn-accent" disabled title="カメラ">📷 カメラ</button>
+                <button id="btn-load-sample" class="btn btn-accent" title="test_image.jpg を読み込む">🖼 テスト画像</button>
+                <button id="btn-upload-image" class="btn" title="任意の画像ファイルを選択">📁 画像選択</button>
+                <input type="file" id="file-input" accept="image/*" class="hidden">
                 <button id="btn-auto-detect" class="btn btn-accent hidden" title="碁盤の4隅を自動検出">🎯 自動検出</button>
                 <button id="btn-stream-mode" class="btn btn-accent hidden" title="リアルタイム自動着手検知（静止安定トリガー）">⚡ 自動記録: OFF</button>
-                <button id="btn-capture" class="btn btn-accent hidden" title="撮影して認識">📸 手動撮影</button>
+                <button id="btn-capture" class="btn btn-accent hidden" title="撮影して認識">📸 認識実行</button>
                 <button id="btn-reset-corners" class="btn hidden" title="4隅リセット">🔄 4隅リセット</button>
                 <button id="btn-export" class="btn btn-success" title="SGF出力">📄 SGF出力</button>
             </div>
         </section>
+
 
 
         <!-- SGF表示 -->
@@ -105,7 +110,7 @@
     </footer>
 
     <script src="wasm/wasm_exec.js"></script>
-    <script async src="https://docs.opencv.org/4.x/opencv.js"
+    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js"
             onload="onOpenCVReady()" type="text/javascript"></script>
     <script type="module" src="js/demo.js"></script>
 </body>
