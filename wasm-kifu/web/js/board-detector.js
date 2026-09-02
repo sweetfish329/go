@@ -771,6 +771,8 @@ class BoardDetector {
         const spacing = warpedMat.cols / (this.boardSize - 1);
         const innerRadius = Math.max(2, Math.floor(spacing * 0.14)); // 格子線交差部を除外
         const outerRadius = Math.floor(spacing * 0.35);             // ドーナツ走査外径
+        const w = warpedMat.cols;
+        const h = warpedMat.rows;
 
         const equalized = this._applyCLAHE(warpedMat);
         const smoothed = new cv.Mat();
@@ -783,6 +785,55 @@ class BoardDetector {
         const bgr = new cv.Mat();
         cv.cvtColor(smoothed, bgr, cv.COLOR_RGBA2BGR);
         cv.cvtColor(bgr, hsv, cv.COLOR_BGR2HSV);
+
+        // 【NotebookLM 知見⑬: 白黒独立二値化 ＋ 距離変換による密集石マップ】
+        const rgbaPlanes = new cv.MatVector();
+        cv.split(warpedMat, rgbaPlanes);
+        const rPlane = rgbaPlanes.get(0);
+        const bPlane = rgbaPlanes.get(2);
+        const rmbPlane = new cv.Mat();
+        cv.subtract(rPlane, bPlane, rmbPlane);
+
+        const whiteMask = new cv.Mat();
+        const rThresh = new cv.Mat();
+        const rmbThresh = new cv.Mat();
+        cv.threshold(rPlane, rThresh, 135, 255, cv.THRESH_BINARY);
+        cv.threshold(rmbPlane, rmbThresh, 35, 255, cv.THRESH_BINARY_INV);
+        cv.bitwise_and(rThresh, rmbThresh, whiteMask);
+
+        const blackMask = new cv.Mat();
+        const bThresh = new cv.Mat();
+        const rThreshLow = new cv.Mat();
+        const rmbThreshLow = new cv.Mat();
+        cv.threshold(bPlane, bThresh, 95, 255, cv.THRESH_BINARY_INV);
+        cv.threshold(rPlane, rThreshLow, 125, 255, cv.THRESH_BINARY_INV);
+        cv.threshold(rmbPlane, rmbThreshLow, 25, 255, cv.THRESH_BINARY_INV);
+        const temp = new cv.Mat();
+        cv.bitwise_and(bThresh, rThreshLow, temp);
+        cv.bitwise_and(temp, rmbThreshLow, blackMask);
+
+        const borderPad = 12;
+        cv.rectangle(whiteMask, new cv.Point(0, 0), new cv.Point(w, borderPad), new cv.Scalar(0), -1);
+        cv.rectangle(whiteMask, new cv.Point(0, h - borderPad), new cv.Point(w, h), new cv.Scalar(0), -1);
+        cv.rectangle(whiteMask, new cv.Point(0, 0), new cv.Point(borderPad, h), new cv.Scalar(0), -1);
+        cv.rectangle(whiteMask, new cv.Point(w - borderPad, 0), new cv.Point(w, h), new cv.Scalar(0), -1);
+
+        cv.rectangle(blackMask, new cv.Point(0, 0), new cv.Point(w, borderPad), new cv.Scalar(0), -1);
+        cv.rectangle(blackMask, new cv.Point(0, h - borderPad), new cv.Point(w, h), new cv.Scalar(0), -1);
+        cv.rectangle(blackMask, new cv.Point(0, 0), new cv.Point(borderPad, h), new cv.Scalar(0), -1);
+        cv.rectangle(blackMask, new cv.Point(w - borderPad, 0), new cv.Point(w, h), new cv.Scalar(0), -1);
+
+        const closeKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(13, 13));
+        cv.morphologyEx(blackMask, blackMask, cv.MORPH_CLOSE, closeKernel);
+
+        const openKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
+        cv.morphologyEx(whiteMask, whiteMask, cv.MORPH_OPEN, openKernel);
+        cv.morphologyEx(blackMask, blackMask, cv.MORPH_OPEN, openKernel);
+
+        const distW = new cv.Mat();
+        const distB = new cv.Mat();
+        cv.distanceTransform(whiteMask, distW, cv.DIST_L2, 5);
+        cv.distanceTransform(blackMask, distB, cv.DIST_L2, 5);
 
         const features = [];
 
@@ -797,6 +848,25 @@ class BoardDetector {
                         : Math.round(y * spacing);
 
                     const feat = this._sampleDonutFeatures(smoothed, gray, hsv, cx, cy, innerRadius, outerRadius);
+
+                    // 局所距離変換の最大値探索 (半径 8px)
+                    let maxDW = 0;
+                    let maxDB = 0;
+                    for (let dy = -8; dy <= 8; dy++) {
+                        for (let dx = -8; dx <= 8; dx++) {
+                            if (dx * dx + dy * dy <= 64) {
+                                const px = cx + dx;
+                                const py = cy + dy;
+                                if (px >= 0 && px < w && py >= 0 && py < h) {
+                                    const dw = distW.floatAt(py, px);
+                                    const db = distB.floatAt(py, px);
+                                    if (dw > maxDW) maxDW = dw;
+                                    if (db > maxDB) maxDB = db;
+                                }
+                            }
+                        }
+                    }
+
                     features.push({
                         x,
                         y,
@@ -807,7 +877,9 @@ class BoardDetector {
                         s: feat.S,
                         r: feat.R,
                         b: feat.B,
-                        rmb: feat.RMB
+                        rmb: feat.RMB,
+                        maxDW,
+                        maxDB
                     });
                 }
             }
@@ -818,6 +890,22 @@ class BoardDetector {
             gray.delete();
             hsv.delete();
             bgr.delete();
+            rgbaPlanes.delete();
+            rPlane.delete();
+            bPlane.delete();
+            rmbPlane.delete();
+            whiteMask.delete();
+            blackMask.delete();
+            rThresh.delete();
+            rmbThresh.delete();
+            bThresh.delete();
+            rThreshLow.delete();
+            rmbThreshLow.delete();
+            temp.delete();
+            closeKernel.delete();
+            openKernel.delete();
+            distW.delete();
+            distB.delete();
         }
     }
 
@@ -915,6 +1003,18 @@ class BoardDetector {
                 }
                 if (stone === 0 && !isBorder && normB < 0.60 && f.c < 18 && f.rmb < 25) {
                     stone = 1;
+                }
+            }
+
+            // 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
+            // ドーナツ走査で空と判定された交点でも、密集地帯で距離変換Blob中心が強力に存在する場合
+            if (stone === 0 && !isBorder) {
+                const maxDW = f.maxDW ?? 0;
+                const maxDB = f.maxDB ?? 0;
+                if (maxDW >= 7.0 && maxDW > maxDB && f.rmb < 55) {
+                    stone = 2; // 白石サルベージ
+                } else if (maxDB >= 6.0 && maxDB > maxDW && f.rmb < 40) {
+                    stone = 1; // 黒石サルベージ
                 }
             }
 

@@ -41,6 +41,8 @@ type IntersectionFeatures struct {
 	R   float64 `json:"r"`   // Red channel (0-255: skolchin/gbr 白石評価用)
 	B   float64 `json:"b"`   // Blue channel (0-255: skolchin/gbr 黒石評価用)
 	RMB float64 `json:"rmb"` // Woodness (R - B: 木目度は高, 石は低/無彩色)
+	MaxDW float64 `json:"maxDW,omitempty"` // Distance Transform max value for white (密集白石サルベージ用)
+	MaxDB float64 `json:"maxDB,omitempty"` // Distance Transform max value for black (密集黒石サルベージ用)
 }
 
 // BoardFeaturesData は全交点の多次元特徴量データ
@@ -541,6 +543,15 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 					}
 					if stone == 0 && !isBorder && normB < 0.60 && f.C < 18.0 && f.RMB < 25.0 {
 						stone = 1
+					}
+				}
+
+				// 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
+				if stone == 0 && !isBorder {
+					if f.MaxDW >= 7.0 && f.MaxDW > f.MaxDB && f.RMB < 55.0 {
+						stone = 2 // 白石サルベージ
+					} else if f.MaxDB >= 6.0 && f.MaxDB > f.MaxDW && f.RMB < 40.0 {
+						stone = 1 // 黒石サルベージ
 					}
 				}
 			}
