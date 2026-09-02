@@ -532,12 +532,12 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 					stone = 2
 				}
 
-				// 2. 黒石判定 (Blueチャンネル優先: テカリ防止)
+				// 2. 黒石判定 (Blueチャンネル優先: テカリ防止 ＋ 局所背景コントラスト)
 				if stone == 0 {
 					if !isBorder && f.RMB < 22.0 && f.C < 16.0 {
-						if bVal < 65.0 || normB < 0.72 {
+						if normB < 0.72 && bVal < 100.0 {
 							stone = 1
-						} else if bVal < 85.0 && f.C < 8.0 && f.RMB < 10.0 {
+						} else if normB < 0.80 && f.C < 8.0 && f.RMB < 10.0 && bVal < 85.0 {
 							stone = 1
 						}
 					}
@@ -548,9 +548,9 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 
 				// 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
 				if stone == 0 && !isBorder {
-					if f.MaxDW >= 7.0 && f.MaxDW > f.MaxDB && f.RMB < 55.0 {
+					if f.MaxDW >= 7.0 && f.MaxDW > f.MaxDB && f.RMB < 40.0 && normR > 1.05 {
 						stone = 2 // 白石サルベージ
-					} else if f.MaxDB >= 6.0 && f.MaxDB > f.MaxDW && f.RMB < 40.0 {
+					} else if f.MaxDB >= 6.0 && f.MaxDB > f.MaxDW && f.RMB < 25.0 && normB < 0.75 && f.C < 18.0 {
 						stone = 1 // 黒石サルベージ
 					}
 				}

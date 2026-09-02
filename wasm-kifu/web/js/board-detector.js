@@ -992,12 +992,13 @@ class BoardDetector {
                 stone = 2;
             }
 
-            // 2. 黒石判定 (Blueチャンネル優先: テカリ防止)
+            // 2. 黒石判定 (Blueチャンネル優先: テカリ防止 ＋ 局所背景コントラスト)
+            // 単なる暗い木目・影を誤認しないよう、局所背景に対して明確に暗いこと (normB < 0.72) を必須化
             if (stone === 0) {
                 if (!isBorder && f.rmb < 22 && f.c < 16) {
-                    if (bVal < 65 || normB < 0.72) {
+                    if (normB < 0.72 && bVal < 100) {
                         stone = 1;
-                    } else if (bVal < 85 && f.c < 8 && f.rmb < 10) {
+                    } else if (normB < 0.80 && f.c < 8 && f.rmb < 10 && bVal < 85) {
                         stone = 1;
                     }
                 }
@@ -1007,13 +1008,14 @@ class BoardDetector {
             }
 
             // 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
-            // ドーナツ走査で空と判定された交点でも、密集地帯で距離変換Blob中心が強力に存在する場合
+            // ドーナツ走査で空と判定された交点でも、密集地帯で局所背景とコントラスト差があり、
+            // かつ距離変換Blob中心が強力に存在する場合のみサルベージ
             if (stone === 0 && !isBorder) {
                 const maxDW = f.maxDW ?? 0;
                 const maxDB = f.maxDB ?? 0;
-                if (maxDW >= 7.0 && maxDW > maxDB && f.rmb < 55) {
+                if (maxDW >= 7.0 && maxDW > maxDB && f.rmb < 40 && normR > 1.05) {
                     stone = 2; // 白石サルベージ
-                } else if (maxDB >= 6.0 && maxDB > maxDW && f.rmb < 40) {
+                } else if (maxDB >= 6.0 && maxDB > maxDW && f.rmb < 25 && normB < 0.75 && f.c < 18) {
                     stone = 1; // 黒石サルベージ
                 }
             }
