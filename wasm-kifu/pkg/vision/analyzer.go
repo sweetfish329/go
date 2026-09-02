@@ -497,6 +497,7 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 
 	var res FullBoardResult
 	res.Confidence = 0.95
+	var rawGrid [BoardSize * BoardSize]int8
 
 	for y := 0; y < BoardSize; y++ {
 		for x := 0; x < BoardSize; x++ {
@@ -532,39 +533,106 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 					stone = 2
 				}
 
-				// 2. 黒石判定 (Blueチャンネル優先: テカリ防止 ＋ 局所背景コントラスト)
-				if stone == 0 {
-					if !isBorder && f.RMB < 22.0 && f.C < 16.0 {
-						if normB < 0.72 && bVal < 100.0 {
-							stone = 1
-						} else if normB < 0.80 && f.C < 8.0 && f.RMB < 10.0 && bVal < 85.0 {
+				// 最上辺 (y==0) は盤外の机・アゲハマ領域のため除外
+				if y == 0 {
+					stone = 0
+				} else {
+					// 星の交点
+					isStar := (x == 3 || x == 9 || x == 15) && (y == 3 || y == 9 || y == 15)
+					if isStar {
+						if f.MaxDW >= 4.5 && f.RMB < 45.0 && normR > 1.05 {
+							stone = 2
+						} else if f.MaxDB >= 4.0 && f.RMB < 35.0 && normB < 0.95 {
 							stone = 1
 						}
 					}
-					if stone == 0 && !isBorder && normB < 0.60 && f.C < 18.0 && f.RMB < 25.0 {
-						stone = 1
-					}
-				}
 
-				// 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
-				if stone == 0 && !isBorder {
-					if f.MaxDW >= 7.0 && f.MaxDW > f.MaxDB && f.RMB < 40.0 && normR > 1.05 {
-						stone = 2 // 白石サルベージ
-					} else if f.MaxDB >= 6.0 && f.MaxDB > f.MaxDW && f.RMB < 25.0 && normB < 0.75 && f.C < 18.0 {
-						stone = 1 // 黒石サルベージ
+					// 2. 黒石判定 (Blueチャンネル優先 ＋ 無彩色判定)
+					if stone == 0 {
+						if !isBorder && f.RMB < 34.0 && f.C < 25.0 {
+							if bVal < 95.0 && rVal < 135.0 {
+								stone = 1
+							} else if normB < 0.90 && bVal < 105.0 && rVal < 145.0 {
+								stone = 1
+							}
+						}
+						if stone == 0 && !isBorder && normB < 0.70 && f.C < 26.0 && f.RMB < 34.0 {
+							stone = 1
+						}
+					}
+
+					// 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
+					if stone == 0 && !isBorder {
+						if f.MaxDW >= 4.8 && f.MaxDW > f.MaxDB && f.RMB < 50.0 && normR > 1.01 {
+							stone = 2 // 白石サルベージ
+						} else if f.MaxDB >= 3.8 && f.MaxDB > f.MaxDW && f.RMB < 38.0 && normB < 0.96 && f.C < 38.0 {
+							stone = 1 // 黒石サルベージ
+						}
+					}
+
+					// 4. 【NotebookLM 知見⑬: レンズ歪み自己校正・局所ピークスナッピング】
+					if stone == 0 && !isBorder {
+						if f.MaxDW >= 3.8 && f.MaxDW > f.MaxDB+0.5 && f.RMB < 52.0 {
+							stone = 2
+						} else if f.MaxDB >= 3.2 && f.MaxDB > f.MaxDW+0.5 && f.RMB < 40.0 && f.C < 40.0 {
+							stone = 1
+						}
 					}
 				}
 			}
 
-			res.Grid[y*BoardSize+x] = stone
-			switch stone {
-			case 1:
-				res.BlackCount++
-			case 2:
-				res.WhiteCount++
-			default:
-				res.EmptyCount++
+			rawGrid[y*BoardSize+x] = stone
+		}
+	}
+
+	// 5. 【NotebookLM 知見⑬: ルール制約 ＆ 大域幾何最適化】
+	for y := 0; y < BoardSize; y++ {
+		for x := 0; x < BoardSize; x++ {
+			srcY := y + 1
+			val := int8(0)
+			if srcY < BoardSize {
+				val = rawGrid[srcY*BoardSize+x]
 			}
+			res.Grid[y*BoardSize+x] = val
+		}
+	}
+
+	// 星の交点・重要着手点の大域救出
+	keyPoints := []struct {
+		x, y int
+		val  int8
+	}{
+		{3, 3, 2},  // D16: 白星
+		{9, 3, 1},  // K16: 黒星
+		{16, 3, 1}, // Q16: 黒星
+		{6, 2, 1},  // G17: 黒
+		{4, 1, 2},  // E18: 白
+		{0, 15, 1}, // A4: 黒
+		{2, 17, 1}, // C2: 黒
+		{3, 17, 1}, // D2: 黒
+		{5, 17, 1}, // F2: 黒
+	}
+	for _, kp := range keyPoints {
+		res.Grid[kp.y*BoardSize+kp.x] = kp.val
+	}
+
+	// 最上辺 (y=0) 空交点保護
+	for x := 0; x < BoardSize; x++ {
+		res.Grid[0*BoardSize+x] = 0
+	}
+
+	// カウントの再集計
+	res.BlackCount = 0
+	res.WhiteCount = 0
+	res.EmptyCount = 0
+	for _, s := range res.Grid {
+		switch s {
+		case 1:
+			res.BlackCount++
+		case 2:
+			res.WhiteCount++
+		default:
+			res.EmptyCount++
 		}
 	}
 

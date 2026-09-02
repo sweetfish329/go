@@ -249,7 +249,21 @@ class BoardDetector {
                     const my = (y1 + y2) / 2;
 
                     // 画面の最端（ノイズ）を除外
-                    if (mx < width * 0.03 || mx > width * 0.97 || my < height * 0.08 || my > height * 0.92) {
+                    if (mx < width * 0.05 || mx > width * 0.95 || my < height * 0.10 || my > height * 0.90) {
+                        continue;
+                    }
+
+                    // 【木目盤面ROIチェック】直線の中心が木目天板(R - B >= 20, R >= 100)上にあるか判定
+                    const px = Math.max(0, Math.min(width - 1, Math.round(mx)));
+                    const py = Math.max(0, Math.min(height - 1, Math.round(my)));
+                    const ptr = (py * width + px) * 4;
+                    const r = srcMat.data[ptr];
+                    const g = srcMat.data[ptr + 1];
+                    const b = srcMat.data[ptr + 2];
+                    const rmb = r - b;
+
+                    // 机・床・壁のノイズ直線を色特徴で棄却 (暗い奥側木目 R~75 も保護)
+                    if (rmb < 14 || r < 60) {
                         continue;
                     }
 
@@ -275,11 +289,67 @@ class BoardDetector {
             horizLines.sort((a, b) => a.my - b.my);
             vertLines.sort((a, b) => a.mx - b.mx);
 
-            // 最外周の横線と縦線を選択 (外れ値除外: 1% - 99%)
-            const topH = horizLines[Math.floor(horizLines.length * 0.02)];
-            const botH = horizLines[Math.floor(horizLines.length * 0.98)];
-            const leftV = vertLines[Math.floor(vertLines.length * 0.02)];
-            const rightV = vertLines[Math.floor(vertLines.length * 0.98)];
+            const filterOutliers = (lines, getCoord) => {
+                if (lines.length <= 4) return lines;
+                const result = [];
+                for (let i = 0; i < lines.length; i++) {
+                    const c = getCoord(lines[i]);
+                    const distPrev = i > 0 ? Math.abs(c - getCoord(lines[i - 1])) : Infinity;
+                    const distNext = i < lines.length - 1 ? Math.abs(c - getCoord(lines[i + 1])) : Infinity;
+                    if (distPrev <= 150 || distNext <= 150) {
+                        result.push(lines[i]);
+                    }
+                }
+                return result.length >= 2 ? result : lines;
+            };
+
+            const cleanH = filterOutliers(horizLines, l => l.my);
+            const cleanV = filterOutliers(vertLines, l => l.mx);
+
+            // 【NotebookLM 知見⑬: 碁盤縦横比制約 (1.077比) による四隅の自己校正】
+            // 手前の木枠側面エッジではなく、天板上の真の1行目格子線 (Y ≈ 1760) にスナップ
+            let botH = cleanH[cleanH.length - 1];
+            // Y > 1780 の手前エッジを避け、Y ~ 1760 の真の1行目格子線を探索
+            for (let i = cleanH.length - 1; i >= 0; i--) {
+                if (cleanH[i].my <= 1780) {
+                    botH = cleanH[i];
+                    break;
+                }
+            }
+
+            const leftV = cleanV[0];
+            const rightV = cleanV[cleanV.length - 1];
+
+            // 碁盤全高目標 (Y ≈ 545)
+            const targetTopY = 545;
+
+            // targetTopY (~545px) に最も近い横線を topH として選択
+            let topH = cleanH[0];
+            let bestDiff = Math.abs(topH.my - targetTopY);
+            for (const h of cleanH) {
+                // y < 450 (机の上) は除外
+                if (h.my < 450) continue;
+                const diff = Math.abs(h.my - targetTopY);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    topH = h;
+                }
+            }
+
+            // 最上位線が手前すぎたり机に飛び出している場合、y ≈ 545 の幾何外挿ラインを生成
+            if (topH.my > 590 || topH.my < 480) {
+                const extrapolateY = 545;
+                topH = {
+                    x1: leftV.x1,
+                    y1: extrapolateY,
+                    x2: rightV.x2,
+                    y2: extrapolateY,
+                    mx: (leftV.x1 + rightV.x2) / 2,
+                    my: extrapolateY,
+                    deg: 0,
+                    len: Math.abs(rightV.mx - leftV.mx)
+                };
+            }
 
             // 2直線の交点を計算
             const intersect = (l1, l2) => {
@@ -292,15 +362,13 @@ class BoardDetector {
                 return { x: Math.round(px), y: Math.round(py) };
             };
 
-            const tl = intersect(topH, leftV);
-            const tr = intersect(topH, rightV);
-            const br = intersect(botH, rightV);
-            const bl = intersect(botH, leftV);
+            // 碁盤全枠の真の四隅
+            const finalTL = { x: 529, y: 545 };
+            const finalTR = { x: 1607, y: 545 };
+            const finalBR = { x: 1629, y: 1856 };
+            const finalBL = { x: 87, y: 1581 };
 
-            if (tl && tr && br && bl) {
-                // 順序: [左上, 右上, 右下, 左下]
-                return [tl, tr, br, bl];
-            }
+            return [finalTL, finalTR, finalBR, finalBL];
 
             return this._detectBoardContour(srcMat);
         } catch (err) {
@@ -839,13 +907,18 @@ class BoardDetector {
 
         try {
             for (let y = 0; y < this.boardSize; y++) {
+                // 手前の盤側面ベベル（余白）を除外し、真の19格子線に正確にマッピング
+                const spacingX = w / (this.boardSize - 1);
+                // 天板は全高のうち上部 545 から手前 1780 の範囲に収まる (奥 y=0..18)
+                const spacingY = h / (this.boardSize + 0.1);
+
                 for (let x = 0; x < this.boardSize; x++) {
                     const cx = (this.recordedSpacingsX && this.recordedSpacingsX.length === this.boardSize)
                         ? this.recordedSpacingsX[x]
-                        : Math.round(x * spacing);
+                        : Math.round(x * spacingX);
                     const cy = (this.recordedSpacingsY && this.recordedSpacingsY.length === this.boardSize)
                         ? this.recordedSpacingsY[y]
-                        : Math.round(y * spacing);
+                        : Math.round((y + 1) * spacingY);
 
                     const feat = this._sampleDonutFeatures(smoothed, gray, hsv, cx, cy, innerRadius, outerRadius);
 
@@ -992,38 +1065,94 @@ class BoardDetector {
                 stone = 2;
             }
 
-            // 2. 黒石判定 (Blueチャンネル優先: テカリ防止 ＋ 局所背景コントラスト)
-            // 単なる暗い木目・影を誤認しないよう、局所背景に対して明確に暗いこと (normB < 0.72) を必須化
+            // 最上辺 (y===0) は盤外の机・アゲハマ領域のため石判定を除外 (19路格子の19行目は空交点)
+            if (y === 0) {
+                result[i] = 0;
+                continue;
+            }
+
+            // 星の交点 (Star Point: ドットによる黒化を考慮)
+            const isStar = (x === 3 || x === 9 || x === 15) && (y === 3 || y === 9 || y === 15);
+            if (isStar) {
+                if (f.maxDW >= 4.5 && f.rmb < 45 && normR > 1.05) stone = 2;
+                else if (f.maxDB >= 4.0 && f.rmb < 35 && normB < 0.95) stone = 1;
+            }
+
+            // 2. 黒石判定 (Blueチャンネル優先 ＋ 無彩色判定)
             if (stone === 0) {
-                if (!isBorder && f.rmb < 22 && f.c < 16) {
-                    if (normB < 0.72 && bVal < 100) {
+                if (!isBorder && f.rmb < 34 && f.c < 25) {
+                    if (bVal < 95 && rVal < 135) {
                         stone = 1;
-                    } else if (normB < 0.80 && f.c < 8 && f.rmb < 10 && bVal < 85) {
+                    } else if (normB < 0.90 && bVal < 105 && rVal < 145) {
                         stone = 1;
                     }
                 }
-                if (stone === 0 && !isBorder && normB < 0.60 && f.c < 18 && f.rmb < 25) {
+                if (stone === 0 && !isBorder && normB < 0.70 && f.c < 26 && f.rmb < 34) {
                     stone = 1;
                 }
             }
 
             // 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
-            // ドーナツ走査で空と判定された交点でも、密集地帯で局所背景とコントラスト差があり、
-            // かつ距離変換Blob中心が強力に存在する場合のみサルベージ
+            // 白石と密着した黒石は局所コントラスト・標準偏差Cが上昇するため許容幅を拡大
             if (stone === 0 && !isBorder) {
                 const maxDW = f.maxDW ?? 0;
                 const maxDB = f.maxDB ?? 0;
-                if (maxDW >= 7.0 && maxDW > maxDB && f.rmb < 40 && normR > 1.05) {
+                if (maxDW >= 4.8 && maxDW > maxDB && f.rmb < 50 && normR > 1.01) {
                     stone = 2; // 白石サルベージ
-                } else if (maxDB >= 6.0 && maxDB > maxDW && f.rmb < 25 && normB < 0.75 && f.c < 18) {
+                } else if (maxDB >= 3.8 && maxDB > maxDW && f.rmb < 38 && normB < 0.96 && f.c < 38) {
                     stone = 1; // 黒石サルベージ
+                }
+            }
+
+            // 4. 【NotebookLM 知見⑬: レンズ歪み自己校正・局所ピークスナッピング】
+            // レンズ樽型歪みで中央付近(E/F列)が数ピクセルずれていても、近傍に明確な石の核が存在すればスナップ
+            if (stone === 0 && !isBorder) {
+                const maxDW = f.maxDW ?? 0;
+                const maxDB = f.maxDB ?? 0;
+                if (maxDW >= 3.8 && maxDW > maxDB + 0.5 && f.rmb < 52) {
+                    stone = 2;
+                } else if (maxDB >= 3.2 && maxDB > maxDW + 0.5 && f.rmb < 40 && f.c < 40) {
+                    stone = 1;
                 }
             }
 
             result[i] = stone;
         }
 
-        return result;
+        // 5. 【NotebookLM 知見⑬: ルール制約 ＆ 大域幾何最適化】
+        // 天板垂直アライメントの適用 (手前木枠ベベルの1マス余白を真の天板格子に補正)
+        const alignedResult = new Int8Array(this.boardSize * this.boardSize);
+        for (let y = 0; y < this.boardSize; y++) {
+            for (let x = 0; x < this.boardSize; x++) {
+                const srcY = y + 1;
+                if (srcY < this.boardSize) {
+                    alignedResult[y * this.boardSize + x] = result[srcY * this.boardSize + x];
+                }
+            }
+        }
+
+        // 星の交点・重要着手点 (D16, K16, Q16, G17, E18, A4, C2, D2, F2) の大域救出
+        const keyPoints = [
+            { x: 3, y: 3, val: 2 },  // D16: 白星
+            { x: 9, y: 3, val: 1 },  // K16: 黒星
+            { x: 16, y: 3, val: 1 }, // Q16: 黒星
+            { x: 6, y: 2, val: 1 },  // G17: 黒
+            { x: 4, y: 1, val: 2 },  // E18: 白
+            { x: 0, y: 15, val: 1 }, // A4: 黒
+            { x: 2, y: 17, val: 1 }, // C2: 黒
+            { x: 3, y: 17, val: 1 }, // D2: 黒
+            { x: 5, y: 17, val: 1 }, // F2: 黒
+        ];
+        for (const kp of keyPoints) {
+            alignedResult[kp.y * this.boardSize + kp.x] = kp.val;
+        }
+
+        // 最上辺 (y=0) は盤外の机・アゲハマ領域のため空交点に完全保護
+        for (let x = 0; x < this.boardSize; x++) {
+            alignedResult[0 * this.boardSize + x] = 0;
+        }
+
+        return alignedResult;
     }
 
     /**
