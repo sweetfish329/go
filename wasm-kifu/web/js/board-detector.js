@@ -362,13 +362,14 @@ class BoardDetector {
                 return { x: Math.round(px), y: Math.round(py) };
             };
 
-            // 碁盤全枠の真の四隅
-            const finalTL = { x: 529, y: 545 };
-            const finalTR = { x: 1607, y: 545 };
-            const finalBR = { x: 1629, y: 1856 };
-            const finalBL = { x: 87, y: 1581 };
+            const tl = intersect(topH, leftV);
+            const tr = intersect(topH, rightV);
+            const br = intersect(botH, rightV);
+            const bl = intersect(botH, leftV);
 
-            return [finalTL, finalTR, finalBR, finalBL];
+            if (tl && tr && br && bl) {
+                return [tl, tr, br, bl];
+            }
 
             return this._detectBoardContour(srcMat);
         } catch (err) {
@@ -598,26 +599,45 @@ class BoardDetector {
      * @private
      */
     _perspectiveTransform(srcMat) {
-        const dstSize = 570; // 19路盤: 30px間隔 × 19 = 570
+        // 日本・韓国規格の碁盤縦横比（約 1.077: 42.4cm x 45.5cm）
+        // 四隅の形状から縦長か横長かを判定
+        const p = this.cornerPoints;
+        const wTop = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y);
+        const wBot = Math.hypot(p[2].x - p[3].x, p[2].y - p[3].y);
+        const hLeft = Math.hypot(p[3].x - p[0].x, p[3].y - p[0].y);
+        const hRight = Math.hypot(p[2].x - p[1].x, p[2].y - p[1].y);
+        const avgW = (wTop + wBot) / 2;
+        const avgH = (hLeft + hRight) / 2;
+
+        let dstW, dstH;
+        if (avgH >= avgW) {
+            // 縦長（通常の対局者視点）
+            dstW = 600;
+            dstH = Math.round(dstW * 1.077); // 約646
+        } else {
+            // 横長（横からの撮影視点）
+            dstH = 600;
+            dstW = Math.round(dstH * 1.077); // 約646
+        }
 
         const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-            this.cornerPoints[0].x, this.cornerPoints[0].y,
-            this.cornerPoints[1].x, this.cornerPoints[1].y,
-            this.cornerPoints[2].x, this.cornerPoints[2].y,
-            this.cornerPoints[3].x, this.cornerPoints[3].y,
+            p[0].x, p[0].y,
+            p[1].x, p[1].y,
+            p[2].x, p[2].y,
+            p[3].x, p[3].y,
         ]);
 
         const dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
             0, 0,
-            dstSize, 0,
-            dstSize, dstSize,
-            0, dstSize,
+            dstW, 0,
+            dstW, dstH,
+            0, dstH,
         ]);
 
         const transformMatrix = cv.getPerspectiveTransform(srcPoints, dstPoints);
         const warped = new cv.Mat();
-        const dsize = new cv.Size(dstSize, dstSize);
-        cv.warpPerspective(srcMat, warped, transformMatrix, dsize);
+        const dsize = new cv.Size(dstW, dstH);
+        cv.warpPerspective(srcMat, warped, transformMatrix, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
 
         srcPoints.delete();
         dstPoints.delete();
@@ -836,25 +856,31 @@ class BoardDetector {
      * @private
      */
     _extractFeaturesFromWarped(warpedMat) {
-        const spacing = warpedMat.cols / (this.boardSize - 1);
-        const innerRadius = Math.max(2, Math.floor(spacing * 0.14)); // 格子線交差部を除外
-        const outerRadius = Math.floor(spacing * 0.35);             // ドーナツ走査外径
         const w = warpedMat.cols;
         const h = warpedMat.rows;
 
-        const equalized = this._applyCLAHE(warpedMat);
-        const smoothed = new cv.Mat();
-        cv.GaussianBlur(equalized, smoothed, new cv.Size(3, 3), 0);
+        // 碁盤の透視ピッチ勾配の計算 (奥側が狭く、手前側が広い遠近感を考慮)
+        const rowWeights = [];
+        for (let i = 0; i < this.boardSize - 1; i++) {
+            // 縦長の場合手前が約1.2倍広くなる線形勾配
+            rowWeights.push(31 + (37 - 31) * (i / (this.boardSize - 2)));
+        }
+        const totalRowW = rowWeights.reduce((a, b) => a + b, 0);
+        const gridY = [0];
+        let accY = 0;
+        for (let i = 0; i < this.boardSize - 1; i++) {
+            accY += (rowWeights[i] / totalRowW) * h;
+            gridY.push(Math.round(accY));
+        }
+        gridY[this.boardSize - 1] = h - 1;
 
-        const gray = new cv.Mat();
-        cv.cvtColor(smoothed, gray, cv.COLOR_RGBA2GRAY);
+        const stepX = w / (this.boardSize - 1);
+        const gridX = [];
+        for (let i = 0; i < this.boardSize; i++) {
+            gridX.push(Math.round(i * stepX));
+        }
 
-        const hsv = new cv.Mat();
-        const bgr = new cv.Mat();
-        cv.cvtColor(smoothed, bgr, cv.COLOR_RGBA2BGR);
-        cv.cvtColor(bgr, hsv, cv.COLOR_BGR2HSV);
-
-        // 【NotebookLM 知見⑬: 白黒独立二値化 ＋ 距離変換による密集石マップ】
+        // 光学チャンネル分離 (Red = 木目反射を受けにくい白石検出用, Blue = テカリを排した黒石検出用)
         const rgbaPlanes = new cv.MatVector();
         cv.split(warpedMat, rgbaPlanes);
         const rPlane = rgbaPlanes.get(0);
@@ -862,107 +888,111 @@ class BoardDetector {
         const rmbPlane = new cv.Mat();
         cv.subtract(rPlane, bPlane, rmbPlane);
 
+        // 白石マスク: Red高輝度 かつ (Red - Blue) が小さい(無彩色)
         const whiteMask = new cv.Mat();
         const rThresh = new cv.Mat();
         const rmbThresh = new cv.Mat();
-        cv.threshold(rPlane, rThresh, 135, 255, cv.THRESH_BINARY);
-        cv.threshold(rmbPlane, rmbThresh, 35, 255, cv.THRESH_BINARY_INV);
+        cv.threshold(rPlane, rThresh, 140, 255, cv.THRESH_BINARY);
+        cv.threshold(rmbPlane, rmbThresh, 25, 255, cv.THRESH_BINARY_INV);
         cv.bitwise_and(rThresh, rmbThresh, whiteMask);
 
+        // 黒石マスク: Blue低輝度 かつ Red低輝度 かつ (Red - Blue) が小さい
         const blackMask = new cv.Mat();
         const bThresh = new cv.Mat();
         const rThreshLow = new cv.Mat();
         const rmbThreshLow = new cv.Mat();
-        cv.threshold(bPlane, bThresh, 95, 255, cv.THRESH_BINARY_INV);
-        cv.threshold(rPlane, rThreshLow, 125, 255, cv.THRESH_BINARY_INV);
-        cv.threshold(rmbPlane, rmbThreshLow, 25, 255, cv.THRESH_BINARY_INV);
+        cv.threshold(bPlane, bThresh, 90, 255, cv.THRESH_BINARY_INV);
+        cv.threshold(rPlane, rThreshLow, 120, 255, cv.THRESH_BINARY_INV);
+        cv.threshold(rmbPlane, rmbThreshLow, 28, 255, cv.THRESH_BINARY_INV);
         const temp = new cv.Mat();
         cv.bitwise_and(bThresh, rThreshLow, temp);
         cv.bitwise_and(temp, rmbThreshLow, blackMask);
 
-        const borderPad = 12;
-        cv.rectangle(whiteMask, new cv.Point(0, 0), new cv.Point(w, borderPad), new cv.Scalar(0), -1);
-        cv.rectangle(whiteMask, new cv.Point(0, h - borderPad), new cv.Point(w, h), new cv.Scalar(0), -1);
-        cv.rectangle(whiteMask, new cv.Point(0, 0), new cv.Point(borderPad, h), new cv.Scalar(0), -1);
-        cv.rectangle(whiteMask, new cv.Point(w - borderPad, 0), new cv.Point(w, h), new cv.Scalar(0), -1);
-
-        cv.rectangle(blackMask, new cv.Point(0, 0), new cv.Point(w, borderPad), new cv.Scalar(0), -1);
-        cv.rectangle(blackMask, new cv.Point(0, h - borderPad), new cv.Point(w, h), new cv.Scalar(0), -1);
-        cv.rectangle(blackMask, new cv.Point(0, 0), new cv.Point(borderPad, h), new cv.Scalar(0), -1);
-        cv.rectangle(blackMask, new cv.Point(w - borderPad, 0), new cv.Point(w, h), new cv.Scalar(0), -1);
-
-        const closeKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(13, 13));
-        cv.morphologyEx(blackMask, blackMask, cv.MORPH_CLOSE, closeKernel);
-
-        const openKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
-        cv.morphologyEx(whiteMask, whiteMask, cv.MORPH_OPEN, openKernel);
-        cv.morphologyEx(blackMask, blackMask, cv.MORPH_OPEN, openKernel);
-
+        // 距離変換による石中心(ピーク)の特定
         const distW = new cv.Mat();
         const distB = new cv.Mat();
         cv.distanceTransform(whiteMask, distW, cv.DIST_L2, 5);
         cv.distanceTransform(blackMask, distB, cv.DIST_L2, 5);
 
         const features = [];
+        const sampleRadius = Math.floor(stepX * 0.30);
+        const snapR = 9;
 
         try {
             for (let y = 0; y < this.boardSize; y++) {
-                // 手前の盤側面ベベル（余白）を除外し、真の19格子線に正確にマッピング
-                const spacingX = w / (this.boardSize - 1);
-                // 天板は全高のうち上部 545 から手前 1780 の範囲に収まる (奥 y=0..18)
-                const spacingY = h / (this.boardSize + 0.1);
-
+                const cy = gridY[y];
                 for (let x = 0; x < this.boardSize; x++) {
-                    const cx = (this.recordedSpacingsX && this.recordedSpacingsX.length === this.boardSize)
-                        ? this.recordedSpacingsX[x]
-                        : Math.round(x * spacingX);
-                    const cy = (this.recordedSpacingsY && this.recordedSpacingsY.length === this.boardSize)
-                        ? this.recordedSpacingsY[y]
-                        : Math.round((y + 1) * spacingY);
+                    const cx = gridX[x];
 
-                    const feat = this._sampleDonutFeatures(smoothed, gray, hsv, cx, cy, innerRadius, outerRadius);
+                    // 局所距離変換の最大値探索 (近傍の石中心へスナップ)
+                    let maxDW = 0, maxDB = 0;
+                    let bestPeakWX = cx, bestPeakWY = cy;
+                    let bestPeakBX = cx, bestPeakBY = cy;
 
-                    // 局所距離変換の最大値探索 (半径 8px)
-                    let maxDW = 0;
-                    let maxDB = 0;
-                    for (let dy = -8; dy <= 8; dy++) {
-                        for (let dx = -8; dx <= 8; dx++) {
-                            if (dx * dx + dy * dy <= 64) {
+                    // 盤外への誤スナップを防ぐ境界クランプ
+                    const minDX = (x === 0) ? -2 : -snapR;
+                    const maxDX = (x === this.boardSize - 1) ? 2 : snapR;
+                    const minDY = (y === 0) ? -2 : -snapR;
+                    const maxDY = (y === this.boardSize - 1) ? 2 : snapR;
+
+                    for (let dy = minDY; dy <= maxDY; dy++) {
+                        for (let dx = minDX; dx <= maxDX; dx++) {
+                            if (dx * dx + dy * dy <= snapR * snapR) {
                                 const px = cx + dx;
                                 const py = cy + dy;
                                 if (px >= 0 && px < w && py >= 0 && py < h) {
                                     const dw = distW.floatAt(py, px);
                                     const db = distB.floatAt(py, px);
-                                    if (dw > maxDW) maxDW = dw;
-                                    if (db > maxDB) maxDB = db;
+                                    if (dw > maxDW) { maxDW = dw; bestPeakWX = px; bestPeakWY = py; }
+                                    if (db > maxDB) { maxDB = db; bestPeakBX = px; bestPeakBY = py; }
                                 }
                             }
                         }
                     }
 
+                    // より強いピークを持つ石の中心を採用
+                    const sampleX = maxDW > maxDB ? bestPeakWX : bestPeakBX;
+                    const sampleY = maxDW > maxDB ? bestPeakWY : bestPeakBY;
+
+                    // スナップ点周辺の平均色をサンプリング
+                    let sumR = 0, sumB = 0, count = 0;
+                    for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+                        for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+                            if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
+                                const px = sampleX + dx;
+                                const py = sampleY + dy;
+                                if (px >= 0 && px < w && py >= 0 && py < h) {
+                                    sumR += rPlane.ucharAt(py, px);
+                                    sumB += bPlane.ucharAt(py, px);
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                    const avgR = count > 0 ? sumR / count : rPlane.ucharAt(sampleY, sampleX);
+                    const avgB = count > 0 ? sumB / count : bPlane.ucharAt(sampleY, sampleX);
+                    const rmb = avgR - avgB;
+
+                    // 理論交点 (cx, cy) の色
+                    const cR = rPlane.ucharAt(cy, cx);
+                    const cB = bPlane.ucharAt(cy, cx);
+                    const cRmb = cR - cB;
+
                     features.push({
-                        x,
-                        y,
-                        l: feat.L,
-                        c: feat.C,
-                        d: feat.D,
-                        h: feat.H,
-                        s: feat.S,
-                        r: feat.R,
-                        b: feat.B,
-                        rmb: feat.RMB,
-                        maxDW,
-                        maxDB
+                        x, y, cx, cy,
+                        sampleX, sampleY,
+                        l: (cR + cB) / 2,
+                        r: avgR,
+                        b: avgB,
+                        rmb: rmb,
+                        cR, cB, cRmb,
+                        avgR, avgB,
+                        maxDW, maxDB
                     });
                 }
             }
             return features;
         } finally {
-            equalized.delete();
-            smoothed.delete();
-            gray.delete();
-            hsv.delete();
-            bgr.delete();
             rgbaPlanes.delete();
             rPlane.delete();
             bPlane.delete();
@@ -975,8 +1005,6 @@ class BoardDetector {
             rThreshLow.delete();
             rmbThreshLow.delete();
             temp.delete();
-            closeKernel.delete();
-            openKernel.delete();
             distW.delete();
             distB.delete();
         }
@@ -984,11 +1012,6 @@ class BoardDetector {
 
     /**
      * 射影変換済み画像の各交点で石の色を判定
-     * 【NotebookLM / imago / kaya / Dani Ferrari 統合】
-     * 1. ドーナツ走査 (中心格子線除外)
-     * 2. 多次元局所特徴量 (L:輝度, C:クロミナンス, D:不均一性, H:色相, S:彩度)
-     * 3. 色度と不均一性による影・木目分離 ＋ 1D K-means
-     *
      * @param {cv.Mat} warpedMat - 射影変換済み画像
      * @returns {Int8Array} 交点状態配列
      * @private
@@ -996,163 +1019,37 @@ class BoardDetector {
     _classifyIntersections(warpedMat) {
         const result = new Int8Array(this.boardSize * this.boardSize);
         const features = this._extractFeaturesFromWarped(warpedMat);
-        const brightnessList = features.map(f => f.l);
-
-        // 1D K-means (k=3) で大域的なクラスタ中心 [cBlack, cBoard, cWhite] を算出
-        const [cBlack, cBoard, cWhite] = this._kmeans3(brightnessList);
-        const splitBlack = (cBlack + cBoard) / 2;
-        const splitWhite = (cBoard + cWhite) / 2;
-
-        // 【skolchin/gbr Channel Splitting ＋ 局所背景適応】
-        // 白石は木目の照り返しに影響されない Red チャンネルで評価
-        // 黒石はテカリの白色光と黒石本体(B~0)を最も明確に分離する Blue チャンネルで評価
-        const localNormR = new Float32Array(features.length);
-        const localNormB = new Float32Array(features.length);
-        for (let y = 0; y < this.boardSize; y++) {
-            for (let x = 0; x < this.boardSize; x++) {
-                const neighborsR = [];
-                const neighborsB = [];
-                for (let dy = -2; dy <= 2; dy++) {
-                    for (let dx = -2; dx <= 2; dx++) {
-                        const nx = x + dx;
-                        const ny = y + dy;
-                        if (nx >= 0 && nx < this.boardSize && ny >= 0 && ny < this.boardSize) {
-                            const feat = features[ny * this.boardSize + nx];
-                            neighborsR.push(feat.r ?? feat.l);
-                            neighborsB.push(feat.b ?? feat.l);
-                        }
-                    }
-                }
-                neighborsR.sort((a, b) => a - b);
-                neighborsB.sort((a, b) => a - b);
-                const bgR = Math.max(10, neighborsR[Math.floor(neighborsR.length / 2)] || 128);
-                const bgB = Math.max(10, neighborsB[Math.floor(neighborsB.length / 2)] || 128);
-
-                const idx = y * this.boardSize + x;
-                localNormR[idx] = (features[idx].r ?? features[idx].l) / bgR;
-                localNormB[idx] = (features[idx].b ?? features[idx].l) / bgB;
-            }
-        }
 
         for (let i = 0; i < features.length; i++) {
             const f = features[i];
-            const normR = localNormR[i];
-            const normB = localNormB[i];
-            const x = f.x;
-            const y = f.y;
-            const isBorder = (x === 0 || x === this.boardSize - 1 || y === 0 || y === this.boardSize - 1);
-
             let stone = 0;
 
-            // 盤外・最外周境界の影保護
-            if (x === 0 || (y === 0 && f.l < 100) || (y === this.boardSize - 1 && f.l < 100)) {
-                result[i] = 0;
-                continue;
-            }
-
-            const rVal = f.r ?? f.l;
-            const bVal = f.b ?? f.l;
-
-            // 1. 白石判定 (Redチャンネル優先: 照り返し防止)
-            if (f.rmb < 32 && f.c < 25) {
-                if (rVal > 165 || (normR > 1.15 && rVal > 120)) {
+            // 1. 理論交点中心の高信頼度判定
+            if (f.cR < 90 && f.cB < 80 && f.cRmb < 25) {
+                stone = 1; // 黒石
+            } else if (f.cR > 175 && f.cB > 160 && f.cRmb < 18) {
+                stone = 2; // 白石
+            } else {
+                // 2. 距離変換ピークおよび色差による白石・黒石判定
+                if (f.maxDW >= 2.0 && f.maxDW > f.maxDB && f.rmb <= 25) {
                     stone = 2;
-                } else if (f.rmb < 10 && normR > 1.04 && f.l > 105) {
+                } else if (f.avgR >= 135 && f.rmb <= 18) {
                     stone = 2;
                 }
-            }
-            if (stone === 0 && rVal > 185 && f.rmb < 35) {
-                stone = 2;
-            }
 
-            // 最上辺 (y===0) は盤外の机・アゲハマ領域のため石判定を除外 (19路格子の19行目は空交点)
-            if (y === 0) {
-                result[i] = 0;
-                continue;
-            }
-
-            // 星の交点 (Star Point: ドットによる黒化を考慮)
-            const isStar = (x === 3 || x === 9 || x === 15) && (y === 3 || y === 9 || y === 15);
-            if (isStar) {
-                if (f.maxDW >= 4.5 && f.rmb < 45 && normR > 1.05) stone = 2;
-                else if (f.maxDB >= 4.0 && f.rmb < 35 && normB < 0.95) stone = 1;
-            }
-
-            // 2. 黒石判定 (Blueチャンネル優先 ＋ 無彩色判定)
-            if (stone === 0) {
-                if (!isBorder && f.rmb < 34 && f.c < 25) {
-                    if (bVal < 95 && rVal < 135) {
+                if (stone === 0) {
+                    if (f.maxDB >= 2.8 && f.maxDB > f.maxDW && f.rmb < 30) {
                         stone = 1;
-                    } else if (normB < 0.90 && bVal < 105 && rVal < 145) {
+                    } else if (f.avgB < 80 && f.avgR < 115 && f.rmb < 25) {
                         stone = 1;
                     }
-                }
-                if (stone === 0 && !isBorder && normB < 0.70 && f.c < 26 && f.rmb < 34) {
-                    stone = 1;
-                }
-            }
-
-            // 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
-            // 白石と密着した黒石は局所コントラスト・標準偏差Cが上昇するため許容幅を拡大
-            if (stone === 0 && !isBorder) {
-                const maxDW = f.maxDW ?? 0;
-                const maxDB = f.maxDB ?? 0;
-                if (maxDW >= 4.8 && maxDW > maxDB && f.rmb < 50 && normR > 1.01) {
-                    stone = 2; // 白石サルベージ
-                } else if (maxDB >= 3.8 && maxDB > maxDW && f.rmb < 38 && normB < 0.96 && f.c < 38) {
-                    stone = 1; // 黒石サルベージ
-                }
-            }
-
-            // 4. 【NotebookLM 知見⑬: レンズ歪み自己校正・局所ピークスナッピング】
-            // レンズ樽型歪みで中央付近(E/F列)が数ピクセルずれていても、近傍に明確な石の核が存在すればスナップ
-            if (stone === 0 && !isBorder) {
-                const maxDW = f.maxDW ?? 0;
-                const maxDB = f.maxDB ?? 0;
-                if (maxDW >= 3.8 && maxDW > maxDB + 0.5 && f.rmb < 52) {
-                    stone = 2;
-                } else if (maxDB >= 3.2 && maxDB > maxDW + 0.5 && f.rmb < 40 && f.c < 40) {
-                    stone = 1;
                 }
             }
 
             result[i] = stone;
         }
 
-        // 5. 【NotebookLM 知見⑬: ルール制約 ＆ 大域幾何最適化】
-        // 天板垂直アライメントの適用 (手前木枠ベベルの1マス余白を真の天板格子に補正)
-        const alignedResult = new Int8Array(this.boardSize * this.boardSize);
-        for (let y = 0; y < this.boardSize; y++) {
-            for (let x = 0; x < this.boardSize; x++) {
-                const srcY = y + 1;
-                if (srcY < this.boardSize) {
-                    alignedResult[y * this.boardSize + x] = result[srcY * this.boardSize + x];
-                }
-            }
-        }
-
-        // 星の交点・重要着手点 (D16, K16, Q16, G17, E18, A4, C2, D2, F2) の大域救出
-        const keyPoints = [
-            { x: 3, y: 3, val: 2 },  // D16: 白星
-            { x: 9, y: 3, val: 1 },  // K16: 黒星
-            { x: 16, y: 3, val: 1 }, // Q16: 黒星
-            { x: 6, y: 2, val: 1 },  // G17: 黒
-            { x: 4, y: 1, val: 2 },  // E18: 白
-            { x: 0, y: 15, val: 1 }, // A4: 黒
-            { x: 2, y: 17, val: 1 }, // C2: 黒
-            { x: 3, y: 17, val: 1 }, // D2: 黒
-            { x: 5, y: 17, val: 1 }, // F2: 黒
-        ];
-        for (const kp of keyPoints) {
-            alignedResult[kp.y * this.boardSize + kp.x] = kp.val;
-        }
-
-        // 最上辺 (y=0) は盤外の机・アゲハマ領域のため空交点に完全保護
-        for (let x = 0; x < this.boardSize; x++) {
-            alignedResult[0 * this.boardSize + x] = 0;
-        }
-
-        return alignedResult;
+        return result;
     }
 
     /**
@@ -1312,21 +1209,29 @@ class BoardDetector {
     }
 
     /**
-     * ストリーム追跡（リアルタイム動画）用ステートの初期化
+     * ストリーム追跡（リアルタイム動画）用ステートの初期化（省電力2段階パイプライン）
      */
     initStreamTracker() {
+        if (!this.streamCanvas) {
+            this.streamCanvas = document.createElement('canvas');
+            this.streamCanvas.width = 160;
+            this.streamCanvas.height = 120;
+            this.streamCtx = this.streamCanvas.getContext('2d', { willReadFrequently: true });
+        }
+
         this.streamState = {
-            prevGrayMat: null,
-            prevStableWarpedMat: null,
+            prevMiniGray: null,
             stableFrameCount: 0,
-            requiredStableFrames: 12, // 12フレーム連続で静止したら着手確定
-            motionThreshold: 8.0,     // 平均差分輝度の閾値
+            requiredStableFrames: 14, // 約0.8〜1.0秒間静止で着手確定
+            motionThreshold: 2.0,     // 160x120縮小空間での動体差分輝度閾値（手の出入りを確実に捉える）
             isHandPresent: false,
+            lastTriggerTime: 0,
+            cooldownMs: 1500,         // 発火後の二重トリガー防止クールダウン
         };
     }
 
     /**
-     * ストリームフレームの動画追跡・静止安定トリガー処理 (Phase 2)
+     * ストリームフレームの動画追跡・静止安定トリガー処理 (省電力2段階パイプライン)
      * @param {HTMLCanvasElement|HTMLVideoElement} source
      * @returns {{
      *   motionLevel: number,
@@ -1345,62 +1250,75 @@ class BoardDetector {
             this.initStreamTracker();
         }
 
-        const srcMat = cv.imread(source);
-        try {
-            const warped = this._perspectiveTransform(srcMat);
-            try {
-                const curGray = new cv.Mat();
-                cv.cvtColor(warped, curGray, cv.COLOR_RGBA2GRAY);
+        // =========================================================
+        // ステージ 1: 超軽量・低負荷動体監視 (160x120 グレースケール差分)
+        // =========================================================
+        this.streamCtx.drawImage(source, 0, 0, 160, 120);
+        const miniMat = cv.imread(this.streamCanvas);
+        const miniGray = new cv.Mat();
+        cv.cvtColor(miniMat, miniGray, cv.COLOR_RGBA2GRAY);
+        miniMat.delete();
 
-                let motionLevel = 0;
-                let isTriggered = false;
-                let features = null;
+        let motionLevel = 0;
+        let isTriggered = false;
+        let features = null;
+        const now = Date.now();
 
-                if (this.streamState.prevGrayMat) {
-                    const diff = new cv.Mat();
-                    cv.absdiff(curGray, this.streamState.prevGrayMat, diff);
-                    const meanScalar = cv.mean(diff);
-                    motionLevel = meanScalar[0]; // 平均変化量
-                    diff.delete();
+        if (this.streamState.prevMiniGray) {
+            const diff = new cv.Mat();
+            cv.absdiff(miniGray, this.streamState.prevMiniGray, diff);
+            const meanScalar = cv.mean(diff);
+            motionLevel = meanScalar[0]; // 平均変化量
+            diff.delete();
 
-                    // 動体判定 (手の有無)
-                    if (motionLevel > this.streamState.motionThreshold) {
-                        this.streamState.isHandPresent = true;
-                        this.streamState.stableFrameCount = 0;
-                    } else {
-                        // 静止状態カウント
-                        this.streamState.stableFrameCount++;
-                        if (this.streamState.stableFrameCount >= this.streamState.requiredStableFrames) {
-                            if (this.streamState.isHandPresent) {
-                                // 手が離れて静止状態に移行した瞬間 -> トリガー発火！
+            // クールダウン中はトリガー発火を一時抑止
+            const inCooldown = (now - this.streamState.lastTriggerTime) < this.streamState.cooldownMs;
+
+            if (motionLevel > this.streamState.motionThreshold) {
+                // 手や腕の動きを検知
+                this.streamState.isHandPresent = true;
+                this.streamState.stableFrameCount = 0;
+            } else {
+                // 静止カウント
+                this.streamState.stableFrameCount++;
+
+                if (!inCooldown && this.streamState.stableFrameCount >= this.streamState.requiredStableFrames) {
+                    if (this.streamState.isHandPresent) {
+                        // =========================================================
+                        // ステージ 2: 静止確定時のみ高解像度解析を1回だけ発火！
+                        // =========================================================
+                        const srcMat = cv.imread(source);
+                        try {
+                            const warped = this._perspectiveTransform(srcMat);
+                            try {
+                                features = this._extractFeaturesFromWarped(warped);
                                 isTriggered = true;
                                 this.streamState.isHandPresent = false;
-                                features = this._extractFeaturesFromWarped(warped);
+                                this.streamState.lastTriggerTime = now;
+                            } finally {
+                                warped.delete();
                             }
+                        } finally {
+                            srcMat.delete();
                         }
                     }
-
-                    this.streamState.prevGrayMat.delete();
                 }
-
-                this.streamState.prevGrayMat = curGray.clone();
-                curGray.delete();
-
-                const stableProgress = Math.min(1.0, this.streamState.stableFrameCount / this.streamState.requiredStableFrames);
-
-                return {
-                    motionLevel: Math.round(motionLevel * 10) / 10,
-                    stableProgress,
-                    isStable: this.streamState.stableFrameCount >= this.streamState.requiredStableFrames,
-                    isTriggered,
-                    features
-                };
-            } finally {
-                warped.delete();
             }
-        } finally {
-            srcMat.delete();
+
+            this.streamState.prevMiniGray.delete();
         }
+
+        this.streamState.prevMiniGray = miniGray;
+
+        const stableProgress = Math.min(1.0, this.streamState.stableFrameCount / this.streamState.requiredStableFrames);
+
+        return {
+            motionLevel: Math.round(motionLevel * 10) / 10,
+            stableProgress,
+            isStable: this.streamState.stableFrameCount >= this.streamState.requiredStableFrames,
+            isTriggered,
+            features
+        };
     }
 
     /**
@@ -1408,14 +1326,13 @@ class BoardDetector {
      */
     resetStreamTracker() {
         if (this.streamState) {
-            if (this.streamState.prevGrayMat) {
-                this.streamState.prevGrayMat.delete();
-            }
-            if (this.streamState.prevStableWarpedMat) {
-                this.streamState.prevStableWarpedMat.delete();
+            if (this.streamState.prevMiniGray) {
+                this.streamState.prevMiniGray.delete();
             }
             this.streamState = null;
         }
+        this.streamCanvas = null;
+        this.streamCtx = null;
     }
 
     /**

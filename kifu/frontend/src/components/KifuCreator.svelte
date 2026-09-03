@@ -3,7 +3,7 @@
   import Board from './Board.svelte';
   import CameraCaptureModal from './CameraCaptureModal.svelte';
   import { auth } from '../lib/auth.svelte';
-  import { stringifySgf } from '../lib/sgfPlayer';
+  import { stringifySgf, SgfPlayer } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
   import { compressRequestBody } from '../lib/compress';
 
@@ -149,11 +149,58 @@
     currentMoveIndex = moves.length - 1;
   }
 
-  function handleImportFromCamera(detected: { board: number[][]; blackCount: number; whiteCount: number }) {
+  function handleImportFromCamera(detected: {
+    board?: number[][];
+    blackCount?: number;
+    whiteCount?: number;
+    sgf?: string;
+  }) {
+    const M = getM();
+
+    // ⚡ 三脚リアルタイム対局レコーダーからの完全SGF手順取り込み
+    if (detected.sgf) {
+      try {
+        const player = new SgfPlayer(detected.sgf);
+        const newMoves: CreatorMove[] = [];
+
+        for (let i = 1; i < player.history.length; i++) {
+          const entry = player.history[i];
+          if (!entry.node) continue;
+          const isB = !!entry.node.properties.B;
+          const isW = !!entry.node.properties.W;
+          if (!isB && !isW) continue;
+
+          newMoves.push({
+            x: entry.lastMove ? entry.lastMove.x : null,
+            y: entry.lastMove ? entry.lastMove.y : null,
+            color: isB ? 1 : 2,
+            board: copyBoard(entry.board),
+            capturedCount: (isB ? entry.captives.W : entry.captives.B) || 0,
+          });
+        }
+
+        if (newMoves.length > 0) {
+          moves = newMoves;
+          currentMoveIndex = newMoves.length - 1;
+
+          if (M) {
+            M.toast({
+              html: `⚡ 三脚対局記録を取り込みました (${newMoves.length}手)`,
+              classes: 'green darken-2'
+            });
+          }
+          return;
+        }
+      } catch (err: any) {
+        console.error("SGF import error from live recorder:", err);
+      }
+    }
+
+    // 静止画盤面フォールバック (配置された石を一括復元)
+    if (!detected.board) return;
     let curBoard = createBoard(size);
     const newMoves: CreatorMove[] = [];
 
-    // Collect all black and white coordinates
     const blackStones: { x: number; y: number }[] = [];
     const whiteStones: { x: number; y: number }[] = [];
 
@@ -164,7 +211,6 @@
       }
     }
 
-    // Apply black stones
     for (const b of blackStones) {
       curBoard = copyBoard(curBoard);
       curBoard[b.y][b.x] = 1;
@@ -177,7 +223,6 @@
       });
     }
 
-    // Apply white stones
     for (const w of whiteStones) {
       curBoard = copyBoard(curBoard);
       curBoard[w.y][w.x] = 2;
@@ -193,10 +238,9 @@
     moves = newMoves;
     currentMoveIndex = newMoves.length - 1;
 
-    const M = getM();
     if (M) {
       M.toast({
-        html: `📸 盤面を取り込みました (黒: ${detected.blackCount}子, 白: ${detected.whiteCount}子)`,
+        html: `📸 盤面を取り込みました (黒: ${detected.blackCount ?? blackStones.length}子, 白: ${detected.whiteCount ?? whiteStones.length}子)`,
         classes: 'green darken-2'
       });
     }

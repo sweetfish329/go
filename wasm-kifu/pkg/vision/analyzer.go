@@ -31,16 +31,21 @@ type DetectedBoard struct {
 
 // IntersectionFeatures は1つの交点から抽出された多次元特徴量
 type IntersectionFeatures struct {
-	X int     `json:"x"`
-	Y int     `json:"y"`
-	L float64 `json:"l"` // Luminance (輝度: 0-255)
-	C float64 `json:"c"` // Chrominance (RGB標準偏差: 木目は高, 石は低/無彩色)
-	D float64 `json:"d"` // Disuniformity (らせん不均一性: 木目+線は高, 石は低)
-	H   float64 `json:"h"`   // Hue (色相: 0-360)
-	S   float64 `json:"s"`   // Saturation (彩度: 0-255)
-	R   float64 `json:"r"`   // Red channel (0-255: skolchin/gbr 白石評価用)
-	B   float64 `json:"b"`   // Blue channel (0-255: skolchin/gbr 黒石評価用)
-	RMB float64 `json:"rmb"` // Woodness (R - B: 木目度は高, 石は低/無彩色)
+	X     int     `json:"x"`
+	Y     int     `json:"y"`
+	L     float64 `json:"l"` // Luminance (輝度: 0-255)
+	C     float64 `json:"c"` // Chrominance (RGB標準偏差: 木目は高, 石は低/無彩色)
+	D     float64 `json:"d"` // Disuniformity (らせん不均一性: 木目+線は高, 石は低)
+	H     float64 `json:"h"` // Hue (色相: 0-360)
+	S     float64 `json:"s"` // Saturation (彩度: 0-255)
+	R     float64 `json:"r"` // Red channel (0-255: skolchin/gbr 白石評価用)
+	B     float64 `json:"b"` // Blue channel (0-255: skolchin/gbr 黒石評価用)
+	RMB   float64 `json:"rmb"` // Woodness (R - B: 木目度は高, 石は低/無彩色)
+	CR    float64 `json:"cR,omitempty"` // 中心画素 Red
+	CB    float64 `json:"cB,omitempty"` // 中心画素 Blue
+	CRMB  float64 `json:"cRmb,omitempty"` // 中心画素 R - B
+	AvgR  float64 `json:"avgR,omitempty"` // 近傍平均 Red
+	AvgB  float64 `json:"avgB,omitempty"` // 近傍平均 Blue
 	MaxDW float64 `json:"maxDW,omitempty"` // Distance Transform max value for white (密集白石サルベージ用)
 	MaxDB float64 `json:"maxDB,omitempty"` // Distance Transform max value for black (密集黒石サルベージ用)
 }
@@ -212,6 +217,20 @@ func AnalyzeBoardFeatures(ge *engine.GameEngine, featuresJSON string) string {
 			}
 
 			f := data.Features[y*BoardSize+x]
+			// 特徴量の補正フォールバック
+			if f.L == 0 && (f.CR > 0 || f.CB > 0) {
+				f.L = (f.CR + f.CB) / 2.0
+			}
+			if f.R == 0 && f.AvgR > 0 {
+				f.R = f.AvgR
+			}
+			if f.B == 0 && f.AvgB > 0 {
+				f.B = f.AvgB
+			}
+			if f.RMB == 0 && (f.AvgR > 0 || f.AvgB > 0) {
+				f.RMB = f.AvgR - f.AvgB
+			}
+
 			fv := FeatureVector{L: f.L, C: f.C, D: f.D, H: f.H, S: f.S}
 
 			// 期待される手番の石との距離
@@ -222,6 +241,25 @@ func AnalyzeBoardFeatures(ge *engine.GameEngine, featuresJSON string) string {
 
 			dStone := computeFeatureDistance(fv, targetStoneMean)
 			dEmpty := computeFeatureDistance(fv, model.EmptyMean)
+
+			// 赤青チャンネル分離 ＋ 距離変換ピークによる光学スコア判定
+			opticalStoneMatch := false
+			if expectedColor == "B" {
+				// 黒石判定: Blue低輝度, Red低輝度, または MaxDB が突出
+				if (f.CB < 90 && f.CR < 120 && f.RMB < 28) || (f.MaxDB >= 2.5 && f.MaxDB > f.MaxDW && f.RMB < 30) || (f.CR < 90 && f.CB < 80 && f.CRMB < 25) {
+					opticalStoneMatch = true
+				}
+			} else {
+				// 白石判定: Red高輝度, または MaxDW が突出
+				if (f.CR > 175 && f.CB > 160 && f.CRMB < 18) || (f.MaxDW >= 2.0 && f.MaxDW > f.MaxDB && f.RMB <= 25) || (f.AvgR >= 135 && f.RMB <= 18) {
+					opticalStoneMatch = true
+				}
+			}
+
+			if opticalStoneMatch {
+				// 光学的に手番の石と極めて強く合致する場合、距離を大幅に縮小
+				dStone = math.Min(dStone * 0.35, 0.12)
+			}
 
 			ratio := 999.0
 			if dEmpty > 1e-6 {

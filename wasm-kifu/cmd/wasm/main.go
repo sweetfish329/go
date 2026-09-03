@@ -124,7 +124,7 @@ func applyDetectedMoveWrapper(this js.Value, args []js.Value) any {
 	x := args[0].Int()
 	y := args[1].Int()
 	color := args[2].Int()
-	return gameEngine.ApplyDetectedMove(x, y, color)
+	return int(gameEngine.ApplyDetectedMove(x, y, color))
 }
 
 func getLastMoveInfoWrapper(this js.Value, args []js.Value) any {

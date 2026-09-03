@@ -8,11 +8,16 @@
   let { isOpen, onClose, onImport } = $props<{
     isOpen: boolean;
     onClose: () => void;
-    onImport: (detected: { board: number[][]; blackCount: number; whiteCount: number }) => void;
+    onImport: (detected: {
+      board?: number[][];
+      blackCount?: number;
+      whiteCount?: number;
+      sgf?: string;
+    }) => void;
   }>();
 
-  // Mode: "camera" | "file"
-  let activeTab = $state<"camera" | "file">("file");
+  // Mode: "stream" (三脚自動記録) | "camera" (静止画撮影) | "file" (画像ファイル)
+  let activeTab = $state<"stream" | "camera" | "file">("stream");
 
   // OpenCV / WASM states
   let isInitializing = $state(true);
@@ -35,22 +40,38 @@
   let detectedWhiteCount = $state(0);
   let errorMessage = $state("");
 
+  // ⚡ 三脚リアルタイム記録（Live Game Recorder）状態
+  let isStreamRecording = $state(false);
+  let streamAnimationId: number | null = null;
+  let lastStreamFrameTime = 0;
+  let stabilityProgress = $state(0);
+  let isBoardStable = $state(false);
+  let motionLevel = $state(0);
+  let liveMoveNumber = $state(0);
+  let liveCurrentPlayer = $state<1 | 2>(1); // 1: 黒, 2: 白
+  let liveLastMoveText = $state("対局待機中");
+  let liveBoardState = $state<number[][]>(Array.from({ length: 19 }, () => Array(19).fill(0)));
+  let detectionNotification = $state<string | null>(null);
+  let notificationTimer: any = null;
+
   const detector = new BoardDetector();
   const kifu = new WasmKifu();
 
   onMount(async () => {
     try {
-      // 1. WASM ロード
       statusMessage = "WASM エンジンを初期化中...";
       await kifu.load(kifuWasmUrl);
 
-      // 2. OpenCV.js 待機
       statusMessage = "画像認識ライブラリを準備中...";
       await detector.waitForOpenCV();
       isCvReady = true;
 
       isInitializing = false;
       statusMessage = "準備完了";
+
+      if (isOpen && (activeTab === "stream" || activeTab === "camera")) {
+        startCameraStream();
+      }
     } catch (err: any) {
       console.error("Failed to initialize vision engine:", err);
       errorMessage = `初期化エラー: ${err.message || err}`;
@@ -59,14 +80,16 @@
   });
 
   onDestroy(() => {
+    stopStreamRecording();
     stopCameraStream();
   });
 
   // Watch for isOpen changes
   $effect(() => {
-    if (isOpen && activeTab === "camera" && isCvReady) {
+    if (isOpen && (activeTab === "stream" || activeTab === "camera") && isCvReady) {
       startCameraStream();
     } else if (!isOpen) {
+      stopStreamRecording();
       stopCameraStream();
       resetState();
     }
@@ -79,7 +102,12 @@
     detectedBlackCount = 0;
     detectedWhiteCount = 0;
     errorMessage = "";
+    liveMoveNumber = 0;
+    liveCurrentPlayer = 1;
+    liveLastMoveText = "対局待機中";
+    liveBoardState = Array.from({ length: 19 }, () => Array(19).fill(0));
     detector.resetCorners();
+    detector.resetStreamTracker();
   }
 
   async function startCameraStream() {
@@ -106,14 +134,139 @@
     startCameraStream();
   }
 
-  function handleTabChange(tab: "camera" | "file") {
+  function handleTabChange(tab: "stream" | "camera" | "file") {
     activeTab = tab;
+    stopStreamRecording();
     resetState();
-    if (tab === "camera") {
+    if (tab === "stream" || tab === "camera") {
       setTimeout(() => startCameraStream(), 100);
     } else {
       stopCameraStream();
     }
+  }
+
+  // ⚡ 三脚ストリーム記録の開始 / 停止
+  function startStreamRecording() {
+    if (!detector.hasCornersSet()) {
+      errorMessage = "先に碁盤の4隅を指定してください（自動検出またはタップ）";
+      return;
+    }
+    errorMessage = "";
+    isStreamRecording = true;
+    detector.initStreamTracker();
+    kifu.newGame();
+    liveMoveNumber = 0;
+    liveCurrentPlayer = 1;
+    liveLastMoveText = "対局開始（黒番の手番です）";
+    liveBoardState = Array.from({ length: 19 }, () => Array(19).fill(0));
+    showNotification("⚡ 自動記録を開始しました。着手してください。");
+    requestAnimationFrame(streamLoop);
+  }
+
+  function stopStreamRecording() {
+    isStreamRecording = false;
+    if (streamAnimationId) {
+      cancelAnimationFrame(streamAnimationId);
+      streamAnimationId = null;
+    }
+    detector.resetStreamTracker();
+  }
+
+  function streamLoop(timestamp: number) {
+    if (!isStreamRecording || !isOpen || activeTab !== "stream") return;
+
+    // 約 15fps にスロットリング（スマホの発熱・電池消費を抑止）
+    if (!timestamp || timestamp - lastStreamFrameTime > 65) {
+      lastStreamFrameTime = timestamp || 0;
+
+      if (videoEl && videoEl.readyState >= 2) {
+        try {
+          const res = detector.processStreamFrame(videoEl);
+
+          stabilityProgress = Math.round(res.stableProgress * 100);
+          isBoardStable = res.isStable;
+          motionLevel = res.motionLevel;
+
+          // 静止確定トリガー発火
+          if (res.isTriggered && res.features) {
+            handleStreamDetectedFeatures(res.features);
+          }
+        } catch (err: any) {
+          console.warn("Stream processing warning:", err);
+        }
+      }
+    }
+
+    streamAnimationId = requestAnimationFrame(streamLoop);
+  }
+
+  function handleStreamDetectedFeatures(features: any[]) {
+    try {
+      const analysis = kifu.analyzeBoardFeatures(features);
+
+      if (analysis.moves && analysis.moves.length === 1) {
+        const move = analysis.moves[0];
+        const colorNum = move.color === "B" ? 1 : 2;
+        const result = kifu.applyDetectedMove(move.x, move.y, colorNum);
+
+        if (result === 0) {
+          const state = kifu.getBoardState();
+          liveBoardState = state.stones;
+          liveMoveNumber = kifu.getMoveNumber();
+          liveCurrentPlayer = kifu.getCurrentPlayer() as 1 | 2;
+          const colName = move.color === "B" ? "黒" : "白";
+          const colLetters = "ABCDEFGHJKLMNOPQRST";
+          const coordStr = `${colLetters[move.x]}${19 - move.y}`;
+          liveLastMoveText = `${liveMoveNumber}手目: ${colName} ${coordStr}`;
+
+          showNotification(`⚡ ${colName} ${coordStr} を記録しました`);
+        } else {
+          console.warn("Detected move was illegal:", move);
+        }
+      }
+    } catch (err: any) {
+      console.error("Stream move analysis error:", err);
+    }
+  }
+
+  function showNotification(msg: string) {
+    detectionNotification = msg;
+    if (notificationTimer) clearTimeout(notificationTimer);
+    notificationTimer = setTimeout(() => {
+      detectionNotification = null;
+    }, 3500);
+  }
+
+  function handleStreamUndo() {
+    if (kifu.undo()) {
+      const state = kifu.getBoardState();
+      liveBoardState = state.stones;
+      liveMoveNumber = kifu.getMoveNumber();
+      liveCurrentPlayer = kifu.getCurrentPlayer() as 1 | 2;
+      liveLastMoveText = `${liveMoveNumber}手目に戻しました`;
+      showNotification("↩ 1手戻しました");
+    }
+  }
+
+  function handleStreamPass() {
+    kifu.pass();
+    liveMoveNumber = kifu.getMoveNumber();
+    liveCurrentPlayer = kifu.getCurrentPlayer() as 1 | 2;
+    liveLastMoveText = `${liveMoveNumber}手目: パス`;
+    showNotification("パスしました");
+  }
+
+  function handleStreamFinishAndImport() {
+    stopStreamRecording();
+    stopCameraStream();
+    const sgf = kifu.exportSGF();
+    onImport({
+      sgf,
+      board: liveBoardState,
+      blackCount: liveBoardState.flat().filter(c => c === 1).length,
+      whiteCount: liveBoardState.flat().filter(c => c === 2).length,
+    });
+    onClose();
   }
 
   // ファイルアップロード処理
@@ -199,6 +352,94 @@
       detector.setCorners(cornerPoints);
     }
     renderCornerOverlay();
+  }
+
+  function autoDetectCornersFromVideo() {
+    if (!videoEl) return;
+    try {
+      errorMessage = "";
+      const corners = detector.autoDetectCorners(videoEl);
+      if (corners && corners.length === 4) {
+        cornerPoints = corners;
+        detector.setCorners(corners);
+        renderStreamCornerOverlay();
+        showNotification("🎯 4隅を自動検出しました");
+      } else {
+        errorMessage = "4隅を自動検出できませんでした。カメラ映像上の4隅を直接タップしてください。";
+      }
+    } catch (err: any) {
+      console.warn("Video corner auto detect error:", err);
+      errorMessage = "4隅を自動検出できませんでした。手動でタップして指定してください。";
+    }
+  }
+
+  function handleStreamOverlayClick(e: MouseEvent) {
+    if (!overlayCanvas || !videoEl || isStreamRecording) return;
+    const rect = overlayCanvas.getBoundingClientRect();
+    const scaleX = (videoEl.videoWidth || overlayCanvas.width) / rect.width;
+    const scaleY = (videoEl.videoHeight || overlayCanvas.height) / rect.height;
+
+    const point = {
+      x: Math.round((e.clientX - rect.left) * scaleX),
+      y: Math.round((e.clientY - rect.top) * scaleY),
+    };
+
+    if (cornerPoints.length >= 4) {
+      cornerPoints = [point];
+    } else {
+      cornerPoints = [...cornerPoints, point];
+    }
+
+    if (cornerPoints.length === 4) {
+      detector.setCorners(cornerPoints);
+    }
+    renderStreamCornerOverlay();
+  }
+
+  function renderStreamCornerOverlay() {
+    if (!overlayCanvas || !videoEl) return;
+    overlayCanvas.width = videoEl.videoWidth || 640;
+    overlayCanvas.height = videoEl.videoHeight || 480;
+
+    const ctx = overlayCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    if (cornerPoints.length === 0) return;
+
+    // Draw lines connecting points
+    if (cornerPoints.length > 1) {
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(46, 204, 113, 0.9)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 6]);
+      ctx.moveTo(cornerPoints[0].x, cornerPoints[0].y);
+      for (let i = 1; i < cornerPoints.length; i++) {
+        ctx.lineTo(cornerPoints[i].x, cornerPoints[i].y);
+      }
+      if (cornerPoints.length === 4) {
+        ctx.closePath();
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Draw markers
+    cornerPoints.forEach((p, idx) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+      ctx.fillStyle = "#27ae60";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(idx + 1), p.x, p.y);
+    });
   }
 
   function renderCornerOverlay() {
@@ -349,11 +590,12 @@
         <button
           type="button"
           class="tab-btn cursor-pointer"
-          class:active={activeTab === "file"}
-          onclick={() => handleTabChange("file")}
+          class:active={activeTab === "stream"}
+          onclick={() => handleTabChange("stream")}
+          disabled={!isCvReady}
         >
-          <i class="material-icons tab-icon">image</i>
-          画像ファイル選択
+          <i class="material-icons tab-icon">play_circle_filled</i>
+          ⚡ 三脚自動記録
         </button>
         <button
           type="button"
@@ -362,8 +604,17 @@
           onclick={() => handleTabChange("camera")}
           disabled={!isCvReady}
         >
-          <i class="material-icons tab-icon">videocam</i>
-          カメラで直接撮影
+          <i class="material-icons tab-icon">photo_camera</i>
+          📷 静止画撮影
+        </button>
+        <button
+          type="button"
+          class="tab-btn cursor-pointer"
+          class:active={activeTab === "file"}
+          onclick={() => handleTabChange("file")}
+        >
+          <i class="material-icons tab-icon">image</i>
+          📁 ファイル選択
         </button>
       </div>
 
@@ -384,7 +635,211 @@
 
       <!-- Main Body -->
       <div class="modal-body">
-        {#if activeTab === "camera"}
+        {#if activeTab === "stream"}
+          <!-- ⚡ Live Stream Recorder Section -->
+          <div class="stream-recorder-container">
+            <!-- Top Status Bar & Stability Gauge -->
+            <div class="stream-status-panel">
+              <div class="status-badge-row">
+                {#if isStreamRecording}
+                  {#if isBoardStable}
+                    <span class="badge stable animate-pulse">🕊 盤面静止中（着手待機）</span>
+                  {:else}
+                    <span class="badge moving">🖐 手を検知中（変化量: {motionLevel}）</span>
+                  {/if}
+                {:else}
+                  <span class="badge standby">⏸ 記録待機中</span>
+                {/if}
+                <span class="move-info-badge">
+                  {liveMoveNumber}手目 | {liveCurrentPlayer === 1 ? "● 黒番" : "○ 白番"}
+                </span>
+              </div>
+
+              <!-- Stability Progress Bar -->
+              <div class="stability-gauge-container">
+                <div class="gauge-label-row">
+                  <span class="gauge-title">静止安定度（確定ゲージ）</span>
+                  <span class="gauge-percent">{stabilityProgress}%</span>
+                </div>
+                <div class="gauge-track">
+                  <div
+                    class="gauge-fill"
+                    style="width: {stabilityProgress}%; background: {isBoardStable ? '#27ae60' : '#e67e22'};"
+                  ></div>
+                </div>
+              </div>
+
+              {#if detectionNotification}
+                <div class="notification-toast animate-fade-in">
+                  <i class="material-icons toast-icon">info</i>
+                  <span>{detectionNotification}</span>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Video + Canvas Overlay Container -->
+            <div class="stream-video-wrapper">
+              <video
+                bind:this={videoEl}
+                autoplay
+                playsinline
+                muted
+                class="stream-video-feed"
+              ></video>
+              <canvas
+                bind:this={overlayCanvas}
+                onclick={handleStreamOverlayClick}
+                class="stream-overlay-canvas cursor-pointer"
+              ></canvas>
+
+              <div class="stream-floating-tools">
+                <button
+                  type="button"
+                  class="btn-float-ctrl cursor-pointer"
+                  onclick={toggleCameraFacing}
+                  title="カメラ反転"
+                >
+                  <i class="material-icons">flip_camera_ios</i>
+                </button>
+                <button
+                  type="button"
+                  class="btn-float-ctrl cursor-pointer"
+                  onclick={autoDetectCornersFromVideo}
+                  title="4隅を自動検出"
+                >
+                  <i class="material-icons">auto_fix_high</i>
+                </button>
+              </div>
+
+              {#if cornerPoints.length < 4}
+                <div class="corner-guide-hint">
+                  <p>碁盤の4隅をタップして指定してください（{cornerPoints.length}/4）</p>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Recorder Action Bar -->
+            <div class="stream-controls-bar">
+              {#if !isStreamRecording}
+                <button
+                  type="button"
+                  class="btn-stream-action btn-start-rec cursor-pointer"
+                  onclick={startStreamRecording}
+                  disabled={cornerPoints.length < 4}
+                >
+                  <i class="material-icons">fiber_manual_record</i>
+                  ⚡ 自動記録を開始
+                </button>
+              {:else}
+                <button
+                  type="button"
+                  class="btn-stream-action btn-pause-rec cursor-pointer"
+                  onclick={stopStreamRecording}
+                >
+                  <i class="material-icons">pause</i>
+                  一時停止
+                </button>
+              {/if}
+
+              <button
+                type="button"
+                class="btn-stream-action btn-sec cursor-pointer"
+                onclick={handleStreamUndo}
+                disabled={liveMoveNumber === 0}
+              >
+                <i class="material-icons">undo</i>
+                待った
+              </button>
+
+              <button
+                type="button"
+                class="btn-stream-action btn-sec cursor-pointer"
+                onclick={handleStreamPass}
+                disabled={!isStreamRecording}
+              >
+                <i class="material-icons">redo</i>
+                パス
+              </button>
+
+              <button
+                type="button"
+                class="btn-stream-action btn-finish-import cursor-pointer"
+                onclick={handleStreamFinishAndImport}
+                disabled={liveMoveNumber === 0}
+              >
+                <i class="material-icons">check_circle</i>
+                対局終了・棋譜を反映
+              </button>
+            </div>
+
+            <!-- Live Status & Mini Board Preview -->
+            <div class="live-status-card">
+              <div class="live-status-header">
+                <span class="live-status-title">
+                  <i class="material-icons">history</i>
+                  最新着手: <b>{liveLastMoveText}</b>
+                </span>
+                <span class="live-stones-count">
+                  ● {liveBoardState.flat().filter(c => c === 1).length} / ○ {liveBoardState.flat().filter(c => c === 2).length}
+                </span>
+              </div>
+
+              <!-- Mini SVG Board -->
+              <div class="mini-svg-board-container">
+                <svg viewBox="0 0 380 380" class="mini-board-svg">
+                  <!-- Board Background -->
+                  <rect x="0" y="0" width="380" height="380" fill="#e4ba7a" rx="4" />
+                  
+                  <!-- Grid Lines -->
+                  {#each Array(19) as _, idx}
+                    <line
+                      x1={10 + idx * 20} y1="10"
+                      x2={10 + idx * 20} y2="370"
+                      stroke="#8b5a2b" stroke-width="0.8"
+                    />
+                    <line
+                      x1="10" y1={10 + idx * 20}
+                      x2="370" y2={10 + idx * 20}
+                      stroke="#8b5a2b" stroke-width="0.8"
+                    />
+                  {/each}
+
+                  <!-- Star Points (3, 9, 15) -->
+                  {#each [3, 9, 15] as sy}
+                    {#each [3, 9, 15] as sx}
+                      <circle cx={10 + sx * 20} cy={10 + sy * 20} r="2.5" fill="#8b5a2b" />
+                    {/each}
+                  {/each}
+
+                  <!-- Stones -->
+                  {#each liveBoardState as row, y}
+                    {#each row as stone, x}
+                      {#if stone === 1}
+                        <circle
+                          cx={10 + x * 20}
+                          cy={10 + y * 20}
+                          r="8.5"
+                          fill="#1a1a1a"
+                          stroke="#333"
+                          stroke-width="0.8"
+                        />
+                      {:else if stone === 2}
+                        <circle
+                          cx={10 + x * 20}
+                          cy={10 + y * 20}
+                          r="8.5"
+                          fill="#f7f7f7"
+                          stroke="#bbb"
+                          stroke-width="0.8"
+                        />
+                      {/if}
+                    {/each}
+                  {/each}
+                </svg>
+              </div>
+            </div>
+          </div>
+        {:else if activeTab === "camera"}
           <!-- Camera Stream Section -->
           <div class="camera-stream-container">
             <video
@@ -981,5 +1436,290 @@
     cursor: not-allowed;
     box-shadow: none;
     transform: none;
+  }
+
+  /* ⚡ Stream Recorder Mode Styles */
+  .stream-recorder-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stream-status-panel {
+    background: var(--wc-surface-alt, #f7f3eb);
+    border: 1.5px solid var(--wc-text, #2c2523);
+    border-radius: 4px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .status-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 4px;
+  }
+
+  .badge.standby {
+    background: #e0e0e0;
+    color: #424242;
+  }
+
+  .badge.moving {
+    background: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffb74d;
+  }
+
+  .badge.stable {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+  }
+
+  .move-info-badge {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--wc-text, #2c2523);
+    background: var(--wc-surface, #ffffff);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--wc-border, #d7ccc8);
+  }
+
+  .stability-gauge-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .gauge-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--wc-text-muted, #7c6b52);
+  }
+
+  .gauge-track {
+    width: 100%;
+    height: 8px;
+    background: #e0dacf;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .gauge-fill {
+    height: 100%;
+    transition: width 0.1s linear, background-color 0.2s ease;
+  }
+
+  .notification-toast {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #2e7d32;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .toast-icon {
+    font-size: 1rem;
+  }
+
+  .stream-video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1.5px solid var(--wc-text, #2c2523);
+  }
+
+  .stream-video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .stream-overlay-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  .stream-floating-tools {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 5;
+  }
+
+  .btn-float-ctrl {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1.5px solid #ffffff;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+  }
+
+  .btn-float-ctrl:hover {
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .corner-guide-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    text-align: center;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .stream-controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .btn-stream-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    border-radius: 3px;
+    border: 1.5px solid var(--wc-text, #2c2523);
+    box-shadow: 2px 2px 0px var(--wc-text, #2c2523);
+    transition: transform 0.1s ease;
+  }
+
+  .btn-stream-action:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-text, #2c2523);
+  }
+
+  .btn-start-rec {
+    background: #d32f2f;
+    color: #ffffff;
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+  }
+
+  .btn-pause-rec {
+    background: #f57c00;
+    color: #ffffff;
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+  }
+
+  .btn-sec {
+    background: var(--wc-surface, #ffffff);
+    color: var(--wc-text, #2c2523);
+  }
+
+  .btn-finish-import {
+    background: #2e7d32;
+    color: #ffffff;
+    flex-basis: 100%;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .btn-stream-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .live-status-card {
+    background: var(--wc-surface, #ffffff);
+    border: 1.5px solid var(--wc-text, #2c2523);
+    border-radius: 4px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .live-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .live-status-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--wc-text, #2c2523);
+  }
+
+  .live-stones-count {
+    font-size: 0.8rem;
+    color: var(--wc-text-muted, #7c6b52);
+  }
+
+  .mini-svg-board-container {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    border: 1px solid #8b5a2b;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .mini-board-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .animate-pulse {
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
   }
 </style>
