@@ -484,12 +484,12 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 	}
 
 	// 【skolchin/gbr Channel Splitting ＋ 局所背景適応】
-	// 白石は木目の照り返しに強い Red チャンネル、黒石はテカリに強い Blue チャンネルで評価
+	// 近傍 3 マスの中央値背景 (bgR, bgB) を算出し、照明ムラや影をキャンセルする比率 (normR, normB) を取得
 	for y := 0; y < BoardSize; y++ {
 		for x := 0; x < BoardSize; x++ {
 			var rList, bList []float64
-			for dy := -2; dy <= 2; dy++ {
-				for dx := -2; dx <= 2; dx++ {
+			for dy := -3; dy <= 3; dy++ {
+				for dx := -3; dx <= 3; dx++ {
 					nx, ny := x+dx, y+dy
 					if nx >= 0 && nx < BoardSize && ny >= 0 && ny < BoardSize {
 						feat := grid[ny][nx].f
@@ -510,11 +510,11 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 			sort.Float64s(bList)
 			bgR := rList[len(rList)/2]
 			bgB := bList[len(bList)/2]
-			if bgR < 10 {
-				bgR = 10
+			if bgR < 15 {
+				bgR = 15
 			}
-			if bgB < 10 {
-				bgB = 10
+			if bgB < 15 {
+				bgB = 15
 			}
 
 			feat := grid[y][x].f
@@ -535,7 +535,6 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 
 	var res FullBoardResult
 	res.Confidence = 0.95
-	var rawGrid [BoardSize * BoardSize]int8
 
 	for y := 0; y < BoardSize; y++ {
 		for x := 0; x < BoardSize; x++ {
@@ -551,115 +550,44 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 			if bVal == 0 {
 				bVal = f.L
 			}
-			isBorder := (x == 0 || x == BoardSize-1 || y == 0 || y == BoardSize-1)
+			rmb := rVal - bVal
 
 			stone := int8(0)
 
-			// 盤外・最外周境界の影保護
-			if x == 0 || (y == 0 && f.L < 100.0) || (y == BoardSize-1 && f.L < 100.0) {
-				stone = 0
-			} else {
-				// 1. 白石判定 (Redチャンネル優先: 照り返し防止)
-				if f.RMB < 32.0 && f.C < 25.0 {
-					if rVal > 165.0 || (normR > 1.15 && rVal > 120.0) {
-						stone = 2
-					} else if f.RMB < 10.0 && normR > 1.04 && f.L > 105.0 {
-						stone = 2
+			// 1. 白石判定: 低木目度 (無彩色) かつ 高輝度、局所背景青成分より高い
+			if rmb < 32.0 && rVal >= 85.0 && (normB > 1.12 || (normR > 1.04 && rmb < 20.0)) {
+				stone = 2
+			} else if rVal >= 135.0 && rmb <= 22.0 {
+				stone = 2
+			}
+
+			// 2. 黒石判定: 低木目度 (無彩色) かつ 低輝度、局所背景より暗い
+			if stone == 0 {
+				if rmb < 35.0 {
+					if rVal < 75.0 && (normR < 0.90 || normB < 0.90) {
+						stone = 1
+					} else if normB < 0.82 && normR < 0.88 {
+						stone = 1
+					} else if bVal < 45.0 && rVal < 75.0 && rmb < 25.0 {
+						stone = 1
 					}
 				}
-				if stone == 0 && rVal > 185.0 && f.RMB < 35.0 {
+			}
+
+			// 距離変換ピークによるサルベージ（密集石）
+			if stone == 0 {
+				if f.MaxDW >= 4.0 && f.MaxDW > f.MaxDB && rmb <= 25.0 {
 					stone = 2
-				}
-
-				// 最上辺 (y==0) は盤外の机・アゲハマ領域のため除外
-				if y == 0 {
-					stone = 0
-				} else {
-					// 星の交点
-					isStar := (x == 3 || x == 9 || x == 15) && (y == 3 || y == 9 || y == 15)
-					if isStar {
-						if f.MaxDW >= 4.5 && f.RMB < 45.0 && normR > 1.05 {
-							stone = 2
-						} else if f.MaxDB >= 4.0 && f.RMB < 35.0 && normB < 0.95 {
-							stone = 1
-						}
-					}
-
-					// 2. 黒石判定 (Blueチャンネル優先 ＋ 無彩色判定)
-					if stone == 0 {
-						if !isBorder && f.RMB < 34.0 && f.C < 25.0 {
-							if bVal < 95.0 && rVal < 135.0 {
-								stone = 1
-							} else if normB < 0.90 && bVal < 105.0 && rVal < 145.0 {
-								stone = 1
-							}
-						}
-						if stone == 0 && !isBorder && normB < 0.70 && f.C < 26.0 && f.RMB < 34.0 {
-							stone = 1
-						}
-					}
-
-					// 3. 【NotebookLM 知見⑬: 密集地帯の距離変換サルベージ】
-					if stone == 0 && !isBorder {
-						if f.MaxDW >= 4.8 && f.MaxDW > f.MaxDB && f.RMB < 50.0 && normR > 1.01 {
-							stone = 2 // 白石サルベージ
-						} else if f.MaxDB >= 3.8 && f.MaxDB > f.MaxDW && f.RMB < 38.0 && normB < 0.96 && f.C < 38.0 {
-							stone = 1 // 黒石サルベージ
-						}
-					}
-
-					// 4. 【NotebookLM 知見⑬: レンズ歪み自己校正・局所ピークスナッピング】
-					if stone == 0 && !isBorder {
-						if f.MaxDW >= 3.8 && f.MaxDW > f.MaxDB+0.5 && f.RMB < 52.0 {
-							stone = 2
-						} else if f.MaxDB >= 3.2 && f.MaxDB > f.MaxDW+0.5 && f.RMB < 40.0 && f.C < 40.0 {
-							stone = 1
-						}
-					}
+				} else if f.MaxDB >= 3.5 && f.MaxDB > f.MaxDW && rmb < 30.0 && (rVal < 90.0 || normB < 0.92) {
+					stone = 1
 				}
 			}
 
-			rawGrid[y*BoardSize+x] = stone
+			res.Grid[y*BoardSize+x] = stone
 		}
 	}
 
-	// 5. 【NotebookLM 知見⑬: ルール制約 ＆ 大域幾何最適化】
-	for y := 0; y < BoardSize; y++ {
-		for x := 0; x < BoardSize; x++ {
-			srcY := y + 1
-			val := int8(0)
-			if srcY < BoardSize {
-				val = rawGrid[srcY*BoardSize+x]
-			}
-			res.Grid[y*BoardSize+x] = val
-		}
-	}
-
-	// 星の交点・重要着手点の大域救出
-	keyPoints := []struct {
-		x, y int
-		val  int8
-	}{
-		{3, 3, 2},  // D16: 白星
-		{9, 3, 1},  // K16: 黒星
-		{16, 3, 1}, // Q16: 黒星
-		{6, 2, 1},  // G17: 黒
-		{4, 1, 2},  // E18: 白
-		{0, 15, 1}, // A4: 黒
-		{2, 17, 1}, // C2: 黒
-		{3, 17, 1}, // D2: 黒
-		{5, 17, 1}, // F2: 黒
-	}
-	for _, kp := range keyPoints {
-		res.Grid[kp.y*BoardSize+kp.x] = kp.val
-	}
-
-	// 最上辺 (y=0) 空交点保護
-	for x := 0; x < BoardSize; x++ {
-		res.Grid[0*BoardSize+x] = 0
-	}
-
-	// カウントの再集計
+	// カウントの集計
 	res.BlackCount = 0
 	res.WhiteCount = 0
 	res.EmptyCount = 0

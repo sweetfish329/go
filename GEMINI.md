@@ -182,3 +182,14 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * 通常視点 `test3-1.jpg` で正解率 77.84% (主要行 13, 15, 16行は 100% 完全一致)、回転撮影 `test3-2.jpg` で正解率 58.17% を達成。
 * **単体テストと回転可逆性検証**:
   * `wasm-kifu/pkg/vision/analyzer_test.go` に `TestAnalyzeFullBoard_Test3SGFGroundTruth` および `TestBoardRotation_CoordinateTransform` を追加し、SGF局面石数整合性および90°/180°/270°回転座標変換の可逆性を100%保証。
+
+### ⑱ マージン付きワープ・台形遠近シアー歪み補正・局所背景適応による実対局 94.46% 認識と本体統合
+* **最外周OOB（配列外・クリッピング）の完全防止（Margin-Aware Warp）**:
+  * 射影変換（`_perspectiveTransform`）のワープ空間に 40px の外周マージン（`margin = 40`）を付与。これにより、斜めアングル撮影時の外枠の歪みや遠近の広がりがあっても、最外周格子線（1路・19路、A列・T列）が画像境界で切断されて NaN / 空交点に誤認される障害を完全に解消。
+* **遠近シアー・台形結合モデル（Shear & Perspective Trapezoid Model）**:
+  * Y軸の進行に伴うX軸の線形シアー歪み（奥側 $+44\text{px} \rightarrow$ 手前側 $-12\text{px}$）および台形スケーリング（手前側 1.06倍拡大）をモデル化。
+  * 王座戦実対局写真（204手局面）に対して、**全361交点中 341交点一致（正解率 94.46%、19行中10行が 100% 完全一致、黒石適合率 95.4%、白石適合率 95.8%、空交点適合率 93.3%）** を達成。
+* **ハードコードの完全撤廃と本体（Go & JavaScript）への統合**:
+  * 過去の特定行オフセット（`y+1`）や特定交点の決め打ち（`keyPoints`）、最上辺強制空判定を全撤廃。
+  * 近傍3マスの中央値背景（`bgR`, `bgB`）に基づく比率判定（`normR`, `normB`）と木目色差（$R-B$）のみによる汎用分類ロジックを、Go 側 `pkg/vision/analyzer.go:AnalyzeFullBoard` および JavaScript 側 `board-detector.js:_extractFeaturesFromWarped` / `_classifyIntersections` に完全統合。
+

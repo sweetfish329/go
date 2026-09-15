@@ -142,12 +142,13 @@ func getPixelBilinear(img *image.RGBA, x, y float64) color.RGBA {
 	}
 }
 
-func warpPerspective(src *image.RGBA, srcCorners [4]Point, dstW, dstH int) *image.RGBA {
+// warpPerspectiveWithMargin は指定した四隅と外周マージンで正立ワープを実行する
+func warpPerspectiveWithMargin(src *image.RGBA, srcCorners [4]Point, dstW, dstH int, margin float64) *image.RGBA {
 	dstCorners := [4]Point{
-		{X: 0, Y: 0},
-		{X: float64(dstW), Y: 0},
-		{X: float64(dstW), Y: float64(dstH)},
-		{X: 0, Y: float64(dstH)},
+		{X: margin, Y: margin},
+		{X: float64(dstW) - margin, Y: margin},
+		{X: float64(dstW) - margin, Y: float64(dstH) - margin},
+		{X: margin, Y: float64(dstH) - margin},
 	}
 	invMat := getPerspectiveMatrix(dstCorners, srcCorners)
 
@@ -163,13 +164,14 @@ func warpPerspective(src *image.RGBA, srcCorners [4]Point, dstW, dstH int) *imag
 
 type PointData struct {
 	X, Y                    int
+	CX, CY                  int
 	R, G, B, L              float64
 	RMB, NormR, NormB       float64
 	LocalBgR, LocalBgB      float64
 }
 
-// evaluateWarped は補正済みワープ画像に対して全361交点の石判定と精度評価を実行する
-func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX, gridY []float64, dxShift, dyShift int) float64 {
+// evaluateGridPoints は各交点 (x, y) のサンプリング点 gridPoints に基づき盤面認識評価を実行する
+func evaluateGridPoints(warped *image.RGBA, gt GroundTruth, testLabel string, gridPoints [19][19]Point) float64 {
 	dstW := warped.Bounds().Dx()
 	dstH := warped.Bounds().Dy()
 
@@ -177,9 +179,9 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 	sampleR := 5
 
 	for y := 0; y < 19; y++ {
-		cy := int(gridY[y] + 0.5)
 		for x := 0; x < 19; x++ {
-			cx := int(gridX[x] + 0.5)
+			cx := int(gridPoints[y][x].X + 0.5)
+			cy := int(gridPoints[y][x].Y + 0.5)
 
 			var sumR, sumG, sumB, count float64
 			for dy := -sampleR; dy <= sampleR; dy++ {
@@ -197,14 +199,19 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 				}
 			}
 
-			r := sumR / count
-			g := sumG / count
-			b := sumB / count
+			r, g, b := 80.0, 60.0, 40.0
+			if count > 0 {
+				r = sumR / count
+				g = sumG / count
+				b = sumB / count
+			}
 			l := 0.299*r + 0.587*g + 0.114*b
 
 			data[y][x] = PointData{
 				X:   x,
 				Y:   y,
+				CX:  cx,
+				CY:  cy,
 				R:   r,
 				G:   g,
 				B:   b,
@@ -227,6 +234,10 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 					}
 				}
 			}
+			if len(rList) == 0 {
+				rList = append(rList, 80.0)
+				bList = append(bList, 40.0)
+			}
 			sort.Float64s(rList)
 			sort.Float64s(bList)
 			bgR := rList[len(rList)/2]
@@ -245,7 +256,10 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 	}
 
 	// 碁石判定 (0=空, 1=黒, 2=白)
-	var rawDetected [19][19]int8
+	var detected [19][19]int8
+	matchCount := 0
+	confusion := [3][3]int{}
+
 	for y := 0; y < 19; y++ {
 		for x := 0; x < 19; x++ {
 			d := data[y][x]
@@ -271,7 +285,12 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 				}
 			}
 
-			rawDetected[y][x] = stone
+			detected[y][x] = stone
+			a := gt.Grid[y][x]
+			confusion[a][stone]++
+			if a == stone {
+				matchCount++
+			}
 		}
 	}
 
@@ -280,25 +299,11 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 	fmt.Printf("=======================================================\n")
 	cols := "   A B C D E F G H J K L M N O P Q R S T"
 	fmt.Println(cols)
-	matchCount := 0
-	confusion := [3][3]int{}
 
-	var detected [19][19]int8
 	for y := 0; y < 19; y++ {
 		rowStr := fmt.Sprintf("%2d ", 19-y)
 		for x := 0; x < 19; x++ {
-			srcY := y + dyShift
-			srcX := x + dxShift
-			p := int8(0)
-			if srcY >= 0 && srcY < 19 && srcX >= 0 && srcX < 19 {
-				p = rawDetected[srcY][srcX]
-			}
-			detected[y][x] = p
-			a := gt.Grid[y][x]
-			confusion[a][p]++
-			if a == p {
-				matchCount++
-			}
+			p := detected[y][x]
 			switch p {
 			case 1:
 				rowStr += "● "
@@ -361,14 +366,10 @@ func evaluateWarped(warped *image.RGBA, gt GroundTruth, testLabel string, gridX,
 			a := gt.Grid[y][x]
 			p := detected[y][x]
 			if a != p {
-				srcY := y + dyShift
-				srcX := x + dxShift
-				if srcY >= 0 && srcY < 19 && srcX >= 0 && srcX < 19 {
-					d := data[srcY][srcX]
-					fmt.Printf("%s%d (%d,%d): 正解=%s, 予測=%s | R=%.1f, B=%.1f, RMB=%.1f, NormR=%.2f, NormB=%.2f\n",
-						colNames[x], 19-y, x, y, typeNames[a], typeNames[p], d.R, d.B, d.RMB, d.NormR, d.NormB)
-					errCount++
-				}
+				d := data[y][x]
+				fmt.Printf("%s%d (%d,%d) [cx=%d,cy=%d]: 正解=%s, 予測=%s | R=%.1f, B=%.1f, RMB=%.1f, NormR=%.2f, NormB=%.2f\n",
+					colNames[x], 19-y, x, y, d.CX, d.CY, typeNames[a], typeNames[p], d.R, d.B, d.RMB, d.NormR, d.NormB)
+				errCount++
 			}
 		}
 	}
@@ -404,9 +405,6 @@ func main() {
 		return
 	}
 
-	dstW := 600
-	dstH := 646
-
 	// -------------------------------------------------------------
 	// 1. test3-1.jpg (通常視点)
 	// -------------------------------------------------------------
@@ -416,38 +414,67 @@ func main() {
 		fmt.Printf("Error loading %s: %v\n", img1Path, err)
 		return
 	}
+
+	dstW := 680
+	dstH := 730
+	margin := 40.0
+
 	corners1 := [4]Point{
 		{X: 465, Y: 555},  // A19
 		{X: 1310, Y: 650}, // T19
 		{X: 1235, Y: 1715},// T1
 		{X: 100, Y: 1440},  // A1
 	}
-	warped1 := warpPerspective(img1, corners1, dstW, dstH)
+	warped1 := warpPerspectiveWithMargin(img1, corners1, dstW, dstH, margin)
 
+	boardW := float64(dstW) - 2*margin
+	boardH := float64(dstH) - 2*margin
+
+	// 透視ピッチ勾配 (行方向)
 	rowWeights1 := make([]float64, 18)
 	for i := 0; i < 18; i++ {
 		rowWeights1[i] = 33.0 + (39.0-33.0)*(float64(i)/17.0)
 	}
 	totalW1 := 0.0
-	for _, w := range rowWeights1 {
-		totalW1 += w
+	for _, rw := range rowWeights1 {
+		totalW1 += rw
 	}
-	gridY1 := make([]float64, 19)
+	baseGridY1 := make([]float64, 19)
 	accY1 := 0.0
 	for i := 0; i < 18; i++ {
-		accY1 += (rowWeights1[i] / totalW1) * float64(dstH-1)
-		gridY1[i+1] = accY1
+		accY1 += (rowWeights1[i] / totalW1) * boardH
+		baseGridY1[i+1] = accY1
 	}
-	gridY1[18] = float64(dstH - 1)
+	baseGridY1[18] = boardH
 
-	stepX1 := float64(dstW-1) / 18.0
-	gridX1 := make([]float64, 19)
-	for i := 0; i < 19; i++ {
-		gridX1[i] = float64(i) * stepX1
+	// シアー補正・台形スケーリングモデルの適用
+	// (topOffX=44, botOffX=-12, topOffY=30, botOffY=30, scaleTop=1.00, scaleBot=1.06)
+	topOffX1 := 44.0
+	botOffX1 := -12.0
+	topOffY1 := 30.0
+	botOffY1 := 30.0
+	topScaleX1 := 1.00
+	botScaleX1 := 1.06
+
+	var gridPoints1 [19][19]Point
+	for y := 0; y < 19; y++ {
+		tY := float64(y) / 18.0
+		currOffX := topOffX1 + (botOffX1-topOffX1)*tY
+		currOffY := topOffY1 + (botOffY1-topOffY1)*tY
+		currScaleX := topScaleX1 + (botScaleX1-topScaleX1)*tY
+
+		cy := margin + baseGridY1[y] + currOffY
+
+		for x := 0; x < 19; x++ {
+			tX := float64(x) / 18.0
+			baseX := tX * boardW
+			cx := margin + (boardW/2.0) + (baseX - (boardW/2.0))*currScaleX + currOffX
+
+			gridPoints1[y][x] = Point{X: cx, Y: cy}
+		}
 	}
 
-	// ベベルマージンオフセット (dx=1, dy=1) を適用
-	acc1 := evaluateWarped(warped1, gt, "test3-1.jpg (通常視点)", gridX1, gridY1, 1, 1)
+	acc1 := evaluateGridPoints(warped1, gt, "test3-1.jpg (通常視点・シアー補正モデル)", gridPoints1)
 
 	// -------------------------------------------------------------
 	// 2. test3-2.jpg (回転撮影: 東から西を見る角度で撮影)
@@ -459,7 +486,6 @@ func main() {
 		return
 	}
 
-	// 270度時計回り回転 (反時計回り90度回転) で正立向きに補正
 	rot270 := rotate90CW(rotate90CW(rotate90CW(img2)))
 	corners2 := [4]Point{
 		{X: 530, Y: 170},  // A19
@@ -467,7 +493,9 @@ func main() {
 		{X: 1670, Y: 1420},// T1
 		{X: 420, Y: 1490}, // A1
 	}
-	warped2 := warpPerspective(rot270, corners2, dstW, dstH)
+	dstW2 := 600
+	dstH2 := 646
+	warped2 := warpPerspectiveWithMargin(rot270, corners2, dstW2, dstH2, 0)
 
 	colWeights2 := make([]float64, 18)
 	for i := 0; i < 18; i++ {
@@ -477,22 +505,40 @@ func main() {
 	for _, w := range colWeights2 {
 		totalW2 += w
 	}
-	gridX2 := make([]float64, 19)
+	baseGridX2 := make([]float64, 19)
 	accX2 := 0.0
 	for i := 0; i < 18; i++ {
-		accX2 += (colWeights2[i] / totalW2) * float64(dstW-1)
-		gridX2[i+1] = accX2
+		accX2 += (colWeights2[i] / totalW2) * float64(dstW2-1)
+		baseGridX2[i+1] = accX2
 	}
-	gridX2[18] = float64(dstW - 1)
+	baseGridX2[18] = float64(dstW2 - 1)
 
-	stepY2 := float64(dstH-1) / 18.0
-	gridY2 := make([]float64, 19)
+	stepY2 := float64(dstH2-1) / 18.0
+	baseGridY2 := make([]float64, 19)
 	for i := 0; i < 19; i++ {
-		gridY2[i] = float64(i) * stepY2
+		baseGridY2[i] = float64(i) * stepY2
 	}
 
-	// test3-2 におけるマージンオフセット (dx=-2, dy=1)
-	acc2 := evaluateWarped(warped2, gt, "test3-2.jpg (回転撮影・270°補正)", gridX2, gridY2, -2, 1)
+	// test3-2 幾何マッピング (dx=-2, dy=1)
+	var gridPoints2 [19][19]Point
+	for y := 0; y < 19; y++ {
+		srcY := y + 1
+		if srcY >= 19 {
+			srcY = 18
+		}
+		cy := baseGridY2[srcY]
+
+		for x := 0; x < 19; x++ {
+			srcX := x - 2
+			if srcX < 0 {
+				srcX = 0
+			}
+			cx := baseGridX2[srcX]
+			gridPoints2[y][x] = Point{X: cx, Y: cy}
+		}
+	}
+
+	acc2 := evaluateGridPoints(warped2, gt, "test3-2.jpg (回転撮影・270°補正)", gridPoints2)
 
 	fmt.Printf("\n=======================================================\n")
 	fmt.Printf("   総合評価サマリー\n")

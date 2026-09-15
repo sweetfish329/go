@@ -609,15 +609,16 @@ class BoardDetector {
         const avgW = (wTop + wBot) / 2;
         const avgH = (hLeft + hRight) / 2;
 
+        const margin = 40;
         let dstW, dstH;
         if (avgH >= avgW) {
-            // 縦長（通常の対局者視点）
-            dstW = 600;
-            dstH = Math.round(dstW * 1.077); // 約646
+            // 縦長（通常の対局者視点: 1.077 比）
+            dstW = 600 + 2 * margin;
+            dstH = Math.round(600 * 1.077) + 2 * margin; // 約726
         } else {
             // 横長（横からの撮影視点）
-            dstH = 600;
-            dstW = Math.round(dstH * 1.077); // 約646
+            dstH = 600 + 2 * margin;
+            dstW = Math.round(600 * 1.077) + 2 * margin;
         }
 
         const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
@@ -628,10 +629,10 @@ class BoardDetector {
         ]);
 
         const dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-            0, 0,
-            dstW, 0,
-            dstW, dstH,
-            0, dstH,
+            margin, margin,
+            dstW - margin, margin,
+            dstW - margin, dstH - margin,
+            margin, dstH - margin,
         ]);
 
         const transformMatrix = cv.getPerspectiveTransform(srcPoints, dstPoints);
@@ -858,26 +859,28 @@ class BoardDetector {
     _extractFeaturesFromWarped(warpedMat) {
         const w = warpedMat.cols;
         const h = warpedMat.rows;
+        const margin = 40;
+        const boardW = w - 2 * margin;
+        const boardH = h - 2 * margin;
 
         // 碁盤の透視ピッチ勾配の計算 (奥側が狭く、手前側が広い遠近感を考慮)
         const rowWeights = [];
         for (let i = 0; i < this.boardSize - 1; i++) {
-            // 縦長の場合手前が約1.2倍広くなる線形勾配
-            rowWeights.push(31 + (37 - 31) * (i / (this.boardSize - 2)));
+            rowWeights.push(33.0 + (39.0 - 33.0) * (i / (this.boardSize - 2)));
         }
         const totalRowW = rowWeights.reduce((a, b) => a + b, 0);
-        const gridY = [0];
+        const gridY = [margin];
         let accY = 0;
         for (let i = 0; i < this.boardSize - 1; i++) {
-            accY += (rowWeights[i] / totalRowW) * h;
-            gridY.push(Math.round(accY));
+            accY += (rowWeights[i] / totalRowW) * boardH;
+            gridY.push(margin + Math.round(accY));
         }
-        gridY[this.boardSize - 1] = h - 1;
+        gridY[this.boardSize - 1] = margin + boardH;
 
-        const stepX = w / (this.boardSize - 1);
+        const stepX = boardW / (this.boardSize - 1);
         const gridX = [];
         for (let i = 0; i < this.boardSize; i++) {
-            gridX.push(Math.round(i * stepX));
+            gridX.push(margin + Math.round(i * stepX));
         }
 
         // 光学チャンネル分離 (Red = 木目反射を受けにくい白石検出用, Blue = テカリを排した黒石検出用)
@@ -914,7 +917,7 @@ class BoardDetector {
         cv.distanceTransform(whiteMask, distW, cv.DIST_L2, 5);
         cv.distanceTransform(blackMask, distB, cv.DIST_L2, 5);
 
-        const features = [];
+        const rawFeatures = [];
         const sampleRadius = Math.floor(stepX * 0.30);
         const snapR = 9;
 
@@ -978,7 +981,7 @@ class BoardDetector {
                     const cB = bPlane.ucharAt(cy, cx);
                     const cRmb = cR - cB;
 
-                    features.push({
+                    rawFeatures.push({
                         x, y, cx, cy,
                         sampleX, sampleY,
                         l: (cR + cB) / 2,
@@ -991,6 +994,40 @@ class BoardDetector {
                     });
                 }
             }
+
+            // 局所背景適応: 近傍3マスの中央値背景 (bgR, bgB) を算出し normR, normB を設定
+            const features = rawFeatures.map((f, idx) => {
+                const x = f.x;
+                const y = f.y;
+                const rList = [];
+                const bList = [];
+
+                for (let dy = -3; dy <= 3; dy++) {
+                    for (let dx = -3; dx <= 3; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx >= 0 && nx < this.boardSize && ny >= 0 && ny < this.boardSize) {
+                            const neighbor = rawFeatures[ny * this.boardSize + nx];
+                            rList.push(neighbor.r);
+                            bList.push(neighbor.b);
+                        }
+                    }
+                }
+
+                rList.sort((a, b) => a - b);
+                bList.sort((a, b) => a - b);
+                const bgR = Math.max(15, rList[Math.floor(rList.length / 2)] || 80);
+                const bgB = Math.max(15, bList[Math.floor(bList.length / 2)] || 40);
+
+                return {
+                    ...f,
+                    localBgR: bgR,
+                    localBgB: bgB,
+                    normR: f.r / bgR,
+                    normB: f.b / bgB
+                };
+            });
+
             return features;
         } finally {
             rgbaPlanes.delete();
@@ -1011,7 +1048,7 @@ class BoardDetector {
     }
 
     /**
-     * 射影変換済み画像の各交点で石の色を判定
+     * 射影変換済み画像の各交点で石の色を判定 (局所背景適応 ＋ 赤青チャンネル分離)
      * @param {cv.Mat} warpedMat - 射影変換済み画像
      * @returns {Int8Array} 交点状態配列
      * @private
@@ -1024,25 +1061,32 @@ class BoardDetector {
             const f = features[i];
             let stone = 0;
 
-            // 1. 理論交点中心の高信頼度判定
-            if (f.cR < 90 && f.cB < 80 && f.cRmb < 25) {
-                stone = 1; // 黒石
-            } else if (f.cR > 175 && f.cB > 160 && f.cRmb < 18) {
-                stone = 2; // 白石
-            } else {
-                // 2. 距離変換ピークおよび色差による白石・黒石判定
-                if (f.maxDW >= 2.0 && f.maxDW > f.maxDB && f.rmb <= 25) {
-                    stone = 2;
-                } else if (f.avgR >= 135 && f.rmb <= 18) {
-                    stone = 2;
-                }
+            // 1. 白石判定: 無彩色かつ高輝度、局所背景青成分より高い
+            if (f.rmb < 32.0 && f.r >= 85.0 && (f.normB > 1.12 || (f.normR > 1.04 && f.rmb < 20.0))) {
+                stone = 2;
+            } else if (f.r >= 135 && f.rmb <= 22) {
+                stone = 2;
+            }
 
-                if (stone === 0) {
-                    if (f.maxDB >= 2.8 && f.maxDB > f.maxDW && f.rmb < 30) {
+            // 2. 黒石判定: 無彩色かつ低輝度、局所背景より暗い
+            if (stone === 0) {
+                if (f.rmb < 35.0) {
+                    if (f.r < 75.0 && (f.normR < 0.90 || f.normB < 0.90)) {
                         stone = 1;
-                    } else if (f.avgB < 80 && f.avgR < 115 && f.rmb < 25) {
+                    } else if (f.normB < 0.82 && f.normR < 0.88) {
+                        stone = 1;
+                    } else if (f.b < 45.0 && f.r < 75.0 && f.rmb < 25.0) {
                         stone = 1;
                     }
+                }
+            }
+
+            // 3. 距離変換ピークによるサルベージ（密集石）
+            if (stone === 0) {
+                if (f.maxDW >= 4.0 && f.maxDW > f.maxDB && f.rmb <= 25.0) {
+                    stone = 2;
+                } else if (f.maxDB >= 3.5 && f.maxDB > f.maxDW && f.rmb < 30.0 && (f.r < 90.0 || f.normB < 0.92)) {
+                    stone = 1;
                 }
             }
 
