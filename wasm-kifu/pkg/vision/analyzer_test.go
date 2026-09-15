@@ -2,6 +2,7 @@ package vision
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/sweetfish329/go/wasm-kifu/pkg/engine"
@@ -235,3 +236,111 @@ func TestAnalyzeBoardFeatures_ShadowSeparation(t *testing.T) {
 		t.Errorf("expected real stone at (3,3), but detected (%d,%d)", result.Moves[0].X, result.Moves[0].Y)
 	}
 }
+
+// TestAnalyzeFullBoard_Test3SGFGroundTruth は test3.sgf の最終局面から生成した
+// 正解配置（黒91, 白97, 空173）の整合性を検証するテスト
+func TestAnalyzeFullBoard_Test3SGFGroundTruth(t *testing.T) {
+	candidates := []string{
+		"test3.sgf",
+		"../test3.sgf",
+		"../../test3.sgf",
+		"../../../test3.sgf",
+	}
+	var sgfData []byte
+	var err error
+	for _, p := range candidates {
+		sgfData, err = os.ReadFile(p)
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		t.Skipf("test3.sgf not found in candidates: %v", err)
+		return
+	}
+
+	ge := engine.NewGame()
+	if err := ge.ImportSGF(string(sgfData)); err != nil {
+		t.Fatalf("ImportSGF error: %v", err)
+	}
+
+	state := ge.GetBoardState()
+	if ge.MoveNumber() != 204 {
+		t.Errorf("expected 204 moves, got %d", ge.MoveNumber())
+	}
+
+	blackCount := 0
+	whiteCount := 0
+	emptyCount := 0
+
+	for y := 0; y < BoardSize; y++ {
+		for x := 0; x < BoardSize; x++ {
+			switch state.Stones[x][y] {
+			case 1:
+				blackCount++
+			case 2:
+				whiteCount++
+			default:
+				emptyCount++
+			}
+		}
+	}
+
+	if blackCount != 91 {
+		t.Errorf("expected 91 black stones, got %d", blackCount)
+	}
+	if whiteCount != 97 {
+		t.Errorf("expected 97 white stones, got %d", whiteCount)
+	}
+	if emptyCount != 173 {
+		t.Errorf("expected 173 empty intersections, got %d", emptyCount)
+	}
+}
+
+// TestBoardRotation_CoordinateTransform は 90°, 180°, 270° の回転座標変換が
+// 可逆的かつ正確に元の交点インデックスと合致することを検証するテスト
+func TestBoardRotation_CoordinateTransform(t *testing.T) {
+	// (x, y) を CW に 90度回転: x' = 18 - y, y' = x
+	rotate90CW := func(x, y int) (int, int) {
+		return 18 - y, x
+	}
+	// 270度 CW (＝ 90度 CCW): x' = y, y' = 18 - x
+	rotate270CW := func(x, y int) (int, int) {
+		return y, 18 - x
+	}
+	// 180度 CW: x' = 18 - x, y' = 18 - y
+	rotate180CW := func(x, y int) (int, int) {
+		return 18 - x, 18 - y
+	}
+
+	// 4隅の回転検証
+	// A19 (0, 0)
+	rx, ry := rotate90CW(0, 0)
+	if rx != 18 || ry != 0 { // T19 (18, 0)
+		t.Errorf("rotate90(0,0) expected (18,0), got (%d,%d)", rx, ry)
+	}
+
+	rx, ry = rotate180CW(0, 0)
+	if rx != 18 || ry != 18 { // T1 (18, 18)
+		t.Errorf("rotate180(0,0) expected (18,18), got (%d,%d)", rx, ry)
+	}
+
+	rx, ry = rotate270CW(0, 0)
+	if rx != 0 || ry != 18 { // A1 (0, 18)
+		t.Errorf("rotate270(0,0) expected (0,18), got (%d,%d)", rx, ry)
+	}
+
+	// 4回 90度回転で完全に元に戻ることを全361交点で検証
+	for y := 0; y < 19; y++ {
+		for x := 0; x < 19; x++ {
+			curX, curY := x, y
+			for i := 0; i < 4; i++ {
+				curX, curY = rotate90CW(curX, curY)
+			}
+			if curX != x || curY != y {
+				t.Fatalf("4x90deg failed at (%d,%d) -> (%d,%d)", x, y, curX, curY)
+			}
+		}
+	}
+}
+

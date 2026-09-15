@@ -30,3 +30,8 @@ test:
 # 静的解析
 vet:
 	go vet ./pkg/...
+
+# test3 (回転画像・通常画像) 認識評価テスト実行
+eval-test3:
+	go run ./cmd/eval_test3/main.go
+
