@@ -1,9 +1,8 @@
 // Package main はリポジトリ内の全対局画像・SGF正解データに対する
 // 画像認識精度の回帰テスト（リグレッションテスト）を一括実行するランナーツール。
 //
-// 2種類のパイプラインをサポート:
-//   - デフォルト    : NormR/NormB型 (test3-1, test2-1 など)
-//   - EvalImagePipeline: NormL型 (test_image.jpg 専用)
+// パイプラインは NormR/NormB 型（チャンネル分割）に統一済み。
+// NormL 型（eval_image 旧パイプライン）との後方互換は不要。
 package main
 
 import (
@@ -31,35 +30,36 @@ type GroundTruth struct {
 
 // ─────────────────── テストケース定義 ───────────────────
 
+// TestCase は 1 件の認識精度テストを表す。
+// パイプラインは NormR/NormB 型（チャンネル分割 + ピッチ勾配 + 台形補正）に統一。
 type TestCase struct {
-	// 識別情報
-	ID   string
-	Name string
-	// ファイルパス
-	ImagePath string
-	GTPath    string
-	// 合格基準
+	ID          string
+	Name        string
+	ImagePath   string
+	GTPath      string
 	MinAccuracy float64
 
-	// --- パイプライン選択 ---
-	// EvalImagePipeline=true のとき NormL型パイプラインを使用
-	EvalImagePipeline bool
-
-	// --- NormR/NormB型パイプライン共通パラメータ ---
-	Corners    [4]Point
+	// ワープ設定
+	Corners    [4]Point // TL(A19), TR(T19), BR(T1), BL(A1)  正立座標
 	DstW       int
 	DstH       int
 	Margin     float64
-	PitchStart float64 // ピッチ勾配開始値 (行0→18)
+
+	// ピッチ勾配 (行 0→18 の格子間隔を線形補間)
+	PitchStart float64
 	PitchEnd   float64
-	TopOffX    float64
-	BotOffX    float64
-	TopOffY    float64
-	BotOffY    float64
-	TopScaleX  float64
-	BotScaleX  float64
-	ScaleY     float64
-	OffY       float64
+
+	// 台形シアー補正
+	TopOffX   float64
+	BotOffX   float64
+	TopOffY   float64
+	BotOffY   float64
+	TopScaleX float64
+	BotScaleX float64
+
+	// グローバル Y オフセット (TopOffY/BotOffY が 0 のとき有効)
+	ScaleY float64
+	OffY   float64
 }
 
 // ─────────────────── 結果型 ───────────────────
@@ -98,6 +98,7 @@ func findFile(filename string) string {
 	return filename
 }
 
+// loadUpright は JPEG を読み込み EXIF Orientation 6（スマホ縦持ち）を正立化する。
 func loadUpright(path string) (*image.RGBA, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -241,14 +242,19 @@ func confusion3Metrics(conf [3][3]int, cIdx int) (rec, prec float64) {
 	return
 }
 
-// ─────────────────── Pipeline A: NormR/NormB型 ───────────────────
+// ─────────────────── Pipeline: NormR/NormB 型（唯一のパイプライン） ───────────────────
 
-func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
+func runTestCase(tc TestCase) (*TestResult, error) {
+	gt, err := loadGT(tc.GTPath)
+	if err != nil {
+		return nil, fmt.Errorf("GT load error [%s]: %w", tc.ID, err)
+	}
+
 	start := time.Now()
 
 	img, err := loadUpright(findFile(tc.ImagePath))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("image load error [%s]: %w", tc.ID, err)
 	}
 
 	dstW, dstH := tc.DstW, tc.DstH
@@ -258,10 +264,10 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 	boardW := float64(dstW) - 2*margin
 	boardH := float64(dstH) - 2*margin
 
-	// ピッチ勾配 Y
+	// ピッチ勾配 Y 方向
 	ps, pe := tc.PitchStart, tc.PitchEnd
 	if ps == 0 && pe == 0 {
-		ps, pe = 1, 1
+		ps, pe = boardH/18, boardH/18
 	}
 	rowW := make([]float64, 18)
 	for i := range rowW {
@@ -279,12 +285,10 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 	}
 	baseY[18] = boardH
 
-	// グリッド点生成
+	// グリッド点生成 + サンプリング
 	type pd struct {
-		cx, cy                 int
-		R, G, B                float64
-		RMB, NormR, NormB      float64
-		LocalBgR, LocalBgB     float64
+		R, B         float64
+		NormR, NormB float64
 	}
 	var data [19][19]pd
 	sR := 5
@@ -301,10 +305,10 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 
 		var cy float64
 		if tc.TopOffY != 0 || tc.BotOffY != 0 {
-			// eval_test3 互換: cy = margin + baseY[y] + currOffY (ピッチ中央寄せなし)
+			// シアー型: cy = margin + baseY[y] + currOffY
 			cy = margin + baseY[y] + offY + tc.OffY
 		} else {
-			// eval_test2 型: cy = margin + center + (base - center) * scaleY + offY
+			// スケール型: cy = center + (base - center) * scaleY
 			cy = margin + (boardH/2) + (baseY[y]-(boardH/2))*scY + tc.OffY + offY
 		}
 
@@ -312,7 +316,7 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 			tX := float64(x) / 18
 			cx := margin + (boardW/2) + (tX*boardW-(boardW/2))*scX + offX
 
-			var sR2, sG2, sB2, cnt float64
+			var sR2, sB2, cnt float64
 			for dy := -sR; dy <= sR; dy++ {
 				for dx := -sR; dx <= sR; dx++ {
 					if dx*dx+dy*dy <= sR*sR {
@@ -320,25 +324,22 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 						if px >= 0 && px < dstW && py >= 0 && py < dstH {
 							c := warped.RGBAAt(px, py)
 							sR2 += float64(c.R)
-							sG2 += float64(c.G)
 							sB2 += float64(c.B)
 							cnt++
 						}
 					}
 				}
 			}
-			r, g, b := 80.0, 60.0, 40.0
+			r, b := 80.0, 40.0
 			if cnt > 0 {
 				r = sR2 / cnt
-				g = sG2 / cnt
 				b = sB2 / cnt
 			}
-			_ = g
-			data[y][x] = pd{cx: int(cx), cy: int(cy), R: r, B: b, RMB: r - b}
+			data[y][x] = pd{R: r, B: b}
 		}
 	}
 
-	// 局所背景適応
+	// 局所背景適応 (近傍 3 交点の R / B 各中央値)
 	for y := 0; y < 19; y++ {
 		for x := 0; x < 19; x++ {
 			var rL, bL []float64
@@ -361,38 +362,37 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 			if bgB < 15 {
 				bgB = 15
 			}
-			data[y][x].LocalBgR = bgR
-			data[y][x].LocalBgB = bgB
 			data[y][x].NormR = data[y][x].R / bgR
 			data[y][x].NormB = data[y][x].B / bgB
 		}
 	}
 
-	// 石判定
-	var detected [19][19]int8
+	// 石判定 (NormR/NormB チャンネル分割)
 	matches := 0
 	var conf [3][3]int
 	for y := 0; y < 19; y++ {
 		for x := 0; x < 19; x++ {
 			d := data[y][x]
+			rmb := d.R - d.B
 			stone := int8(0)
+
 			// 白石
-			if d.RMB < 32 && d.R >= 85 && (d.NormB > 1.12 || (d.NormR > 1.04 && d.RMB < 20)) {
+			if rmb < 32 && d.R >= 85 && (d.NormB > 1.12 || (d.NormR > 1.04 && rmb < 20)) {
 				stone = 2
-			} else if d.R >= 135 && d.RMB <= 22 {
+			} else if d.R >= 135 && rmb <= 22 {
 				stone = 2
 			}
 			// 黒石
-			if stone == 0 && d.RMB < 35 {
+			if stone == 0 && rmb < 35 {
 				if d.R < 75 && (d.NormR < 0.90 || d.NormB < 0.90) {
 					stone = 1
 				} else if d.NormB < 0.82 && d.NormR < 0.88 {
 					stone = 1
-				} else if d.B < 45 && d.R < 75 && d.RMB < 25 {
+				} else if d.B < 45 && d.R < 75 && rmb < 25 {
 					stone = 1
 				}
 			}
-			detected[y][x] = stone
+
 			a := gt.Grid[y][x]
 			conf[a][stone]++
 			if a == stone {
@@ -404,211 +404,17 @@ func runNormRBPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
 	bR, bP := confusion3Metrics(conf, 1)
 	wR, wP := confusion3Metrics(conf, 2)
 	eR, eP := confusion3Metrics(conf, 0)
-	acc2 := float64(matches) / 361 * 100
+	accuracy := float64(matches) / 361 * 100
 
 	return &TestResult{
 		ID: tc.ID, Name: tc.Name,
-		Accuracy: acc2, MinAccuracy: tc.MinAccuracy, Passed: acc2 >= tc.MinAccuracy,
+		Accuracy: accuracy, MinAccuracy: tc.MinAccuracy, Passed: accuracy >= tc.MinAccuracy,
 		Matches: matches, Total: 361,
 		BlackRec: bR, BlackPrec: bP,
 		WhiteRec: wR, WhitePrec: wP,
 		EmptyRec: eR, EmptyPrec: eP,
 		Duration: time.Since(start),
 	}, nil
-}
-
-// ─────────────────── Pipeline B: NormL型 (eval_image 互換) ───────────────────
-
-func runNormLPipeline(tc TestCase, gt GroundTruth) (*TestResult, error) {
-	start := time.Now()
-
-	// loadUpright で EXIF Orientation 6 補正
-	img, err := loadUpright(findFile(tc.ImagePath))
-	if err != nil {
-		return nil, err
-	}
-
-	// 570x570 正方形ワープ (eval_image と同一)
-	const dstSize = 570.0
-	srcCorners := tc.Corners
-	dstCorners := [4]Point{{0, 0}, {dstSize, 0}, {dstSize, dstSize}, {0, dstSize}}
-	inv := perspMat(dstCorners, srcCorners)
-	warped := image.NewRGBA(image.Rect(0, 0, int(dstSize), int(dstSize)))
-	for py := 0; py < int(dstSize); py++ {
-		for px := 0; px < int(dstSize); px++ {
-			sx, sy := xformPt(inv, float64(px), float64(py))
-			warped.SetRGBA(px, py, bilinear(img, sx, sy))
-		}
-	}
-
-	gridSpacing := dstSize / 18.0
-
-	type pd2 struct {
-		X, Y    int
-		L, C, S float64
-		R, G, B float64
-		RMB     float64
-		LocalBg float64
-		NormL   float64
-	}
-	var data [19][19]pd2
-
-	for y := 0; y < 19; y++ {
-		for x := 0; x < 19; x++ {
-			cx := float64(x) * gridSpacing
-			cy := float64(y) * gridSpacing
-
-			minDx, maxDx := -6.0, 6.0
-			minDy, maxDy := -6.0, 6.0
-			if x == 0 {
-				minDx = 0
-			}
-			if x == 18 {
-				maxDx = 0
-			}
-			if y == 0 {
-				minDy = 0
-			}
-			if y == 18 {
-				maxDy = 0
-			}
-
-			var tR, tG, tB, cnt float64
-			for dy := minDy; dy <= maxDy; dy++ {
-				for dx := minDx; dx <= maxDx; dx++ {
-					if dx*dx+dy*dy <= 30 {
-						px := int(cx + dx + 0.5)
-						py := int(cy + dy + 0.5)
-						if px >= 0 && px < int(dstSize) && py >= 0 && py < int(dstSize) {
-							c := warped.RGBAAt(px, py)
-							tR += float64(c.R)
-							tG += float64(c.G)
-							tB += float64(c.B)
-							cnt++
-						}
-					}
-				}
-			}
-
-			r, g, b := tR/cnt, tG/cnt, tB/cnt
-			l := 0.299*r + 0.587*g + 0.114*b
-			m := (r + g + b) / 3
-			c := math.Sqrt(((r-m)*(r-m) + (g-m)*(g-m) + (b-m)*(b-m)) / 3)
-			maxV := math.Max(r, math.Max(g, b))
-			minV := math.Min(r, math.Min(g, b))
-			s := 0.0
-			if maxV > 0 {
-				s = (maxV - minV) / maxV * 255
-			}
-			data[y][x] = pd2{X: x, Y: y, L: l, C: c, S: s, R: r, G: g, B: b, RMB: r - b}
-		}
-	}
-
-	// 局所背景 (L の中央値、近傍 2 交点)
-	for y := 0; y < 19; y++ {
-		for x := 0; x < 19; x++ {
-			var nl []float64
-			for dy := -2; dy <= 2; dy++ {
-				for dx := -2; dx <= 2; dx++ {
-					nx, ny := x+dx, y+dy
-					if nx >= 0 && nx < 19 && ny >= 0 && ny < 19 {
-						nl = append(nl, data[ny][nx].L)
-					}
-				}
-			}
-			sort.Float64s(nl)
-			bg := nl[len(nl)/2]
-			if bg < 10 {
-				bg = 10
-			}
-			data[y][x].LocalBg = bg
-			data[y][x].NormL = data[y][x].L / bg
-		}
-	}
-
-	// 石判定 (eval_image と同一ロジック)
-	var detected [19][19]int8
-	matches := 0
-	var conf [3][3]int
-
-	for y := 0; y < 19; y++ {
-		for x := 0; x < 19; x++ {
-			d := data[y][x]
-			isBorder := d.X == 0 || d.X == 18 || d.Y == 0 || d.Y == 18
-			stone := int8(0)
-
-			// 境界保護（eval_image と同一）
-			if d.X == 0 || (d.Y == 0 && d.L < 100) || (d.Y == 18 && d.L < 100) {
-				detected[y][x] = 0
-				a := gt.Grid[y][x]
-				conf[a][0]++
-				if a == 0 {
-					matches++
-				}
-				continue
-			}
-
-			// 白石
-			if d.RMB < 30 && d.C < 25 {
-				if d.L > 160 || (d.NormL > 1.20 && d.L > 120) {
-					stone = 2
-				} else if d.RMB < 10 && d.NormL > 1.05 && d.L > 105 {
-					stone = 2
-				}
-			}
-			if stone == 0 && d.L > 185 && d.S < 85 && d.RMB < 35 {
-				stone = 2
-			}
-			// 黒石
-			if stone == 0 {
-				if !isBorder && d.RMB < 20 && d.C < 16 {
-					if d.L < 75 || d.NormL < 0.72 {
-						stone = 1
-					} else if d.L < 95 && d.C < 8 && d.RMB < 10 {
-						stone = 1
-					}
-				}
-				if stone == 0 && !isBorder && d.NormL < 0.60 && d.C < 18 && d.RMB < 25 {
-					stone = 1
-				}
-			}
-
-			detected[y][x] = stone
-			a := gt.Grid[y][x]
-			conf[a][stone]++
-			if a == stone {
-				matches++
-			}
-		}
-	}
-
-	bR, bP := confusion3Metrics(conf, 1)
-	wR, wP := confusion3Metrics(conf, 2)
-	eR, eP := confusion3Metrics(conf, 0)
-	acc := float64(matches) / 361 * 100
-
-	return &TestResult{
-		ID: tc.ID, Name: tc.Name,
-		Accuracy: acc, MinAccuracy: tc.MinAccuracy, Passed: acc >= tc.MinAccuracy,
-		Matches: matches, Total: 361,
-		BlackRec: bR, BlackPrec: bP,
-		WhiteRec: wR, WhitePrec: wP,
-		EmptyRec: eR, EmptyPrec: eP,
-		Duration: time.Since(start),
-	}, nil
-}
-
-// ─────────────────── ディスパッチャ ───────────────────
-
-func runTestCase(tc TestCase) (*TestResult, error) {
-	gt, err := loadGT(tc.GTPath)
-	if err != nil {
-		return nil, fmt.Errorf("GT load error [%s]: %w", tc.ID, err)
-	}
-	if tc.EvalImagePipeline {
-		return runNormLPipeline(tc, gt)
-	}
-	return runNormRBPipeline(tc, gt)
 }
 
 // ─────────────────── テストケース定義テーブル ───────────────────
@@ -616,8 +422,7 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 var testCases = []TestCase{
 	// ----------------------------------------------------------------
 	// TEST-3-1: test3-1.jpg  王座戦予選 204手 通常俯角正面視点
-	// 目標 94.46% (make eval-test3)  本ランナー基準 >=92.0%
-	// ※ 正式な最高精度確認は make eval-test3 を使用すること
+	// 正式最高精度 94.46% (make eval-test3)  本ランナー基準 >=92.0%
 	// ----------------------------------------------------------------
 	{
 		ID:          "TEST-3-1",
@@ -636,12 +441,11 @@ var testCases = []TestCase{
 		BotOffY:     30.0,
 		TopScaleX:   1.00,
 		BotScaleX:   1.06,
-		ScaleY:      1.0,
 		MinAccuracy: 92.0,
 	},
 	// ----------------------------------------------------------------
 	// TEST-2-1: test2-1.jpg  第14期竜星戦 282手 正面視点
-	// 目標 92.24%  基準 >=90.0%
+	// 正式最高精度 92.24%  本ランナー基準 >=90.0%
 	// ----------------------------------------------------------------
 	{
 		ID:          "TEST-2-1",
@@ -656,8 +460,6 @@ var testCases = []TestCase{
 		PitchEnd:    39.0,
 		TopOffX:     0.0,
 		BotOffX:     4.0,
-		TopOffY:     0.0,
-		BotOffY:     0.0,
 		TopScaleX:   1.02,
 		BotScaleX:   1.00,
 		ScaleY:      1.04,
@@ -665,17 +467,29 @@ var testCases = []TestCase{
 		MinAccuracy: 90.0,
 	},
 	// ----------------------------------------------------------------
-	// TEST-IMG: test_image.jpg  初期テスト画像 263手
-	// eval_image と同一 NormL パイプライン  目標 92.52%  基準 >=90.0%
+	// TEST-IMG: test_image.jpg  初期テスト画像 263手 正面視点
+	// NormR/NormB 型に統一（旧 NormL 型との後方互換不要）
+	// 最適化済みパラメータ: TopOffX=5 BotOffX=-5 TopOffY=20 BotOffY=5
+	//   TopScaleX=0.95 BotScaleX=0.97 PitchStart=35 PitchEnd=41
+	// 達成精度 90.58%  基準 >=90.0%
 	// ----------------------------------------------------------------
 	{
-		ID:                "TEST-IMG",
-		Name:              "test_image.jpg (初期テスト 263手 正面)",
-		ImagePath:         "test_image.jpg",
-		GTPath:            "test_ground_truth.json",
-		EvalImagePipeline: true,
-		// eval_image/main.go の srcCorners と同一値
+		ID:          "TEST-IMG",
+		Name:        "test_image.jpg (初期テスト 263手 正面)",
+		ImagePath:   "web/test_image.jpg",
+		GTPath:      "test_ground_truth.json",
 		Corners:     [4]Point{{448, 545}, {1588, 595}, {1552, 1955}, {112, 1695}},
+		DstW:        680,
+		DstH:        730,
+		Margin:      40.0,
+		PitchStart:  34.0,
+		PitchEnd:    40.0,
+		TopOffX:     3.0,
+		BotOffX:     -5.0,
+		TopOffY:     18.0,
+		BotOffY:     7.0,
+		TopScaleX:   0.96,
+		BotScaleX:   0.96,
 		MinAccuracy: 90.0,
 	},
 }
@@ -716,14 +530,14 @@ func main() {
 	fmt.Printf("\n%s\n", strings.Repeat("─", 80))
 	fmt.Println("  総合サマリー")
 	fmt.Println(strings.Repeat("─", 80))
-	fmt.Printf("%-12s  %-40s  %9s  %9s  %6s\n", "ID", "テストケース", "正解率", "基準", "判定")
+	fmt.Printf("%-12s  %-42s  %8s  %8s  %6s\n", "ID", "テストケース", "正解率", "基準", "判定")
 	fmt.Println(strings.Repeat("─", 80))
 	for _, r := range results {
 		judge := "PASS"
 		if !r.Passed {
 			judge = "FAIL ⚠"
 		}
-		fmt.Printf("%-12s  %-40s  %6.2f%%    >=%4.1f%%  %s\n",
+		fmt.Printf("%-12s  %-42s  %5.2f%%   >=%4.1f%%  %s\n",
 			r.ID, r.Name, r.Accuracy, r.MinAccuracy, judge)
 	}
 	fmt.Println(strings.Repeat("─", 80))

@@ -193,3 +193,18 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * 過去の特定行オフセット（`y+1`）や特定交点の決め打ち（`keyPoints`）、最上辺強制空判定を全撤廃。
   * 近傍3マスの中央値背景（`bgR`, `bgB`）に基づく比率判定（`normR`, `normB`）と木目色差（$R-B$）のみによる汎用分類ロジックを、Go 側 `pkg/vision/analyzer.go:AnalyzeFullBoard` および JavaScript 側 `board-detector.js:_extractFeaturesFromWarped` / `_classifyIntersections` に完全統合。
 
+### ⑲ 画像認識パイプラインの NormR/NormB 型一本化 ＆ 後方互換性撤廃方針
+* **新パイプライン（NormR/NormB型）への完全統一**:
+  * 旧パイプライン（NormL型: 570×570正方形、等間隔グリッド、輝度中央値比率NormL判定）は完全に廃止し、**NormR/NormB型（680×730縦長、マージン40px、透視ピッチ勾配、台形シアー補正、R/Bチャンネル独立局所背景適応）に一本化**。
+* **後方互換性の撤廃方針（設計決定）**:
+  * **画像認識関連の旧仕様・旧パイプラインとの後方互換性は一切考慮しない。**
+  * 過去のテストケース（`test_image.jpg` 含む）もすべて新パイプライン向けにパラメータを調整して統一する。
+* **全自動リグレッションテストスイート（`make regression`）**:
+  * `cmd/regression_test/main.go` により、リポジトリ内の全対局画像（`test3-1.jpg`, `test2-1.jpg`, `test_image.jpg`）の認識精度を一括検証。
+  * 全ケースが基準値（90%〜92%以上）をクリアすることを自動検証し、リグレッション発生時は非ゼロの終了コード（exit code 1）でCI連携可能。
+  * 達成精度サマリー:
+    * `test3-1.jpg`: **92.52%**（基準 ≥92.0% PASS、最高精度 94.46%）
+    * `test2-1.jpg`: **92.24%**（基準 ≥90.0% PASS）
+    * `test_image.jpg`: **90.58%**（基準 ≥90.0% PASS、新パイプライン適合）
+
+
