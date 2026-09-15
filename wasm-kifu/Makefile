@@ -1,4 +1,4 @@
-.PHONY: build clean serve copy-wasm-exec test vet
+.PHONY: build clean serve copy-wasm-exec test vet eval-test3 regression
 
 WASM_OUT = web/wasm/kifu.wasm
 
@@ -35,3 +35,7 @@ vet:
 eval-test3:
 	go run ./cmd/eval_test3/main.go
 
+# リグレッションテスト：全対局画像の認識精度を一括検証
+# 終局盤面の認識率が基準値を下回った場合は exit code 1 で報告する
+regression:
+	go run ./cmd/regression_test/main.go
