@@ -325,6 +325,7 @@
         cornerPoints = corners;
         detector.setCorners(corners);
         renderCornerOverlay();
+        showNotification("🎯 4隅を自動検出しました");
       } else {
         errorMessage = "4隅を自動検出できませんでした。画像上の4隅を直接タップして指定してください。";
       }

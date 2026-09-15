@@ -92,12 +92,11 @@ class BoardDetector {
     }
 
     /**
-     * 画像から碁盤の4隅を自動検出する (Qiita / gbr / img2sgf / kaya の統合パイプライン)
+     * 画像から碁盤の4隅を自動検出する (多段ロバストパイプライン)
      *
-     * 1. LAB色空間での CLAHE による照明ムラ・影の均一化 (gbr)
-     * 2. 確率的ハフ変換 (HoughLinesP) + 石消去 (Circle Erasure) による格子線復元 (img2sgf)
-     * 3. 角度クラスタリング & 射影極値探索 (Qiita)
-     * 4. 幾何学的妥当性・縮退コーナー判定 (高専論文 / kaya)
+     * ステージ 1: 木目天板の色域セグメンテーション ＆ 多角形近似輪郭 (Wood Color & Contour)
+     * ステージ 2: 確率的ハフ変換 (HoughLinesP) ＋ 外枠格子線交点探索 (Grid Lines Hough Intersections)
+     * ステージ 3: 適応的二値化 (Adaptive Threshold) ＋ 最大凸四角形輪郭 (Adaptive Contour Quad)
      *
      * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source - 入力画像
      * @returns {Array<{x: number, y: number}>|null} 検出された4隅 [左上, 右上, 右下, 左下] または null
@@ -107,15 +106,36 @@ class BoardDetector {
 
         const srcMat = cv.imread(source);
         try {
-            // 照明ムラを補正した画像を取得
+            const width = srcMat.cols;
+            const height = srcMat.rows;
+
+            // ステージ 1: 木目天板の色域セグメンテーションと輪郭近似
+            let corners = this._detectBoardByWoodColor(srcMat);
+            if (corners && this._validateCorners(corners, width, height)) {
+                const ordered = this._orderCorners(corners);
+                this.setCorners(ordered);
+                return ordered;
+            }
+
+            // 照明ムラを補正した画像を取得 (ステージ 2, 3用)
             const equalized = this._applyCLAHE(srcMat);
             try {
-                const corners = this._detectCornersFromMat(equalized);
-                if (corners && this._validateCorners(corners, srcMat.cols, srcMat.rows)) {
+                // ステージ 2: 格子線群のハフ変換 ＆ 境界線交点
+                corners = this._detectCornersFromHough(equalized);
+                if (corners && this._validateCorners(corners, width, height)) {
                     const ordered = this._orderCorners(corners);
                     this.setCorners(ordered);
                     return ordered;
                 }
+
+                // ステージ 3: 適応的二値化による最大輪郭四角形
+                corners = this._detectBoardContour(equalized);
+                if (corners && this._validateCorners(corners, width, height)) {
+                    const ordered = this._orderCorners(corners);
+                    this.setCorners(ordered);
+                    return ordered;
+                }
+
                 return null;
             } finally {
                 equalized.delete();
@@ -179,56 +199,144 @@ class BoardDetector {
     }
 
     /**
-     * OpenCV Mat からハフ変換と線分解析を用いて4隅を検出
-     * (img2sgf の Circle Erasure + Qiita の角度クラスタリング)
+     * ステージ 1: 木目天板色域セグメンテーション ＆ 輪郭近似による4隅検出
+     * 碁盤の木目色（黄色〜薄茶色）ブロブを抽出し、石や格子線を閉処理で埋めて最大4角形輪郭を探索
      * @param {cv.Mat} srcMat
      * @returns {Array<{x: number, y: number}>|null}
      * @private
      */
-    _detectCornersFromMat(srcMat) {
+    _detectBoardByWoodColor(srcMat) {
+        const width = srcMat.cols;
+        const height = srcMat.rows;
+        const mask = new cv.Mat(height, width, cv.CV_8UC1);
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+
+        try {
+            const srcData = srcMat.data;
+            const maskData = mask.data;
+
+            // 木目の色特徴: R > B + 14, R >= 50, G >= 30, R >= G - 25 (木製天板)
+            for (let i = 0, p = 0; i < srcData.length; i += 4, p++) {
+                const r = srcData[i];
+                const g = srcData[i + 1];
+                const b = srcData[i + 2];
+                if (r - b >= 14 && r >= 50 && g >= 30 && r >= g - 25) {
+                    maskData[p] = 255;
+                } else {
+                    maskData[p] = 0;
+                }
+            }
+
+            // モルフォロジー演算 (碁石や格子線を埋めて巨大ブロブ化)
+            const kSize = Math.max(7, Math.min(31, Math.round(Math.min(width, height) * 0.025) | 1));
+            const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(kSize, kSize));
+            cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
+            cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
+            kernel.delete();
+
+            cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+            let maxArea = 0;
+            let bestCntIndex = -1;
+            const minAllowedArea = width * height * 0.12;
+
+            for (let i = 0; i < contours.size(); i++) {
+                const cnt = contours.get(i);
+                const area = cv.contourArea(cnt);
+                if (area > minAllowedArea && area > maxArea) {
+                    maxArea = area;
+                    bestCntIndex = i;
+                }
+            }
+
+            if (bestCntIndex === -1) {
+                return null;
+            }
+
+            const targetCnt = contours.get(bestCntIndex);
+            const peri = cv.arcLength(targetCnt, true);
+
+            // 多角形近似 (epsilon を段階的に変化させて4頂点を探す)
+            for (let epsRatio = 0.015; epsRatio <= 0.06; epsRatio += 0.008) {
+                const approx = new cv.Mat();
+                cv.approxPolyDP(targetCnt, approx, epsRatio * peri, true);
+                if (approx.rows === 4 && cv.isContourConvex(approx)) {
+                    const pts = [];
+                    for (let k = 0; k < 4; k++) {
+                        pts.push({
+                            x: approx.data32S[k * 2],
+                            y: approx.data32S[k * 2 + 1]
+                        });
+                    }
+                    approx.delete();
+                    return pts;
+                }
+                approx.delete();
+            }
+
+            // 4頂点に収束しない場合: 最小外接回転矩形 (minAreaRect)
+            const rotatedRect = cv.minAreaRect(targetCnt);
+            const vertices = cv.RotatedRect.points(rotatedRect);
+            if (vertices && vertices.length === 4) {
+                return [
+                    { x: Math.round(vertices[0].x), y: Math.round(vertices[0].y) },
+                    { x: Math.round(vertices[1].x), y: Math.round(vertices[1].y) },
+                    { x: Math.round(vertices[2].x), y: Math.round(vertices[2].y) },
+                    { x: Math.round(vertices[3].x), y: Math.round(vertices[3].y) },
+                ];
+            }
+
+            return null;
+        } catch (err) {
+            console.warn('Wood color detection warning:', err);
+            return null;
+        } finally {
+            mask.delete();
+            contours.delete();
+            hierarchy.delete();
+        }
+    }
+
+    /**
+     * ステージ 2: 確率的ハフ変換と格子線幾何解析による4隅検出
+     * (特定ピクセル値のハードコードを完全撤廃し、画像比率と線分クラスタリングで動的に境界交点を計算)
+     * @param {cv.Mat} srcMat
+     * @returns {Array<{x: number, y: number}>|null}
+     * @private
+     */
+    _detectCornersFromHough(srcMat) {
         const width = srcMat.cols;
         const height = srcMat.rows;
 
         const gray = new cv.Mat();
         const blurred = new cv.Mat();
         const edges = new cv.Mat();
-        const dilated = new cv.Mat();
-        const eroded = new cv.Mat();
-        const lines = new cv.Mat();
-
-        // 楕円カーネル (gbr より: 碁石の形状に最適化)
-        const ellipseKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+        const linesH = new cv.Mat();
+        const linesV = new cv.Mat();
+        const kernelH = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(15, 1));
+        const kernelV = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(1, 15));
+        const edgesH = new cv.Mat();
+        const edgesV = new cv.Mat();
 
         try {
-            // 1. グレースケール & 平滑化
             cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
             cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-
-            // 2. Canny エッジ検出
             cv.Canny(blurred, edges, 30, 200, 3, false);
 
-            // 3. 【Circle-First】円形先検出による格子線の石マスク
+            // 【Circle-First】円形先検出による格子線の石マスク
             const circles = this._detectStonesMultiScale(gray, width, height);
             for (const c of circles) {
                 cv.circle(edges, new cv.Point(c.cx, c.cy), Math.round(c.r + 2), new cv.Scalar(0, 0, 0), -1);
             }
 
-            // 4. 方向性モルフォロジーで格子線を連結
-            const kernelH = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(15, 1));
-            const kernelV = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(1, 15));
-            const edgesH = new cv.Mat();
-            const edgesV = new cv.Mat();
             cv.morphologyEx(edges, edgesH, cv.MORPH_CLOSE, kernelH);
             cv.morphologyEx(edges, edgesV, cv.MORPH_CLOSE, kernelV);
 
-            // 5. 確率的ハフ変換で横線と縦線を独立検出
-            const linesH = new cv.Mat();
-            const linesV = new cv.Mat();
             const minLineLen = Math.floor(Math.min(width, height) / 16);
-            cv.HoughLinesP(edgesH, linesH, 1, Math.PI / 180, 50, minLineLen, 25);
-            cv.HoughLinesP(edgesV, linesV, 1, Math.PI / 180, 50, minLineLen, 25);
+            cv.HoughLinesP(edgesH, linesH, 1, Math.PI / 180, 45, minLineLen, 25);
+            cv.HoughLinesP(edgesV, linesV, 1, Math.PI / 180, 45, minLineLen, 25);
 
-            // 線分の収集と角度分類
             const horizLines = [];
             const vertLines = [];
 
@@ -247,21 +355,18 @@ class BoardDetector {
                     const mx = (x1 + x2) / 2;
                     const my = (y1 + y2) / 2;
 
-                    // 画面の最端（ノイズ）を除外
-                    if (mx < width * 0.05 || mx > width * 0.95 || my < height * 0.10 || my > height * 0.90) {
+                    // 画面の最端 4% のノイズを除外
+                    if (mx < width * 0.04 || mx > width * 0.96 || my < height * 0.04 || my > height * 0.96) {
                         continue;
                     }
 
-                    // 【木目盤面ROIチェック】直線の中心が木目天板(R - B >= 20, R >= 100)上にあるか判定
+                    // 木目色度チェック
                     const px = Math.max(0, Math.min(width - 1, Math.round(mx)));
                     const py = Math.max(0, Math.min(height - 1, Math.round(my)));
                     const ptr = (py * width + px) * 4;
                     const r = srcMat.data[ptr];
                     const b = srcMat.data[ptr + 2];
-                    const rmb = r - b;
-
-                    // 机・床・壁のノイズ直線を色特徴で棄却 (暗い奥側木目 R~75 も保護)
-                    if (rmb < 14 || r < 60) {
+                    if (r - b < 12 || r < 50) {
                         continue;
                     }
 
@@ -276,17 +381,15 @@ class BoardDetector {
             collectLines(linesH, true);
             collectLines(linesV, false);
 
-            kernelH.delete(); kernelV.delete(); edgesH.delete(); edgesV.delete();
-            linesH.delete(); linesV.delete();
-
             if (horizLines.length < 2 || vertLines.length < 2) {
-                return this._detectBoardContour(srcMat);
+                return null;
             }
 
-            // 直線群をソート (横線はY順、縦線はX順)
             horizLines.sort((a, b) => a.my - b.my);
             vertLines.sort((a, b) => a.mx - b.mx);
 
+            // 外れ値除去 (画像サイズ比での許容間隔)
+            const maxAllowedGap = Math.min(width, height) * 0.20;
             const filterOutliers = (lines, getCoord) => {
                 if (lines.length <= 4) return lines;
                 const result = [];
@@ -294,7 +397,7 @@ class BoardDetector {
                     const c = getCoord(lines[i]);
                     const distPrev = i > 0 ? Math.abs(c - getCoord(lines[i - 1])) : Infinity;
                     const distNext = i < lines.length - 1 ? Math.abs(c - getCoord(lines[i + 1])) : Infinity;
-                    if (distPrev <= 150 || distNext <= 150) {
+                    if (distPrev <= maxAllowedGap || distNext <= maxAllowedGap) {
                         result.push(lines[i]);
                     }
                 }
@@ -304,50 +407,10 @@ class BoardDetector {
             const cleanH = filterOutliers(horizLines, l => l.my);
             const cleanV = filterOutliers(vertLines, l => l.mx);
 
-            // 【NotebookLM 知見⑬: 碁盤縦横比制約 (1.077比) による四隅の自己校正】
-            // 手前の木枠側面エッジではなく、天板上の真の1行目格子線 (Y ≈ 1760) にスナップ
-            let botH = cleanH[cleanH.length - 1];
-            // Y > 1780 の手前エッジを避け、Y ~ 1760 の真の1行目格子線を探索
-            for (let i = cleanH.length - 1; i >= 0; i--) {
-                if (cleanH[i].my <= 1780) {
-                    botH = cleanH[i];
-                    break;
-                }
-            }
-
+            const topH = cleanH[0];
+            const botH = cleanH[cleanH.length - 1];
             const leftV = cleanV[0];
             const rightV = cleanV[cleanV.length - 1];
-
-            // 碁盤全高目標 (Y ≈ 545)
-            const targetTopY = 545;
-
-            // targetTopY (~545px) に最も近い横線を topH として選択
-            let topH = cleanH[0];
-            let bestDiff = Math.abs(topH.my - targetTopY);
-            for (const h of cleanH) {
-                // y < 450 (机の上) は除外
-                if (h.my < 450) continue;
-                const diff = Math.abs(h.my - targetTopY);
-                if (diff < bestDiff) {
-                    bestDiff = diff;
-                    topH = h;
-                }
-            }
-
-            // 最上位線が手前すぎたり机に飛び出している場合、y ≈ 545 の幾何外挿ラインを生成
-            if (topH.my > 590 || topH.my < 480) {
-                const extrapolateY = 545;
-                topH = {
-                    x1: leftV.x1,
-                    y1: extrapolateY,
-                    x2: rightV.x2,
-                    y2: extrapolateY,
-                    mx: (leftV.x1 + rightV.x2) / 2,
-                    my: extrapolateY,
-                    deg: 0,
-                    len: Math.abs(rightV.mx - leftV.mx)
-                };
-            }
 
             // 2直線の交点を計算
             const intersect = (l1, l2) => {
@@ -368,24 +431,35 @@ class BoardDetector {
             if (tl && tr && br && bl) {
                 return [tl, tr, br, bl];
             }
-
-            return this._detectBoardContour(srcMat);
+            return null;
         } catch (err) {
-            console.warn('Corner detection failed, fallbacking to contour:', err);
-            return this._detectBoardContour(srcMat);
+            console.warn('Hough corner detection warning:', err);
+            return null;
         } finally {
             gray.delete();
             blurred.delete();
             edges.delete();
-            dilated.delete();
-            eroded.delete();
-            lines.delete();
-            ellipseKernel.delete();
+            linesH.delete();
+            linesV.delete();
+            kernelH.delete();
+            kernelV.delete();
+            edgesH.delete();
+            edgesV.delete();
         }
     }
 
     /**
-     * フォールバック: 碁盤外枠の輪郭（Contour）から4隅を検出
+     * 後方互換ラッパー: ハフ変換による四隅検出
+     * @param {cv.Mat} srcMat
+     * @returns {Array<{x: number, y: number}>|null}
+     * @private
+     */
+    _detectCornersFromMat(srcMat) {
+        return this._detectCornersFromHough(srcMat);
+    }
+
+    /**
+     * ステージ 3: 碁盤外枠の適応的二値化輪郭（Contour）から4隅を検出
      * @param {cv.Mat} srcMat
      * @returns {Array<{x: number, y: number}>|null}
      * @private
@@ -406,7 +480,7 @@ class BoardDetector {
 
             let maxArea = 0;
             let bestApprox = null;
-            const minAllowedArea = (srcMat.cols * srcMat.rows) * 0.15; // 画面の15%以上
+            const minAllowedArea = (srcMat.cols * srcMat.rows) * 0.12;
 
             for (let i = 0; i < contours.size(); i++) {
                 const cnt = contours.get(i);
@@ -443,6 +517,9 @@ class BoardDetector {
             }
 
             return null;
+        } catch (err) {
+            console.warn('Contour corner detection warning:', err);
+            return null;
         } finally {
             gray.delete();
             blurred.delete();
@@ -460,16 +537,17 @@ class BoardDetector {
         if (!corners || corners.length !== 4) return false;
 
         for (const pt of corners) {
-            if (pt.x < 0 || pt.x > imgWidth || pt.y < 0 || pt.y > imgHeight) {
+            if (pt.x < -imgWidth * 0.05 || pt.x > imgWidth * 1.05 ||
+                pt.y < -imgHeight * 0.05 || pt.y > imgHeight * 1.05) {
                 return false;
             }
         }
 
-        // 縮退コーナー判定 (kaya より: 4点が狭い領域に集中していないか)
+        // 縮退コーナー判定 (4点が狭い領域に集中していないか)
         const xs = corners.map(c => c.x);
         const ys = corners.map(c => c.y);
         const bboxArea = (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
-        if (bboxArea < imgWidth * imgHeight * 0.1) {
+        if (bboxArea < imgWidth * imgHeight * 0.10) {
             return false;
         }
 
@@ -484,11 +562,11 @@ class BoardDetector {
         area = Math.abs(area) / 2;
 
         const imgArea = imgWidth * imgHeight;
-        if (area < imgArea * 0.15) {
+        if (area < imgArea * 0.10) {
             return false;
         }
 
-        // アスペクト比の検証
+        // アスペクト比の検証 (0.5 〜 2.0)
         const dTop = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
         const dRight = Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y);
         const dBottom = Math.hypot(ordered[3].x - ordered[2].x, ordered[3].y - ordered[2].y);
@@ -496,9 +574,10 @@ class BoardDetector {
 
         const avgWidth = (dTop + dBottom) / 2;
         const avgHeight = (dLeft + dRight) / 2;
+        if (avgHeight <= 0) return false;
         const ratio = avgWidth / avgHeight;
 
-        return ratio >= 0.6 && ratio <= 1.6;
+        return ratio >= 0.5 && ratio <= 2.0;
     }
 
     /**
@@ -508,30 +587,42 @@ class BoardDetector {
      * @private
      */
     _orderCorners(pts) {
-        const cx = pts.reduce((sum, p) => sum + p.x, 0) / 4;
-        const cy = pts.reduce((sum, p) => sum + p.y, 0) / 4;
+        if (!pts || pts.length !== 4) return pts;
 
-        const sorted = [...pts].sort((a, b) => {
-            const angleA = Math.atan2(a.y - cy, a.x - cx);
-            const angleB = Math.atan2(b.y - cy, b.x - cx);
-            return angleA - angleB;
-        });
+        // x + y 最小 -> 左上(TL), x + y 最大 -> 右下(BR)
+        // x - y 最大 -> 右上(TR), x - y 最小 -> 左下(BL)
+        const sum = pts.map(p => p.x + p.y);
+        const diff = pts.map(p => p.x - p.y);
 
-        let minSum = Infinity;
-        let topIndex = 0;
+        let tlIdx = 0, brIdx = 0, trIdx = 0, blIdx = 0;
+        for (let i = 1; i < 4; i++) {
+            if (sum[i] < sum[tlIdx]) tlIdx = i;
+            if (sum[i] > sum[brIdx]) brIdx = i;
+            if (diff[i] > diff[trIdx]) trIdx = i;
+            if (diff[i] < diff[blIdx]) blIdx = i;
+        }
+
+        const indices = new Set([tlIdx, trIdx, brIdx, blIdx]);
+        if (indices.size === 4) {
+            return [pts[tlIdx], pts[trIdx], pts[brIdx], pts[blIdx]];
+        }
+
+        // 重複時フォールバック: 重心からの角度で整列
+        const cx = pts.reduce((s, p) => s + p.x, 0) / 4;
+        const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
+        const sorted = [...pts].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+        let minSumIdx = 0;
         sorted.forEach((p, idx) => {
-            const sum = p.x + p.y;
-            if (sum < minSum) {
-                minSum = sum;
-                topIndex = idx;
+            if (p.x + p.y < sorted[minSumIdx].x + sorted[minSumIdx].y) {
+                minSumIdx = idx;
             }
         });
-
-        const result = [];
-        for (let i = 0; i < 4; i++) {
-            result.push(sorted[(topIndex + i) % 4]);
-        }
-        return result;
+        return [
+            sorted[minSumIdx],
+            sorted[(minSumIdx + 1) % 4],
+            sorted[(minSumIdx + 2) % 4],
+            sorted[(minSumIdx + 3) % 4],
+        ];
     }
 
     /**
