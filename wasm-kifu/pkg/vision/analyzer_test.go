@@ -21,7 +21,9 @@ func TestAnalyzeBoardDiff_NewStone(t *testing.T) {
 	resultJSON := AnalyzeBoardDiff(ge, string(data), 19, 19)
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("failed to unmarshal analysis result: %v", err)
+	}
 
 	if len(result.Moves) != 1 {
 		t.Fatalf("expected 1 move, got %d", len(result.Moves))
@@ -49,7 +51,9 @@ func TestAnalyzeBoardDiff_WhiteStone(t *testing.T) {
 	resultJSON := AnalyzeBoardDiff(ge, string(data), 19, 19)
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("failed to unmarshal analysis result: %v", err)
+	}
 
 	if len(result.Moves) != 1 {
 		t.Fatalf("expected 1 move, got %d", len(result.Moves))
@@ -69,7 +73,9 @@ func TestAnalyzeBoardDiff_NoChange(t *testing.T) {
 	resultJSON := AnalyzeBoardDiff(ge, string(data), 19, 19)
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("failed to unmarshal analysis result: %v", err)
+	}
 
 	if len(result.Moves) != 0 {
 		t.Errorf("expected no moves, got %d", len(result.Moves))
@@ -92,7 +98,9 @@ func TestAnalyzeBoardDiff_MultipleStones(t *testing.T) {
 	resultJSON := AnalyzeBoardDiff(ge, string(data), 19, 19)
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("failed to unmarshal analysis result: %v", err)
+	}
 
 	if len(result.Moves) != 2 {
 		t.Fatalf("expected 2 moves, got %d", len(result.Moves))
@@ -107,7 +115,7 @@ func TestAnalyzeBoardDiff_MultipleStones(t *testing.T) {
 
 func TestAnalyzeBoardDiff_AfterMove(t *testing.T) {
 	ge := engine.NewGame()
-	ge.PlayMove(3, 3) // 黒が(3,3)に着手済み
+	_ = ge.PlayMove(3, 3) // 黒が(3,3)に着手済み
 
 	// (3,3)に黒石 + (15,15)に白石を検出
 	var intersections [361]int8
@@ -120,7 +128,9 @@ func TestAnalyzeBoardDiff_AfterMove(t *testing.T) {
 	resultJSON := AnalyzeBoardDiff(ge, string(data), 19, 19)
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("failed to unmarshal analysis result: %v", err)
+	}
 
 	if len(result.Moves) != 1 {
 		t.Fatalf("expected 1 new move, got %d", len(result.Moves))
@@ -135,9 +145,9 @@ func TestAnalyzeBoardDiff_AfterMove(t *testing.T) {
 
 func TestAnalyzeBoardDiff_CaptureDetected(t *testing.T) {
 	ge := engine.NewGame()
-	ge.PlayMove(1, 0) // B
-	ge.PlayMove(0, 0) // W
-	ge.PlayMove(0, 1) // B: (0,0)の白石をキャプチャ
+	_ = ge.PlayMove(1, 0) // B
+	_ = ge.PlayMove(0, 0) // W
+	_ = ge.PlayMove(0, 1) // B: (0,0)の白石をキャプチャ
 
 	var intersections [361]int8
 	intersections[0*19+1] = 1   // (1,0) 黒 既存
@@ -150,7 +160,9 @@ func TestAnalyzeBoardDiff_CaptureDetected(t *testing.T) {
 	resultJSON := AnalyzeBoardDiff(ge, string(data), 19, 19)
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("failed to unmarshal analysis result: %v", err)
+	}
 
 	if len(result.Moves) != 1 {
 		t.Fatalf("expected 1 move, got %d", len(result.Moves))
@@ -225,7 +237,9 @@ func TestAnalyzeBoardFeatures_ShadowSeparation(t *testing.T) {
 	resultJSON := AnalyzeBoardFeatures(ge, string(rawJSON))
 
 	var result AnalysisResult
-	json.Unmarshal([]byte(resultJSON), &result)
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
 
 	if len(result.Moves) != 1 {
 		t.Fatalf("expected exactly 1 move (real stone, not shadow), got %d (errors: %v)", len(result.Moves), result.Errors)

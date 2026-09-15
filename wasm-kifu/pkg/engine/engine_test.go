@@ -67,7 +67,9 @@ func TestPlayMove(t *testing.T) {
 
 func TestIllegalMove_SamePosition(t *testing.T) {
 	ge := NewGame()
-	ge.PlayMove(9, 9) // 黒が天元に着手
+	if err := ge.PlayMove(9, 9); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// 同じ場所に打てない
 	err := ge.PlayMove(9, 9)
@@ -99,7 +101,9 @@ func TestPass(t *testing.T) {
 
 func TestResign(t *testing.T) {
 	ge := NewGame()
-	ge.PlayMove(3, 3) // 黒
+	if err := ge.PlayMove(3, 3); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	ge.Resign() // 白番で投了 → 黒の勝ち
 	if !ge.resigned {
@@ -120,8 +124,12 @@ func TestResign(t *testing.T) {
 
 func TestUndo(t *testing.T) {
 	ge := NewGame()
-	ge.PlayMove(3, 3)
-	ge.PlayMove(15, 15)
+	if err := ge.PlayMove(3, 3); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := ge.PlayMove(15, 15); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if !ge.Undo() {
 		t.Error("undo should succeed")
@@ -148,9 +156,15 @@ func TestUndo(t *testing.T) {
 
 func TestExportImportSGF(t *testing.T) {
 	ge := NewGameWithInfo("黒太郎", "白花子", 6.5)
-	ge.PlayMove(3, 3)   // 黒: dd
-	ge.PlayMove(15, 15) // 白: pp
-	ge.PlayMove(15, 3)  // 黒: pd
+	if err := ge.PlayMove(3, 3); err != nil { // 黒: dd
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := ge.PlayMove(15, 15); err != nil { // 白: pp
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := ge.PlayMove(15, 3); err != nil { // 黒: pd
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	sgf := ge.ExportSGF()
 	if sgf == "" {
@@ -184,7 +198,7 @@ func TestImportSGF_Invalid(t *testing.T) {
 
 func TestBoardStateJSON(t *testing.T) {
 	ge := NewGame()
-	ge.PlayMove(3, 3)
+	_ = ge.PlayMove(3, 3)
 
 	jsonStr := ge.BoardStateJSON()
 	var state BoardState
@@ -223,7 +237,7 @@ func TestBoardStateJSON_EmptyBoard(t *testing.T) {
 
 func TestLastMoveInfoJSON(t *testing.T) {
 	ge := NewGame()
-	ge.PlayMove(9, 9)
+	_ = ge.PlayMove(9, 9)
 
 	jsonStr := ge.LastMoveInfoJSON()
 	var info LastMoveInfo
@@ -314,13 +328,15 @@ func TestCapture(t *testing.T) {
 	// 黒で白を囲んでキャプチャするシナリオ
 	// 白: (0,0)
 	// 黒: (1,0), (0,1)
-	ge.PlayMove(1, 0) // B
-	ge.PlayMove(0, 0) // W
-	ge.PlayMove(0, 1) // B → (0,0)の白石をキャプチャ
+	_ = ge.PlayMove(1, 0) // B
+	_ = ge.PlayMove(0, 0) // W
+	_ = ge.PlayMove(0, 1) // B → (0,0)の白石をキャプチャ
 
 	jsonStr := ge.BoardStateJSON()
 	var state BoardState
-	json.Unmarshal([]byte(jsonStr), &state)
+	if err := json.Unmarshal([]byte(jsonStr), &state); err != nil {
+		t.Fatalf("failed to unmarshal board state: %v", err)
+	}
 
 	if state.Stones[0][0] != 0 {
 		t.Errorf("expected captured stone removed at (0,0), got %d", state.Stones[0][0])

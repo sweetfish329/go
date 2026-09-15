@@ -40,3 +40,7 @@ go.work.sum
 *.png
 test_image.jpg
 wasm-kifu/web/test_image.jpg
+
+# Tools / Indices
+.codegraph/
+

@@ -467,10 +467,11 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 
 	// 19x19 配列にマッピング
 	type gridItem struct {
-		f       IntersectionFeatures
-		localBg float64
-		normL   float64
-		normB   float64
+		f     IntersectionFeatures
+		rVal  float64
+		bVal  float64
+		normR float64
+		normB float64
 	}
 	var grid [BoardSize][BoardSize]gridItem
 	for i, f := range featData.Features {
@@ -480,7 +481,19 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 			x = i % BoardSize
 			y = i / BoardSize
 		}
-		grid[y][x].f = f
+		rVal := f.R
+		if rVal == 0 {
+			rVal = f.L
+		}
+		bVal := f.B
+		if bVal == 0 {
+			bVal = f.L
+		}
+		grid[y][x] = gridItem{
+			f:    f,
+			rVal: rVal,
+			bVal: bVal,
+		}
 	}
 
 	// 【skolchin/gbr Channel Splitting ＋ 局所背景適応】
@@ -492,17 +505,9 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 				for dx := -3; dx <= 3; dx++ {
 					nx, ny := x+dx, y+dy
 					if nx >= 0 && nx < BoardSize && ny >= 0 && ny < BoardSize {
-						feat := grid[ny][nx].f
-						rVal := feat.R
-						if rVal == 0 {
-							rVal = feat.L
-						}
-						bVal := feat.B
-						if bVal == 0 {
-							bVal = feat.L
-						}
-						rList = append(rList, rVal)
-						bList = append(bList, bVal)
+						neighbor := grid[ny][nx]
+						rList = append(rList, neighbor.rVal)
+						bList = append(bList, neighbor.bVal)
 					}
 				}
 			}
@@ -517,19 +522,8 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 				bgB = 15
 			}
 
-			feat := grid[y][x].f
-			rVal := feat.R
-			if rVal == 0 {
-				rVal = feat.L
-			}
-			bVal := feat.B
-			if bVal == 0 {
-				bVal = feat.L
-			}
-
-			grid[y][x].localBg = bgR
-			grid[y][x].normL = rVal / bgR // normR
-			grid[y][x].normB = bVal / bgB // normB
+			grid[y][x].normR = grid[y][x].rVal / bgR
+			grid[y][x].normB = grid[y][x].bVal / bgB
 		}
 	}
 
@@ -540,16 +534,10 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 		for x := 0; x < BoardSize; x++ {
 			item := grid[y][x]
 			f := item.f
-			normR := item.normL
+			rVal := item.rVal
+			bVal := item.bVal
+			normR := item.normR
 			normB := item.normB
-			rVal := f.R
-			if rVal == 0 {
-				rVal = f.L
-			}
-			bVal := f.B
-			if bVal == 0 {
-				bVal = f.L
-			}
 			rmb := rVal - bVal
 
 			stone := int8(0)

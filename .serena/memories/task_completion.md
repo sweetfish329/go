@@ -13,6 +13,10 @@ Before considering any task complete, perform these checks:
    - Run `go vet ./...`
    - Run `go test ./...`
 3. **WASM check** (if modified):
-   - Compile WASM using `GOOS=js GOARCH=wasm go build -o ../kifu/frontend/src/lib/kifu.wasm ./cmd/wasm` or custom script.
+   - Go to `wasm-kifu/`
+   - Run `go test ./pkg/...`
+   - Run `golangci-lint run ./pkg/...`
+   - Run `make regression` (Ensures board recognition accuracy meets standards)
+   - Compile WASM using `make build` (or `GOOS=js GOARCH=wasm go build -o web/wasm/kifu.wasm ./cmd/wasm`)
 4. **Git Hook Verification**:
    - Run `bunx lefthook run pre-commit` to ensure all linters pass.

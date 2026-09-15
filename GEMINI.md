@@ -207,4 +207,20 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
     * `test2-1.jpg`: **92.24%**（基準 ≥90.0% PASS）
     * `test_image.jpg`: **90.58%**（基準 ≥90.0% PASS、新パイプライン適合）
 
+### ⑳ 不要コード削減・静的解析クリーン化・解析器最適化知見（Serenaメモリ主導リファクタリング）
+* **過去の実験用スクリプト・重複コード（1,100行超）の完全撤廃**:
+  * コミット `4acddd3` で `regression_test` に一本化されたため役目を終えた過去の実験スクリプト `cmd/eval_image/main.go` および `cmd/eval_test2/main.go` を完全削除。巨大な幾何計算のコピペやデバッグコードを解消。
+* **OpenCV.js検出モジュール（`board-detector.js`）のクリーン化 & メモリリーク解消**:
+  * 二重定義されていた `extractFeatures` メソッドを一本化。
+  * `_detectCornersFromMat` 内で宣言のみされシャドーイングで孤立していた `const circles = new cv.Mat()`（メモリリーク原因）を削除。
+  * プロトタイプ作成時の未使用メソッド（`_sampleDonutFeatures`, `_kmeans3`）や未使用変数を全撤廃し、`oxlint` エラー・警告を完全 0 化。
+* **WASMビジョン解析器（`analyzer.go`）のアルゴリズム最適化**:
+  * `AnalyzeFullBoard` 内の未使用フィールド（`localBg`）を削除し、実態（Red比率）に合わせて `normL` を `normR` へリネーム。
+  * 各交点ループ内で計18,000回以上繰り返されていた $R/B$ チャンネルフォールバック（$R=0 \rightarrow L$）計算を初期マッピング時に一括キャッシュ化し、重複条件分岐を削減して可読性と処理効率を向上。
+* **Goユニットテストの静的解析（`errcheck`）完全対応**:
+  * `pkg/engine/engine_test.go` および `pkg/vision/analyzer_test.go` における `PlayMove` や `json.Unmarshal` の戻り値未検証箇所を解消し、`golangci-lint run ./pkg/...` を完全パス（エラー・警告 0 件）。
+* **フロントエンド lint スクリプトの統一**:
+  * `package.json` に `"lint": "oxlint"` を追加し、`.serena/memories/suggested_commands.md` および `lefthook` フックとの完全な整合性を確立。
+
+
 

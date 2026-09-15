@@ -195,7 +195,6 @@ class BoardDetector {
         const dilated = new cv.Mat();
         const eroded = new cv.Mat();
         const lines = new cv.Mat();
-        const circles = new cv.Mat();
 
         // 楕円カーネル (gbr より: 碁石の形状に最適化)
         const ellipseKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
@@ -258,7 +257,6 @@ class BoardDetector {
                     const py = Math.max(0, Math.min(height - 1, Math.round(my)));
                     const ptr = (py * width + px) * 4;
                     const r = srcMat.data[ptr];
-                    const g = srcMat.data[ptr + 1];
                     const b = srcMat.data[ptr + 2];
                     const rmb = r - b;
 
@@ -825,33 +823,6 @@ class BoardDetector {
     }
 
     /**
-     * 画像から多次元特徴量 (L, C, D, H, S) を抽出する (Dani Ferrari / NotebookLM手法)
-     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source - 入力画像
-     * @returns {Array<{x: number, y: number, l: number, c: number, d: number, h: number, s: number}>} 361要素の特徴量配列
-     */
-    extractFeatures(source) {
-        if (!this.cvReady) throw new Error('OpenCV.js not loaded');
-        if (!this.cornerPoints) {
-            const detected = this.autoDetectCorners(source);
-            if (!detected) {
-                throw new Error('Corner points not set and auto-detection failed.');
-            }
-        }
-
-        const srcMat = cv.imread(source);
-        try {
-            const warped = this._perspectiveTransform(srcMat);
-            try {
-                return this._extractFeaturesFromWarped(warped);
-            } finally {
-                warped.delete();
-            }
-        } finally {
-            srcMat.delete();
-        }
-    }
-
-    /**
      * 射影変換済み画像の全交点から多次元特徴量 (ドーナツ走査) を抽出
      * @param {cv.Mat} warpedMat
      * @private
@@ -996,7 +967,7 @@ class BoardDetector {
             }
 
             // 局所背景適応: 近傍3マスの中央値背景 (bgR, bgB) を算出し normR, normB を設定
-            const features = rawFeatures.map((f, idx) => {
+            const features = rawFeatures.map((f) => {
                 const x = f.x;
                 const y = f.y;
                 const rList = [];
@@ -1094,162 +1065,6 @@ class BoardDetector {
         }
 
         return result;
-    }
-
-    /**
-     * ドーナツ走査による多次元局所特徴量の抽出
-     * - 中心格子線交差部 (r < innerRadius) を完全に除外
-     * - ドーナツ領域 (innerRadius <= r <= outerRadius) の画素をサンプリング
-     * - らせん状走査による不均一性 D = sum(sqrt((dL)^2 + (dC)^2))
-     *
-     * @private
-     */
-    _sampleDonutFeatures(rgbaMat, grayMat, hsvMat, cx, cy, innerRadius, outerRadius) {
-        const cols = grayMat.cols;
-        const rows = grayMat.rows;
-
-        let totalL = 0;
-        let totalC = 0;
-        let totalH = 0;
-        let totalS = 0;
-        let totalR = 0;
-        let totalB = 0;
-        let count = 0;
-
-        const rIn2 = innerRadius * innerRadius;
-        const rOut2 = outerRadius * outerRadius;
-
-        for (let dy = -outerRadius; dy <= outerRadius; dy++) {
-            for (let dx = -outerRadius; dx <= outerRadius; dx++) {
-                const dist2 = dx * dx + dy * dy;
-                if (dist2 < rIn2 || dist2 > rOut2) continue; // ドーナツ外を除外
-
-                const px = cx + dx;
-                const py = cy + dy;
-                if (px < 0 || px >= cols || py < 0 || py >= rows) continue;
-
-                // RGBA から輝度 L とクロミナンス C (RGB標準偏差)
-                const r = rgbaMat.ucharAt(py, px * 4);
-                const g = rgbaMat.ucharAt(py, px * 4 + 1);
-                const b = rgbaMat.ucharAt(py, px * 4 + 2);
-
-                const l = 0.299 * r + 0.587 * g + 0.114 * b;
-                const meanRGB = (r + g + b) / 3;
-                const chrominance = Math.sqrt(((r - meanRGB) ** 2 + (g - meanRGB) ** 2 + (b - meanRGB) ** 2) / 3);
-
-                const h = hsvMat.ucharAt(py, px * 3) * 2; // OpenCV HSV H: 0-180 -> 0-360
-                const s = hsvMat.ucharAt(py, px * 3 + 1);
-
-                totalL += l;
-                totalC += chrominance;
-                totalH += h;
-                totalS += s;
-                totalR += r;
-                totalB += b;
-                count++;
-            }
-        }
-
-        const avgL = count > 0 ? totalL / count : 128;
-        const avgC = count > 0 ? totalC / count : 25;
-        const avgH = count > 0 ? totalH / count : 40;
-        const avgS = count > 0 ? totalS / count : 80;
-        const avgR = count > 0 ? totalR / count : 128;
-        const avgB = count > 0 ? totalB / count : 128;
-        const rmb = avgR - avgB; // 木目度 (茶色度)
-
-        // らせん不均一性 D (Disuniformity) の計算: 中心から外側へのらせん走査
-        let disuniformity = 0;
-        let prevL = avgL;
-        let prevC = avgC;
-
-        const spiralSteps = 16;
-        for (let i = 0; i < spiralSteps; i++) {
-            const t = (i / spiralSteps) * Math.PI * 3; // 1.5回転
-            const r = innerRadius + (outerRadius - innerRadius) * (i / spiralSteps);
-            const sx = Math.round(cx + r * Math.cos(t));
-            const sy = Math.round(cy + r * Math.sin(t));
-
-            if (sx >= 0 && sx < cols && sy >= 0 && sy < rows) {
-                const sr = rgbaMat.ucharAt(sy, sx * 4);
-                const sg = rgbaMat.ucharAt(sy, sx * 4 + 1);
-                const sb = rgbaMat.ucharAt(sy, sx * 4 + 2);
-
-                const curL = 0.299 * sr + 0.587 * sg + 0.114 * sb;
-                const mRGB = (sr + sg + sb) / 3;
-                const curC = Math.sqrt(((sr - mRGB) ** 2 + (sg - mRGB) ** 2 + (sb - mRGB) ** 2) / 3);
-
-                const dL = curL - prevL;
-                const dC = curC - prevC;
-                disuniformity += Math.sqrt(dL * dL + dC * dC);
-
-                prevL = curL;
-                prevC = curC;
-            }
-        }
-
-        return {
-            L: avgL,
-            C: avgC,
-            D: disuniformity,
-            H: avgH,
-            S: avgS,
-            R: avgR,
-            B: avgB,
-            RMB: rmb
-        };
-    }
-
-    /**
-     * 1D K-means (k=3) クラスタリング (imago / kaya より)
-     * @param {number[]} values
-     * @returns {[number, number, number]} [cBlack, cBoard, cWhite]
-     * @private
-     */
-    _kmeans3(values, maxIter = 25) {
-        if (values.length < 3) return [30, 128, 220];
-
-        const sorted = [...values].sort((a, b) => a - b);
-        let c0 = sorted[Math.floor(sorted.length * 0.1)] || 30;   // 初期黒中心
-        let c1 = sorted[Math.floor(sorted.length * 0.5)] || 128;  // 初期盤面中心
-        let c2 = sorted[Math.floor(sorted.length * 0.9)] || 220;  // 初期白中心
-
-        for (let iter = 0; iter < maxIter; iter++) {
-            let s0 = 0, n0 = 0;
-            let s1 = 0, n1 = 0;
-            let s2 = 0, n2 = 0;
-
-            for (const v of values) {
-                const d0 = Math.abs(v - c0);
-                const d1 = Math.abs(v - c1);
-                const d2 = Math.abs(v - c2);
-
-                if (d0 <= d1 && d0 <= d2) {
-                    s0 += v;
-                    n0++;
-                } else if (d1 <= d2) {
-                    s1 += v;
-                    n1++;
-                } else {
-                    s2 += v;
-                    n2++;
-                }
-            }
-
-            const newC0 = n0 > 0 ? s0 / n0 : c0;
-            const newC1 = n1 > 0 ? s1 / n1 : c1;
-            const newC2 = n2 > 0 ? s2 / n2 : c2;
-
-            if (Math.abs(newC0 - c0) + Math.abs(newC1 - c1) + Math.abs(newC2 - c2) < 0.5) {
-                break;
-            }
-            c0 = newC0;
-            c1 = newC1;
-            c2 = newC2;
-        }
-
-        const res = [c0, c1, c2].sort((a, b) => a - b);
-        return [res[0], res[1], res[2]];
     }
 
     /**
