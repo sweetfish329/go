@@ -1220,19 +1220,21 @@ class BoardDetector {
     _perspectiveTransform(srcMat) {
         // 日本・韓国規格の碁盤縦横比（約 1.077: 42.4cm x 45.5cm）
         // 四隅の形状から縦長か横長かを判定
-        const p = this.cornerPoints;
-        const wTop = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y);
-        const wBot = Math.hypot(p[2].x - p[3].x, p[2].y - p[3].y);
-        const hLeft = Math.hypot(p[3].x - p[0].x, p[3].y - p[0].y);
-        const hRight = Math.hypot(p[2].x - p[1].x, p[2].y - p[1].y);
-        const avgW = (wTop + wBot) / 2;
-        const avgH = (hLeft + hRight) / 2;
+        const dxTop = Math.abs(p[1].x - p[0].x);
+        const dyTop = Math.abs(p[1].y - p[0].y);
+        const dxBot = Math.abs(p[2].x - p[3].x);
+        const dyBot = Math.abs(p[2].y - p[3].y);
+        const dxLeft = Math.abs(p[3].x - p[0].x);
+        const dyLeft = Math.abs(p[3].y - p[0].y);
+        const dxRight = Math.abs(p[2].x - p[1].x);
+        const dyRight = Math.abs(p[2].y - p[1].y);
 
         const margin = 40;
         let dstW, dstH;
-        if (avgH >= avgW) {
+        const isNormalView = (dxTop > dyTop && dxBot > dyBot) && (dyLeft > dxLeft && dyRight > dxRight);
+        if (isNormalView) {
             // 縦長（通常の対局者視点: 1.077 比）
-            dstW = 600 + 2 * margin;
+            dstW = 600 + 2 * margin; // 680
             dstH = Math.round(600 * 1.077) + 2 * margin; // 約726
         } else {
             // 横長（横からの撮影視点）

@@ -165,16 +165,23 @@ func WarpPerspectiveWithMargin(src image.Image, srcCorners [4]Point, dstW, dstH 
 // 縦長（通常の対局者視点）: dstW=680, dstH=732
 // 横長（横からの撮影）: dstW=732, dstH=680
 func WarpSize(corners [4]Point) (dstW, dstH int, margin float64) {
-	// 四辺の長さを計算して縦横を判定
-	wTop := math.Hypot(corners[1].X-corners[0].X, corners[1].Y-corners[0].Y)
-	wBot := math.Hypot(corners[2].X-corners[3].X, corners[2].Y-corners[3].Y)
-	hLeft := math.Hypot(corners[3].X-corners[0].X, corners[3].Y-corners[0].Y)
-	hRight := math.Hypot(corners[2].X-corners[1].X, corners[2].Y-corners[1].Y)
-	avgW := (wTop + wBot) / 2
-	avgH := (hLeft + hRight) / 2
+	// 上辺・底辺の横・縦成分
+	dxTop := math.Abs(corners[1].X - corners[0].X)
+	dyTop := math.Abs(corners[1].Y - corners[0].Y)
+	dxBot := math.Abs(corners[2].X - corners[3].X)
+	dyBot := math.Abs(corners[2].Y - corners[3].Y)
+
+	// 左辺・右辺の横・縦成分
+	dxLeft := math.Abs(corners[3].X - corners[0].X)
+	dyLeft := math.Abs(corners[3].Y - corners[0].Y)
+	dxRight := math.Abs(corners[2].X - corners[1].X)
+	dyRight := math.Abs(corners[2].Y - corners[1].Y)
 
 	margin = 40.0
-	if avgH >= avgW {
+	// 通常視点（正面撮影）: 上辺・底辺が主に水平 (dx > dy)、左右辺が主に垂直 (dy > dx)
+	// 透視短縮で画面上の平均高さが平均幅より小さくなっても、通常視点なら必ず縦長(680x732)
+	isNormalView := (dxTop > dyTop && dxBot > dyBot) && (dyLeft > dxLeft && dyRight > dxRight)
+	if isNormalView {
 		// 縦長 (通常視点): 碁盤縦横比 1.077 = 45.5cm / 42.4cm
 		dstW = 680
 		dstH = 732 // round(680 * 1.077)

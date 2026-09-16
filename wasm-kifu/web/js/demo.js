@@ -1014,9 +1014,9 @@ function renderStage2Corners(sourceCanvas, cornerRes) {
     // 3. 検出された星 (花点・天元) を金色星マークで描画
     if (cornerRes.stars && cornerRes.stars.length > 0) {
         cornerRes.stars.forEach(s => {
-            const sx = s.x !== undefined ? s.x : s.ImgX;
-            const sy = s.y !== undefined ? s.y : s.ImgY;
-            if (sx && sy) {
+            const sx = s.imgX !== undefined ? s.imgX : (s.ImgX !== undefined ? s.ImgX : s.x);
+            const sy = s.imgY !== undefined ? s.imgY : (s.ImgY !== undefined ? s.ImgY : s.y);
+            if (sx !== undefined && sy !== undefined) {
                 ctx.fillStyle = '#f1c40f';
                 ctx.strokeStyle = '#2c3e50';
                 ctx.lineWidth = 2;

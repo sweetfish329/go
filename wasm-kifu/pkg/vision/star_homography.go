@@ -8,13 +8,13 @@ import (
 
 // StarPoint は盤面の星（花点）の検出結果
 type StarPoint struct {
-	GridX      int     // 0-indexed グリッド座標 (3, 9, 15)
-	GridY      int     // 0-indexed グリッド座標 (3, 9, 15)
-	NormX      float64 // 正規化盤面座標 (GridX / 18.0)
-	NormY      float64 // 正規化盤面座標 (GridY / 18.0)
-	ImgX       float64 // 画像上の検出サブピクセル座標 X
-	ImgY       float64 // 画像上の検出サブピクセル座標 Y
-	Confidence float64 // 検出信頼度 (0.0 - 1.0)
+	GridX      int     `json:"gridX"`      // 0-indexed グリッド座標 (3, 9, 15)
+	GridY      int     `json:"gridY"`      // 0-indexed グリッド座標 (3, 9, 15)
+	NormX      float64 `json:"normX"`      // 正規化盤面座標 (GridX / 18.0)
+	NormY      float64 `json:"normY"`      // 正規化盤面座標 (GridY / 18.0)
+	ImgX       float64 `json:"imgX"`       // 画像上の検出サブピクセル座標 X
+	ImgY       float64 `json:"imgY"`       // 画像上の検出サブピクセル座標 Y
+	Confidence float64 `json:"confidence"` // 検出信頼度 (0.0 - 1.0)
 }
 
 // StarHomographyRefiner は「星（花点・天元）」を利用してホモグラフィと4隅を精密化する
@@ -417,7 +417,7 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 				oob = true
 				break
 			}
-			maxDist := math.Max(90.0, math.Max(w, h)*0.065)
+			maxDist := math.Max(120.0, math.Max(w, h)*0.10)
 			dist := math.Hypot(refined[i].X-initialCorners[i].X, refined[i].Y-initialCorners[i].Y)
 			if dist > maxDist {
 				oob = true
@@ -456,6 +456,30 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 
 	if bestCand == nil {
 		return initialCorners, 0
+	}
+
+	// 2パス目: 補正された四隅を元に星を再サンプリングしてホモグラフィを極限まで精密化
+	pass2Stars := r.DetectStarPoints(img, bestCand.refined)
+	if len(pass2Stars) >= len(bestCand.stars) {
+		h2, inliers2, err := FindHomographyRANSAC(pass2Stars, maxReprojAllowed)
+		if err == nil && len(inliers2) >= 4 {
+			refined2 := [4]Point{
+				ProjectPoint(h2, 0, 0),
+				ProjectPoint(h2, 1, 0),
+				ProjectPoint(h2, 1, 1),
+				ProjectPoint(h2, 0, 1),
+			}
+			oob := false
+			for i := 0; i < 4; i++ {
+				if refined2[i].X < 5 || refined2[i].X > w-5 || refined2[i].Y < 5 || refined2[i].Y > h-5 {
+					oob = true
+					break
+				}
+			}
+			if !oob {
+				return refined2, len(inliers2)
+			}
+		}
 	}
 
 	return bestCand.refined, len(bestCand.stars)

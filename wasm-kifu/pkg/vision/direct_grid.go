@@ -272,14 +272,14 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 		isPerspectiveConsistent := func(c float64) bool {
 			if !okBotRef {
-				return math.Abs(c) <= 0.25
+				return math.Abs(c) <= 0.20
 			}
 			if math.Abs(cBotRef) < 0.03 {
-				return math.Abs(c) <= 0.08
+				return math.Abs(c) <= 0.06
 			} else if cBotRef > 0 {
-				return c >= -0.01 && c <= cBotRef*0.85
+				return c >= cBotRef*0.05 && c <= cBotRef*0.60 && math.Abs(c) <= 0.13
 			} else {
-				return c <= 0.01 && c >= cBotRef*0.85
+				return c <= cBotRef*0.05 && c >= cBotRef*0.60 && math.Abs(c) <= 0.13
 			}
 		}
 
