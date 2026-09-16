@@ -35,6 +35,10 @@ vet:
 eval-test3:
 	go run ./cmd/eval_test3/main.go
 
+# 四隅自動検出 (Corner Auto-Detection) 定量評価テスト
+eval-corners:
+	go run ./cmd/eval_corners/main.go
+
 # リグレッションテスト：全対局画像の認識精度を一括検証
 # 終局盤面の認識率が基準値を下回った場合は exit code 1 で報告する
 regression:

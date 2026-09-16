@@ -180,6 +180,20 @@ class WasmKifu {
     }
 
     /**
+     * 画像データ (RGBA) から碁盤の19路格子4隅 [TL, TR, BR, BL] を高精度・ロバストに自動検出
+     * @param {Uint8ClampedArray|Uint8Array} rgbaData - RGBAピクセル配列 (width * height * 4)
+     * @param {number} width - 画像幅
+     * @param {number} height - 画像高さ
+     * @returns {Object} {corners: Array<{x: number, y: number}>, area: number, confidence: number}
+     */
+    detectBoardCorners(rgbaData, width, height) {
+        this._checkReady();
+        const u8 = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData.buffer, rgbaData.byteOffset, rgbaData.byteLength);
+        const result = wasmDetectBoardCorners(u8, width, height);
+        return JSON.parse(result);
+    }
+
+    /**
      * 直前の着手情報を取得
      * @returns {Object} {x: number, y: number, color: string, moveNumber: number, isPass: boolean}
      */

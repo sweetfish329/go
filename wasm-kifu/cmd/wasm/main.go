@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"syscall/js"
 
 	"github.com/sweetfish329/go/wasm-kifu/pkg/engine"
@@ -131,6 +132,37 @@ func getLastMoveInfoWrapper(this js.Value, args []js.Value) any {
 	return gameEngine.LastMoveInfoJSON()
 }
 
+func detectBoardCornersWrapper(this js.Value, args []js.Value) any {
+	if len(args) < 3 {
+		return `{"error": "invalid arguments"}`
+	}
+	uint8Array := args[0]
+	w := args[1].Int()
+	h := args[2].Int()
+
+	length := w * h * 4
+	pix := make([]byte, length)
+	js.CopyBytesToGo(pix, uint8Array)
+
+	img := &image.RGBA{
+		Pix:    pix,
+		Stride: w * 4,
+		Rect:   image.Rect(0, 0, w, h),
+	}
+
+	res, err := vision.DetectBoardCorners(img)
+	if err != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, err.Error())
+	}
+
+	return fmt.Sprintf(`{"corners":[{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f}],"area":%.1f,"confidence":%.2f}`,
+		res.Corners[0].X, res.Corners[0].Y,
+		res.Corners[1].X, res.Corners[1].Y,
+		res.Corners[2].X, res.Corners[2].Y,
+		res.Corners[3].X, res.Corners[3].Y,
+		res.Area, res.Confidence)
+}
+
 func main() {
 	// グローバルオブジェクトに関数を登録する
 	js.Global().Set("wasmNewGame", js.FuncOf(newGameWrapper))
@@ -149,6 +181,7 @@ func main() {
 	js.Global().Set("wasmAnalyzeFullBoard", js.FuncOf(analyzeFullBoardWrapper))
 	js.Global().Set("wasmApplyDetectedMove", js.FuncOf(applyDetectedMoveWrapper))
 	js.Global().Set("wasmGetLastMoveInfo", js.FuncOf(getLastMoveInfoWrapper))
+	js.Global().Set("wasmDetectBoardCorners", js.FuncOf(detectBoardCornersWrapper))
 
 	// WASM の実行を維持するためにチャネルで待機する
 	select {}

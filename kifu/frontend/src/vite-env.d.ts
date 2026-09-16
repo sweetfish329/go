@@ -24,6 +24,11 @@ declare function wasmAnalyzeBoardFeatures(featuresJSON: string): string;
 declare function wasmAnalyzeFullBoard(featuresJSON: string): string;
 declare function wasmApplyDetectedMove(x: number, y: number, color: number): number;
 declare function wasmGetLastMoveInfo(): string;
+declare function wasmDetectBoardCorners(
+  rgbaData: Uint8Array,
+  width: number,
+  height: number,
+): string;
 
 declare module "@wasm-kifu/web/js/wasm-bridge.js" {
   export interface BoardState {
@@ -97,6 +102,15 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     analyzeFullBoard(features: IntersectionFeature[]): FullBoardResult;
     applyDetectedMove(x: number, y: number, color: number): number;
     getLastMoveInfo(): LastMoveInfo;
+    detectBoardCorners(
+      rgbaData: Uint8ClampedArray | Uint8Array,
+      width: number,
+      height: number,
+    ): {
+      corners: Array<{ x: number; y: number }>;
+      area: number;
+      confidence: number;
+    };
   }
 }
 
