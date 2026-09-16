@@ -1071,6 +1071,19 @@ class BoardDetector {
         const rmbPlane = new cv.Mat();
         cv.subtract(rPlane, bPlane, rmbPlane);
 
+        // Lab a*/b* チャンネル分離 (σ_chroma 計算用: 木目=高クロミナンス, 碁石=低クロミナンス)
+        // CLAHE後の normalizedMat はすでに RGBA → BGR → Lab → BGR → RGBA と変換済み
+        // ここでは a*/b* を直接ピクセルから読み取るため, normalizedMat から再度 Lab に変換する
+        const labForChroma = new cv.Mat();
+        const labChromaBgr = new cv.Mat();
+        const labChromaPlanes = new cv.MatVector();
+        cv.cvtColor(normalizedMat, labChromaBgr, cv.COLOR_RGBA2BGR);
+        cv.cvtColor(labChromaBgr, labForChroma, cv.COLOR_BGR2Lab);
+        cv.split(labForChroma, labChromaPlanes);
+        const labLPlane = labChromaPlanes.get(0); // L* (CLAHE適用済み)
+        const labAPlane = labChromaPlanes.get(1); // a* (赤-緑クロミナンス)
+        const labBPlane = labChromaPlanes.get(2); // b* (黄-青クロミナンス, 木目判定に最重要)
+
         // 白石マスク: Red高輝度 かつ (Red - Blue) が小さい(無彩色)
         const whiteMask = new cv.Mat();
         const rThresh = new cv.Mat();
@@ -1098,9 +1111,16 @@ class BoardDetector {
         cv.distanceTransform(blackMask, distB, cv.DIST_L2, 5);
 
         const rawFeatures = [];
-        const sampleRadius = Math.floor(stepX * 0.30);
         const snapR = 9;
         const hMaximaThresh = 2.5; // H-maxima 抑制閾値: 微小ノイズピークによる誤スナップを抑制
+
+        // ドーナツ型サンプリング半径 (論文準拠)
+        // r_inner: 格子線が交差する中心部を排除するマスク半径 (石半径の約1/5)
+        // r_outer: 石の表面色を収集するドーナツ外縁 (石半径の約0.45)
+        // r_glare_inner: 黒石テカリ(鏡面反射)検出用の中心ゾーン内半径
+        const r_outer = Math.max(4, Math.round(stepX * 0.45));
+        const r_inner = Math.max(2, Math.round(stepX * 0.15)); // 格子線除外マスク
+        const r_glare = Math.max(1, Math.round(stepX * 0.12)); // 黒石テカリ中心ゾーン
 
         try {
             for (let y = 0; y < this.boardSize; y++) {
@@ -1147,26 +1167,87 @@ class BoardDetector {
                         sampleY = maxDW > maxDB ? bestPeakWY : bestPeakBY;
                     }
 
-                    // スナップ点周辺の平均色をサンプリング (RGB 3チャンネル)
-                    let sumR = 0, sumG = 0, sumB = 0, count = 0;
-                    for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
-                        for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
-                            if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
-                                const px = sampleX + dx;
-                                const py = sampleY + dy;
-                                if (px >= 0 && px < w && py >= 0 && py < h) {
-                                    sumR += rPlane.ucharAt(py, px);
-                                    sumG += gPlane.ucharAt(py, px);
-                                    sumB += bPlane.ucharAt(py, px);
-                                    count++;
-                                }
+                    // ================================================================
+                    // ドーナツ型サンプリング (格子線交差中心部を排除)
+                    // 内半径 r_inner 未満: 黒い格子線の交差点 → 除外
+                    // 外半径 r_outer 以内のリング: 石の表面 or 盤面木目 → 採用
+                    // ================================================================
+                    let sumR = 0, sumG = 0, sumB = 0;
+                    let sumLabA = 0, sumLabB = 0;
+                    let countDonut = 0;
+                    // 2乗で比較するため事前計算
+                    const r_inner_sq = r_inner * r_inner;
+                    const r_outer_sq = r_outer * r_outer;
+
+                    // 黒石テカリ検出用: 中心ゾーン (r < r_glare) の L* 収集
+                    let sumCenterL = 0, countCenter = 0;
+                    // 黒石テカリ検出用: 外周リング (r_inner < r < r_outer) の L* 収集 (= ドーナツと同域)
+                    let sumOuterL = 0;
+
+                    for (let dy = -r_outer; dy <= r_outer; dy++) {
+                        for (let dx = -r_outer; dx <= r_outer; dx++) {
+                            const r2 = dx * dx + dy * dy;
+                            const px = Math.round(sampleX) + dx;
+                            const py = Math.round(sampleY) + dy;
+                            if (px < 0 || px >= w || py < 0 || py >= h) continue;
+
+                            if (r2 <= r_outer_sq && r2 >= r_inner_sq) {
+                                // ドーナツ領域: 格子線除外 + 石表面色収集
+                                sumR += rPlane.ucharAt(py, px);
+                                sumG += gPlane.ucharAt(py, px);
+                                sumB += bPlane.ucharAt(py, px);
+                                sumLabA += labAPlane.ucharAt(py, px);
+                                sumLabB += labBPlane.ucharAt(py, px);
+                                sumOuterL += labLPlane.ucharAt(py, px);
+                                countDonut++;
+                            }
+
+                            if (r2 <= r_glare * r_glare) {
+                                // 中心ゾーン: 黒石テカリ白飛び検出用
+                                sumCenterL += labLPlane.ucharAt(py, px);
+                                countCenter++;
                             }
                         }
                     }
-                    const avgR = count > 0 ? sumR / count : rPlane.ucharAt(sampleY, sampleX);
-                    const avgG = count > 0 ? sumG / count : gPlane.ucharAt(sampleY, sampleX);
-                    const avgB = count > 0 ? sumB / count : bPlane.ucharAt(sampleY, sampleX);
+
+                    const avgR = countDonut > 0 ? sumR / countDonut : rPlane.ucharAt(Math.round(sampleY), Math.round(sampleX));
+                    const avgG = countDonut > 0 ? sumG / countDonut : gPlane.ucharAt(Math.round(sampleY), Math.round(sampleX));
+                    const avgB = countDonut > 0 ? sumB / countDonut : bPlane.ucharAt(Math.round(sampleY), Math.round(sampleX));
                     const rmb = avgR - avgB;
+                    const meanCenterL = countCenter > 0 ? sumCenterL / countCenter : 128;
+                    const meanOuterL = countDonut > 0 ? sumOuterL / countDonut : 128;
+
+                    // ================================================================
+                    // σ_chroma: ドーナツ領域内の Lab a*/b* 標準偏差
+                    // 木目(盤面): 黄〜茶色 → b* が正方向にバラつく → σ_chroma 大
+                    // 碁石(白/黒): 無彩色 → a*≒0, b*≒0 → σ_chroma 小
+                    // ================================================================
+                    let sumSqA = 0, sumSqB = 0;
+                    let meanLabA = 0, meanLabB = 0;
+                    if (countDonut > 0) {
+                        meanLabA = sumLabA / countDonut;
+                        meanLabB = sumLabB / countDonut;
+                        // 2パス標準偏差: 再スキャンして分散を計算
+                        for (let dy = -r_outer; dy <= r_outer; dy++) {
+                            for (let dx = -r_outer; dx <= r_outer; dx++) {
+                                const r2 = dx * dx + dy * dy;
+                                if (r2 < r_inner_sq || r2 > r_outer_sq) continue;
+                                const px = Math.round(sampleX) + dx;
+                                const py = Math.round(sampleY) + dy;
+                                if (px < 0 || px >= w || py < 0 || py >= h) continue;
+                                const da = labAPlane.ucharAt(py, px) - meanLabA;
+                                const db = labBPlane.ucharAt(py, px) - meanLabB;
+                                sumSqA += da * da;
+                                sumSqB += db * db;
+                            }
+                        }
+                        sumSqA /= countDonut;
+                        sumSqB /= countDonut;
+                    }
+                    const sigmaChroma = Math.sqrt(sumSqA + sumSqB);
+                    // Lab b* 平均 (木目判定): 木製盤面は黄〜茶 → b* > 128 (OpenCV の Lab は [0,255] 範囲にスケール)
+                    // OpenCV Lab: L=[0,255], a/b=[0,255] where 128=0, > 128 = 黄方向
+                    const labBMean = meanLabB - 128.0; // [-128, +127] に正規化
 
                     // YCrCb 色差と無彩色度 (Chroma) の計算 (NotebookLM 色彩モデル: 影と黒石の分離)
                     const cr = 0.500 * avgR - 0.418688 * avgG - 0.081312 * avgB + 128.0;
@@ -1198,7 +1279,13 @@ class BoardDetector {
                         rmb: rmb,
                         cR, cB, cRmb,
                         avgR, avgB,
-                        maxDW, maxDB
+                        maxDW, maxDB,
+                        // Lab σ_chroma 特徴量 (木目 vs 碁石の決定論的分離)
+                        sigmaChroma,
+                        labBMean,    // b* 平均: 木目は黄(+), 石は0付近
+                        // 黒石テカリ 2ゾーン特徴量
+                        meanCenterL, // 中心ゾーン L* 平均 (テカリ白飛び検出)
+                        meanOuterL   // 外周ドーナツ L* 平均 (黒石本体の暗さ検出)
                     });
                 }
             }
@@ -1253,6 +1340,13 @@ class BoardDetector {
             temp.delete();
             distW.delete();
             distB.delete();
+            // Lab σ_chroma 用 Mat のクリーンアップ
+            labForChroma.delete();
+            labChromaBgr.delete();
+            labLPlane.delete();
+            labAPlane.delete();
+            labBPlane.delete();
+            labChromaPlanes.delete();
             // CLAHE 一時 Mat のクリーンアップ (normalizedMat が warpedMat と別インスタンスの場合のみ)
             if (normalizedMat !== warpedMat) {
                 normalizedMat.delete();
@@ -1265,7 +1359,8 @@ class BoardDetector {
     }
 
     /**
-     * 射影変換済み画像の各交点で石の色を判定 (局所背景適応 ＋ 赤青チャンネル分離 ＋ YCrCb/Chroma影除外)
+     * 射影変換済み画像の各交点で石の色を判定
+     * (局所背景適応 ＋ 赤青チャンネル分離 ＋ σ_chroma木目除外 ＋ 黒石テカリ2ゾーン)
      * @param {cv.Mat} warpedMat - 射影変換済み画像
      * @returns {Int8Array} 交点状態配列
      * @private
@@ -1274,34 +1369,60 @@ class BoardDetector {
         const result = new Int8Array(this.boardSize * this.boardSize);
         const features = this._extractFeaturesFromWarped(warpedMat);
 
+        // σ_chroma 閾値:
+        //   空交点(木目) は b* のばらつきが大きく sigmaChroma が高い
+        //   碁石(白/黒) は無彩色で sigmaChroma がほぼ 0
+        // 木目判定の確実な足切りに使い、「石かもしれない」候補を絞り込む
+        const SIGMA_CHROMA_WOOD_THRESH = 12.0;  // これ以上なら「木目ではないか」を疑う
+        const LAB_B_WOOD_THRESH = 10.0;         // b* > +10 (黄方向) は木目の可能性が高い
+
         for (let i = 0; i < features.length; i++) {
             const f = features[i];
             let stone = 0;
 
-            // 1. 白石判定: 無彩色かつ高輝度、局所背景青成分より高い
-            if (f.rmb < 32.0 && f.r >= 85.0 && (f.normB > 1.12 || (f.normR > 1.04 && f.rmb < 20.0))) {
-                stone = 2;
-            } else if (f.r >= 135 && f.rmb <= 22) {
-                stone = 2;
-            }
+            // === σ_chroma 木目フィルタ ===
+            // σ_chroma が大かつ b* が黄方向に偏っていれば確実に空交点(木目) → 石判定をスキップ
+            const isWoodGrain = (f.sigmaChroma ?? 0) > SIGMA_CHROMA_WOOD_THRESH
+                && (f.labBMean ?? 0) > LAB_B_WOOD_THRESH;
 
-            // 2. 黒石判定: 無彩色かつ低輝度、局所背景より暗い、かつ無彩色(Chroma低)で暗い木目の影を除外
-            if (stone === 0 && f.rmb < 35.0) {
-                if (f.r < 75.0 && (f.normR < 0.90 || f.normB < 0.90) && (!f.chroma || f.chroma < 22.0)) {
-                    stone = 1;
-                } else if (f.normB < 0.82 && f.normR < 0.88 && (!f.chroma || f.chroma < 18.0)) {
-                    stone = 1;
-                } else if (f.b < 45.0 && f.r < 75.0 && f.rmb < 25.0) {
-                    stone = 1;
-                }
-            }
-
-            // 3. 距離変換ピークによるサルベージ（密集石）
-            if (stone === 0) {
-                if (f.maxDW >= 4.0 && f.maxDW > f.maxDB && f.rmb <= 25.0) {
+            if (!isWoodGrain) {
+                // 1. 白石判定: 無彩色かつ高輝度、局所背景青成分より高い
+                if (f.rmb < 32.0 && f.r >= 85.0 && (f.normB > 1.12 || (f.normR > 1.04 && f.rmb < 20.0))) {
                     stone = 2;
-                } else if (f.maxDB >= 3.5 && f.maxDB > f.maxDW && f.rmb < 30.0 && (f.r < 90.0 || f.normB < 0.92)) {
-                    stone = 1;
+                } else if (f.r >= 135 && f.rmb <= 22) {
+                    stone = 2;
+                }
+
+                // 2. 黒石判定: 無彩色かつ低輝度、局所背景より暗い、かつ無彩色(Chroma低)で暗い木目の影を除外
+                if (stone === 0 && f.rmb < 35.0) {
+                    if (f.r < 75.0 && (f.normR < 0.90 || f.normB < 0.90) && (!f.chroma || f.chroma < 22.0)) {
+                        stone = 1;
+                    } else if (f.normB < 0.82 && f.normR < 0.88 && (!f.chroma || f.chroma < 18.0)) {
+                        stone = 1;
+                    } else if (f.b < 45.0 && f.r < 75.0 && f.rmb < 25.0) {
+                        stone = 1;
+                    }
+                }
+
+                // 3. 黒石テカリ (鏡面反射) 2ゾーン判定:
+                //    艶のある黒石に強いライトが当たると中心が白飛びして白石と誤認する問題を救済する。
+                //    中心ゾーン L* が高くても (白飛び) 、外周ドーナツが十分に暗く無彩色なら「黒石テカリ」と判定。
+                if (stone !== 1) {
+                    const centerL = f.meanCenterL ?? 128;
+                    const outerL = f.meanOuterL ?? 128;
+                    const isGlareSuspect = centerL > 180 && outerL < 80;
+                    if (isGlareSuspect && f.rmb < 30.0 && (!f.chroma || f.chroma < 20.0)) {
+                        stone = 1;
+                    }
+                }
+
+                // 4. 距離変換ピークによるサルベージ（密集石）
+                if (stone === 0) {
+                    if (f.maxDW >= 4.0 && f.maxDW > f.maxDB && f.rmb <= 25.0) {
+                        stone = 2;
+                    } else if (f.maxDB >= 3.5 && f.maxDB > f.maxDW && f.rmb < 30.0 && (f.r < 90.0 || f.normB < 0.92)) {
+                        stone = 1;
+                    }
                 }
             }
 
