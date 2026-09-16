@@ -84,8 +84,8 @@ func getPerspectiveMatrixFromCorners(corners [4]Point) [9]float64 {
 	}
 }
 
-// projectPoint は射影変換行列 H を適用して点 (x, y) を射影する
-func projectPoint(h [9]float64, x, y float64) Point {
+// ProjectPoint は射影変換行列 H を適用して点 (x, y) を射影する
+func ProjectPoint(h [9]float64, x, y float64) Point {
 	w := h[6]*x + h[7]*y + h[8]
 	if math.Abs(w) < 1e-9 {
 		w = 1e-9
@@ -131,8 +131,8 @@ func solveLinearSystem8x8(a [8][8]float64, b [8]float64) [8]float64 {
 	return x
 }
 
-// findHomographyLeastSquares は複数の対応点 (Norm -> Img) から最小二乗法でロバストなホモグラフィを求める
-func findHomographyLeastSquares(points []StarPoint) ([9]float64, error) {
+// FindHomographyLeastSquares は複数の対応点 (Norm -> Img) から最小二乗法でロバストなホモグラフィを求める
+func FindHomographyLeastSquares(points []StarPoint) ([9]float64, error) {
 	n := len(points)
 	if n < 4 {
 		return [9]float64{}, fmt.Errorf("at least 4 points required, got %d", n)
@@ -173,8 +173,8 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 	hInit := getPerspectiveMatrixFromCorners(initialCorners)
 
 	// 格子の推定1マス間隔 (ピクセル)
-	p00 := projectPoint(hInit, 0, 0)
-	p10 := projectPoint(hInit, 1.0/18.0, 0)
+	p00 := ProjectPoint(hInit, 0, 0)
+	p10 := ProjectPoint(hInit, 1.0/18.0, 0)
 	approxSpacing := math.Hypot(p10.X-p00.X, p10.Y-p00.Y)
 	searchRadius := int(math.Max(4, math.Round(approxSpacing*r.SearchRadiusRatio)))
 
@@ -190,7 +190,7 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 		normX := float64(gx) / 18.0
 		normY := float64(gy) / 18.0
 
-		pred := projectPoint(hInit, normX, normY)
+		pred := ProjectPoint(hInit, normX, normY)
 		cx := int(math.Round(pred.X))
 		cy := int(math.Round(pred.Y))
 
@@ -294,20 +294,74 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 	return detectedStars
 }
 
+// FindHomographyRANSAC は複数の星候補から RANSAC により外れ値（石や影）を除外し、
+// 最良のインライア星群とそのホモグラフィ行列を返す
+func FindHomographyRANSAC(stars []StarPoint, maxReprojErr float64) ([9]float64, []StarPoint, error) {
+	numStars := len(stars)
+	if numStars < 4 {
+		return [9]float64{}, nil, fmt.Errorf("at least 4 stars required, got %d", numStars)
+	}
+
+	bestInliers := []StarPoint{}
+	var bestH [9]float64
+	iters := 150
+	if numStars == 4 {
+		iters = 1
+	}
+
+	for it := 0; it < iters; it++ {
+		i1 := it % numStars
+		i2 := (it*3 + 1) % numStars
+		i3 := (it*7 + 2) % numStars
+		i4 := (it*11 + 3) % numStars
+		if i1 == i2 || i1 == i3 || i1 == i4 || i2 == i3 || i2 == i4 || i3 == i4 {
+			continue
+		}
+		sample := []StarPoint{stars[i1], stars[i2], stars[i3], stars[i4]}
+		h, err := FindHomographyLeastSquares(sample)
+		if err != nil {
+			continue
+		}
+
+		var inliers []StarPoint
+		for _, s := range stars {
+			p := ProjectPoint(h, s.NormX, s.NormY)
+			if math.Hypot(p.X-s.ImgX, p.Y-s.ImgY) <= maxReprojErr {
+				inliers = append(inliers, s)
+			}
+		}
+		if len(inliers) > len(bestInliers) {
+			bestInliers = inliers
+			bestH = h
+		}
+	}
+
+	if len(bestInliers) < 4 {
+		return [9]float64{}, nil, fmt.Errorf("no valid 4-point inlier set found")
+	}
+
+	// インライア全点を用いて再最小二乗フィッティング
+	hRefined, err := FindHomographyLeastSquares(bestInliers)
+	if err != nil {
+		return bestH, bestInliers, nil
+	}
+	return hRefined, bestInliers, nil
+}
+
 // RefineCornersWithStarPoints は検出された星（花点）を用いてホモグラフィを再推定し、真の4隅を精密化する。
 // 天板奥側（上辺）が外周石や影により縮んで検出された場合にも対応するため、
 // マルチスケール候補（外周拡張）から最も幾何学的整合性の高い星群を自動選択する。
 func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, initialCorners [4]Point) ([4]Point, int) {
 	w := float64(img.Bounds().Dx())
 	h := float64(img.Bounds().Dy())
-	maxReprojAllowed := math.Max(15.0, math.Max(w, h)*0.012)
-	maxAllowedDev := math.Max(w, h) * 0.15
+	maxReprojAllowed := math.Max(15.0, math.Max(w, h)*0.015)
+	maxAllowedDev := math.Max(w, h) * 0.20
 
 	tl, tr, br, bl := initialCorners[0], initialCorners[1], initialCorners[2], initialCorners[3]
 
 	// 候補四隅群の生成:
 	// 1. まず初期四隅そのまま (dWidth = 0) で星検出を試みる
-	// 2. 初期四隅で十分な星 (>= 7個) が低誤差で検出できればそれを最優先採用
+	// 2. 初期四隅で十分な星 (>= 4個) が低誤差で検出できれば採用
 	// 3. 奥側の石密集でブロブが縮んでいる場合のみ、外側拡張候補 (dw > 0) を探索
 	dWidths := []float64{0.0, 40.0, 80.0, 120.0, 160.0}
 	type candidateResult struct {
@@ -328,42 +382,39 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 		}
 
 		detectedStars := r.DetectStarPoints(img, candCorners)
-		if len(detectedStars) < r.MinStarsForRefine {
+		if len(detectedStars) < 4 {
 			continue
 		}
 
-		hRefined, err := findHomographyLeastSquares(detectedStars)
-		if err != nil {
+		// RANSAC により外れ値星（石や木目影の誤検出）を棄却
+		hRefined, inlierStars, err := FindHomographyRANSAC(detectedStars, maxReprojAllowed)
+		if err != nil || len(inlierStars) < 4 {
 			continue
 		}
 
 		refined := [4]Point{
-			projectPoint(hRefined, 0, 0),
-			projectPoint(hRefined, 1, 0),
-			projectPoint(hRefined, 1, 1),
-			projectPoint(hRefined, 0, 1),
+			ProjectPoint(hRefined, 0, 0),
+			ProjectPoint(hRefined, 1, 0),
+			ProjectPoint(hRefined, 1, 1),
+			ProjectPoint(hRefined, 0, 1),
 		}
 
-		// 再投影誤差
+		// 再投影誤差 (インライアのみ)
 		totalReprojErr := 0.0
 		totalConf := 0.0
-		for _, star := range detectedStars {
-			proj := projectPoint(hRefined, star.NormX, star.NormY)
+		for _, star := range inlierStars {
+			proj := ProjectPoint(hRefined, star.NormX, star.NormY)
 			errD := math.Hypot(proj.X-star.ImgX, proj.Y-star.ImgY)
 			totalReprojErr += errD
 			totalConf += star.Confidence
 		}
-		meanReprojErr := totalReprojErr / float64(len(detectedStars))
-
-		if meanReprojErr > maxReprojAllowed {
-			continue
-		}
+		meanReprojErr := totalReprojErr / float64(len(inlierStars))
 
 		// 妥当性チェック
 		oob := false
 		for i := 0; i < 4; i++ {
-			if refined[i].X < -50 || refined[i].X > w+50 ||
-				refined[i].Y < -50 || refined[i].Y > h+50 {
+			if refined[i].X < -80 || refined[i].X > w+80 ||
+				refined[i].Y < -80 || refined[i].Y > h+80 {
 				oob = true
 				break
 			}
@@ -377,11 +428,11 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 			continue
 		}
 
-		// ベース (dw == 0) で星が 7個以上・低誤差なら即座に採用
-		if dw == 0.0 && len(detectedStars) >= 7 && meanReprojErr <= 9.0 {
+		// ベース (dw == 0) で星が 6個以上・低誤差なら即座に採用
+		if dw == 0.0 && len(inlierStars) >= 6 && meanReprojErr <= 10.0 {
 			bestCand = &candidateResult{
 				refined:       refined,
-				stars:         detectedStars,
+				stars:         inlierStars,
 				meanReprojErr: meanReprojErr,
 				score:         1e9,
 				dWidth:        dw,
@@ -389,13 +440,13 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 			break
 		}
 
-		// 総合スコア: 星の数重視 (1個あたり+15点)、再投影誤差ペナルティ (-1点/px)、拡張ペナルティ
-		score := float64(len(detectedStars))*15.0 - meanReprojErr*1.5 + totalConf*5.0 - dw*0.1
+		// 総合スコア: インライア星数重視 (+20点)、再投影誤差ペナルティ (-1.5点/px)、拡張ペナルティ
+		score := float64(len(inlierStars))*20.0 - meanReprojErr*1.5 + totalConf*5.0 - dw*0.1
 
 		if bestCand == nil || score > bestCand.score {
 			bestCand = &candidateResult{
 				refined:       refined,
-				stars:         detectedStars,
+				stars:         inlierStars,
 				meanReprojErr: meanReprojErr,
 				score:         score,
 				dWidth:        dw,

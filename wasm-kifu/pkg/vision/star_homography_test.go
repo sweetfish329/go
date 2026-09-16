@@ -88,15 +88,15 @@ func TestStarHomography_TestImage(t *testing.T) {
 		t.Logf("  Star (%d,%d) at (%.1f, %.1f) conf=%.2f", s.GridX, s.GridY, s.ImgX, s.ImgY, s.Confidence)
 	}
 
-	hFromTrueStars, err := findHomographyLeastSquares(starsGT)
+	hFromTrueStars, err := FindHomographyLeastSquares(starsGT)
 	if err != nil {
-		t.Fatalf("findHomographyLeastSquares failed: %v", err)
+		t.Fatalf("FindHomographyLeastSquares failed: %v", err)
 	}
 	cornersFromTrueStars := [4]Point{
-		projectPoint(hFromTrueStars, 0, 0),
-		projectPoint(hFromTrueStars, 1, 0),
-		projectPoint(hFromTrueStars, 1, 1),
-		projectPoint(hFromTrueStars, 0, 1),
+		ProjectPoint(hFromTrueStars, 0, 0),
+		ProjectPoint(hFromTrueStars, 1, 0),
+		ProjectPoint(hFromTrueStars, 1, 1),
+		ProjectPoint(hFromTrueStars, 0, 1),
 	}
 	t.Logf("Corners from True Stars:")
 	for i, c := range cornersFromTrueStars {

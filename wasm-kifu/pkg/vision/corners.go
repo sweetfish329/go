@@ -344,7 +344,26 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	aL, bL := fitVertLine(leftPts)
 	aR, bR := fitVertLine(rightPts)
 
-	// 底辺直線: RANSAC 水平直線フィッティング (単一ピクセルの外れ値・木口側面突起耐性)
+	// 底辺直線: RANSAC 水平直線フィッティング (手前の石オクルージョン・凹み耐性)
+	// 手前に碁石が密集していると木目が上に凹むため、最深部（深さ上位25%の点群）を優先
+	if len(botPts) >= 15 {
+		var ys []float64
+		for _, p := range botPts {
+			ys = append(ys, p.Y)
+		}
+		sort.Float64s(ys)
+		p75Y := ys[int(float64(len(ys))*0.75)]
+		var deepBotPts []Point
+		for _, p := range botPts {
+			if p.Y >= p75Y-140.0 {
+				deepBotPts = append(deepBotPts, p)
+			}
+		}
+		if len(deepBotPts) >= 8 {
+			botPts = deepBotPts
+		}
+	}
+
 	fitHorizLine := func(pts []Point) (float64, float64) {
 		n := len(pts)
 		if n < 5 {
@@ -354,22 +373,23 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		maxInliers := 0
 		bestC, bestD := 0.0, 0.0
 
-		for iter := 0; iter < 100; iter++ {
+		for iter := 0; iter < 120; iter++ {
 			i1 := (iter * 19) % n
 			i2 := (iter*37 + 11) % n
-			if i1 == i2 || math.Abs(pts[i1].X-pts[i2].X) < 30.0 {
+			if i1 == i2 || math.Abs(pts[i1].X-pts[i2].X) < 40.0 {
 				continue
 			}
 			p1, p2 := pts[i1], pts[i2]
 			c := (p2.Y - p1.Y) / (p2.X - p1.X)
-			if math.Abs(c) > 0.6 {
+			// 水平に近い直線のみ (急勾配な偽エッジや伝票フチの遮断: |c| <= 0.18)
+			if math.Abs(c) > 0.18 {
 				continue
 			}
 			d := p1.Y - c*p1.X
 
 			var inliers []Point
 			for _, p := range pts {
-				if math.Abs(p.Y-(c*p.X+d)) < 25.0 {
+				if math.Abs(p.Y-(c*p.X+d)) < 30.0 {
 					inliers = append(inliers, p)
 				}
 			}
@@ -474,8 +494,9 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		{X: detBL.X, Y: detBL.Y},
 	}
 
-	// 9. 木枠マージンインセット逆算 (NotebookLM 幾何モデル: 片側約 1.2%)
-	gridCorners := ApplyMarginInset(rawOuter, 0.012, 0.012)
+	// 9. 木枠マージンインセット逆算 (日本の碁盤標準: 片側約 3.2% / 2.5%)
+	// 木枠天板の端から内側の「1線（外枠格子線）」の4交点へと高精度縮退
+	gridCorners := ApplyMarginInset(rawOuter, 0.032, 0.025)
 
 	// 10. 星（花点・天元）によるホモグラフィ精密化 (Star Points Homography Refinement)
 	// 盤面上の黒丸ドット（星）を検出し、木枠マージン誤差や射影歪みを非線形・最小二乗補正
