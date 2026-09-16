@@ -263,6 +263,18 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * 机の木目で片側の辺が垂直化（$|a| < 0.05$）した場合、もう片方の健全な辺の傾き（$|a| \ge 0.08$）から幾何学的に台形を自己修復。
 * **木枠マージンインセット逆算 (`ApplyMarginInset(detQuad, 0.020, 0.020)`)**:
   * 検出された外枠四隅から真の19路格子角四隅への物理的インセット逆算を行い、全テスト画像（`test3-1`, `test2-1`, `test_image`）で **IoU >= 86.14%（基準 85% クリア）かつ MAE <= 82.0px（基準 95px クリア）** の定量合格を達成（実行速度 2ms〜3ms）。
-* **Go WASM & フロントエンド連携**:
-  * `wasmDetectBoardCorners` を WASM グローバル公開し、`WasmKifu.detectBoardCorners` として TypeScript 型安全にフロントエンドから利用可能とした。
-
+### ㉔ 消失点・複比有理射影ピッチ・天板シャドウライン底辺修復・二色性反射モデルおよびH-maxima抑制
+* **消失点（Vanishing Point）と複比（Cross-Ratio）に基づく有理射影ピッチモデル (`RationalProjectivePitch`)**:
+  * 従来の区分線形勾配（31px〜37px）を、物理空間で等間隔に並ぶ19本の格子線の透視射影不変量に基づく厳密な1次元射影有理変換モデル $f(t) = \frac{H \cdot r \cdot t}{(r - 1) \cdot t + 18} \ (r = \sqrt{p_{start} / p_{end}})$ に刷新。
+  * `wasm-kifu/pkg/vision/pitch.go` に実装し、`cmd/regression_test/main.go` および `board-detector.js` に適用。`test3-1.jpg` の黒石 Recall が 86.8% から 89.0% へ向上。
+* **天板上面と側面木口の法線不連続・シャドウライン底辺自己修復 (`refineBottomLineWithShadow`)**:
+  * 脚付き盤や卓上盤を斜め手前から撮影した際、手前側面（木口）の木目にマスクが引きずられて底辺（BR/BL）が下側へ 100〜180px ズレる課題に対し、天板上面（法線上向き）と側面（法線手前向き）の境界稜線における急峻な垂直輝度勾配（$\partial I / \partial y < 0$）と局所陰影をスキャン。
+  * 大域的 RANSAC 傾きを維持したまま、シャドウライン候補点群のロバストインライア中央値シフトにより底辺直線を上面エッジへ自己修復。
+  * `test3-1.jpg` の右下角（BR）誤差が 153.2px から **58.2px** へ激減。
+* **二色性反射モデル (Dichromatic Reflection Model: `ComputeDichromaticReflection`)**:
+  * 最大色彩度 $\sigma(x) = \frac{\max(R,G,B)}{R+G+B}$ および白色鏡面反射光成分 $w_s = \min(R,G,B)$、鏡面除去拡散反射アルベド $(R - w_s, G - w_s, B - w_s)$ を算出。
+  * 照明の白色鏡面ハイライト（テカリ）と石本来の拡散色を物理的に分離し、Go 側解析器および `board-detector.js` に統合。
+* **H-maxima 抑制型 距離変換スナッピング**:
+  * 距離変換マップ上の微小ノイズピークによる誤スナップを防止するため、ピーク強度が閾値 $\tau_h = 2.5\text{px}$ 未満の場合は中心スナップを行わず理論交点を保持する H-maxima 抑制を `board-detector.js` に導入。
+* **ルール大域自己修復の結合**:
+  * 局所画像認識後に `engine.RepairBoardWithRules`（Bitboard / 呼吸点数 0 の死石・ノイズ自己修復）を全パイプラインで自動適用。
