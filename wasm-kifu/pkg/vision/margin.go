@@ -60,6 +60,56 @@ func MeasureDynamicWoodMargins(img image.Image, rawOuter [4]Point) [4]float64 {
 		return nx, ny
 	}
 
+	// 1D メディアンフィルタ (木目高周波ノイズ除去)
+	medianFilter1D := func(data []float64, window int) []float64 {
+		n := len(data)
+		res := make([]float64, n)
+		r := window / 2
+		for i := 0; i < n; i++ {
+			var vals []float64
+			for j := i - r; j <= i+r; j++ {
+				if j >= 0 && j < n {
+					vals = append(vals, data[j])
+				}
+			}
+			sort.Float64s(vals)
+			res[i] = vals[len(vals)/2]
+		}
+		return res
+	}
+
+	// Huber 損失 M-推定 (IRLS) によるロバスト平均マージン決定
+	huberMEstimate := func(samples []float64) float64 {
+		if len(samples) == 0 {
+			return 0
+		}
+		sort.Float64s(samples)
+		mu := samples[len(samples)/2] // 初期値: メディアン
+		delta := 6.0                  // 閾値: 6px
+
+		for iter := 0; iter < 10; iter++ {
+			var sumW, sumWX float64
+			for _, x := range samples {
+				r := math.Abs(x - mu)
+				w := 1.0
+				if r > delta {
+					w = delta / r
+				}
+				sumW += w
+				sumWX += w * x
+			}
+			if sumW < 1e-6 {
+				break
+			}
+			newMu := sumWX / sumW
+			if math.Abs(newMu-mu) < 0.05 {
+				break
+			}
+			mu = newMu
+		}
+		return mu
+	}
+
 	measureEdge := func(p1, p2 Point, defaultMargin float64) float64 {
 		nx, ny := getNormalTowardsCenter(p1, p2)
 		if nx == 0 && ny == 0 {
@@ -67,38 +117,65 @@ func MeasureDynamicWoodMargins(img image.Image, rawOuter [4]Point) [4]float64 {
 		}
 
 		var measured []float64
-		numSamples := 17 // 17箇所で走査
+		numSamples := 21 // 21箇所で高密度走査
+
+		// 1マスの推定ピッチ (18路で18等分)
+		gridPitch := math.Hypot(p2.X-p1.X, p2.Y-p1.Y) / 18.0
+		// 木枠マージンは物理的に1マス間隔未満 (最大でも 0.80 * pitch)
+		maxScan := math.Min(maxScanDist, gridPitch*0.80)
 
 		for i := 2; i <= numSamples-2; i++ {
 			t := float64(i) / float64(numSamples-1)
 			startX := p1.X*(1-t) + p2.X*t
 			startY := p1.Y*(1-t) + p2.Y*t
 
-			baseWoodGray := getGray(int(startX+nx*5.0), int(startY+ny*5.0))
-			minGray := 1e9
-			bestDist := -1.0
+			// 1. Circle-First / Blob Masking: 始点近傍の木目性チェック
+			r0, g0, b0 := getRGB(int(startX+nx*5.0), int(startY+ny*5.0))
+			gray0 := 0.299*r0 + 0.587*g0 + 0.114*b0
+			// 木目色でない（白石、黒石、暗い影）場合は碁石遮蔽としてスキップ
+			if r0 < b0+12.0 || gray0 < 70.0 || gray0 > 205.0 {
+				continue
+			}
 
-			for d := 6.0; d <= maxScanDist; d += 1.0 {
+			// 2. 1D プロファイル走査 (d = 4px 〜 maxScan)
+			var dists []float64
+			var grays []float64
+			for d := 4.0; d <= maxScan; d += 1.0 {
 				sx := int(startX + nx*d)
 				sy := int(startY + ny*d)
-				gray := getGray(sx, sy)
+				dists = append(dists, d)
+				grays = append(grays, getGray(sx, sy))
+			}
 
-				if gray < minGray {
-					minGray = gray
+			if len(grays) < 10 {
+				continue
+			}
+
+			// 3. 1D メディアン平滑化で木目テクスチャの微小凹凸を除去
+			smoothed := medianFilter1D(grays, 5)
+
+			// 4. エッジエンベロープ（谷の局所極小 ＆ 2階差分曲率）
+			minVal := 1e9
+			bestDist := -1.0
+			for j := 2; j < len(smoothed)-2; j++ {
+				d := dists[j]
+				val := smoothed[j]
+				// 谷の曲率 (2階差分: 周囲より深く鋭く落ち込んでいること)
+				curv := (smoothed[j-2] + smoothed[j+2]) - 2*val
+				if val < minVal && curv > 7.0 {
+					minVal = val
 					bestDist = d
 				}
 			}
 
-			// コントラストチェック（木目背景より明らかに暗い格子線であること、かつ物理的範囲内）
-			if (baseWoodGray-minGray >= 14.0) && bestDist >= 10.0 && bestDist <= 85.0 {
+			// コントラストチェック（木目背景より明らかに暗く、物理的余白の範囲内）
+			if bestDist >= 10.0 && bestDist <= 85.0 && (gray0-minVal >= 12.0) {
 				measured = append(measured, bestDist)
 			}
 		}
 
 		if len(measured) >= 3 {
-			sort.Float64s(measured)
-			// 四分位範囲内（IQR）の中央値を採用して外れ値を除去
-			return measured[len(measured)/2]
+			return huberMEstimate(measured)
 		}
 
 		return defaultMargin

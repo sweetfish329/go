@@ -468,13 +468,28 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		bestTopY = medBlobTopY - 25.0 // 天板上端木枠の厚み分オフセット
 	}
 
-	// 上辺直線 RANSAC フィッティング (透視投影幾何拘束: 底辺の傾き cB との整合性)
-	cT, dT := cB, bestTopY-cB*float64(w)*0.5 // 初期値: 底辺の傾きを平行移動
+	// 上辺直線 RANSAC フィッティング (透視投影幾何拘束: 奥の上辺は水平消失点に向かって水平線へ収束)
+	// 底辺 cB に対し、奥の上辺は透視投影の比率により約 0.30〜0.40 * cB に収束する
+	perspectiveSlopeRatio := 0.35
+	cT := cB * perspectiveSlopeRatio
+	dT := bestTopY - cT*float64(w)*0.5 // 初期値: 透視収束傾きによる平行オフセット
+
 	if len(topPts) >= 10 {
 		fittedC, fittedD := fitHorizLine(topPts)
-		// 傾きが底辺と矛盾しない範囲 (|fittedC - cB| <= 0.12) かつ水平に近い場合
-		if math.Abs(fittedC-cB) <= 0.12 && math.Abs(fittedC) <= 0.18 {
-			cT, dT = fittedC, fittedD - 25.0 // 木枠上端厚みオフセット
+		// 透視幾何拘束: 底辺と同じ符号で、かつ底辺よりも水平に近い (0 <= fittedC/cB <= 1.0)
+		isPerspectiveConsistent := false
+		if math.Abs(cB) < 0.03 {
+			// 底辺がほぼ水平な場合
+			isPerspectiveConsistent = math.Abs(fittedC) <= 0.08
+		} else if cB > 0 {
+			isPerspectiveConsistent = fittedC >= -0.02 && fittedC <= cB*1.1
+		} else {
+			isPerspectiveConsistent = fittedC <= 0.02 && fittedC >= cB*1.1
+		}
+
+		if isPerspectiveConsistent {
+			cT = fittedC
+			dT = fittedD - 25.0 // 木枠上端厚みオフセット
 		}
 	}
 

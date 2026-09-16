@@ -40,7 +40,7 @@ func TestDynamicMarginShift(t *testing.T) {
 }
 
 func TestMeasureDynamicWoodMargins_Synthetic(t *testing.T) {
-	w, h := 200, 200
+	w, h := 600, 600
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 
 	// 木目背景 (R=180, G=130, B=80)
@@ -51,29 +51,33 @@ func TestMeasureDynamicWoodMargins_Synthetic(t *testing.T) {
 		}
 	}
 
-	// 黒い外枠格子線 (マージン 15px 内側: x=25, x=175, y=25, y=175)
+	// 黒い外枠格子線 (幅 3px: y=49..51, y=549..551, x=49..51, x=549..551)
 	blackColor := color.RGBA{R: 30, G: 30, B: 30, A: 255}
-	for x := 25; x <= 175; x++ {
-		img.Set(x, 25, blackColor)
-		img.Set(x, 175, blackColor)
+	for x := 48; x <= 552; x++ {
+		for dy := -1; dy <= 1; dy++ {
+			img.Set(x, 50+dy, blackColor)
+			img.Set(x, 550+dy, blackColor)
+		}
 	}
-	for y := 25; y <= 175; y++ {
-		img.Set(25, y, blackColor)
-		img.Set(175, y, blackColor)
+	for y := 48; y <= 552; y++ {
+		for dx := -1; dx <= 1; dx++ {
+			img.Set(50+dx, y, blackColor)
+			img.Set(550+dx, y, blackColor)
+		}
 	}
 
 	rawOuter := [4]Point{
-		{X: 10, Y: 10},   // TL
-		{X: 190, Y: 10},  // TR
-		{X: 190, Y: 190}, // BR
-		{X: 10, Y: 190},  // BL
+		{X: 30, Y: 30},   // TL
+		{X: 570, Y: 30},  // TR
+		{X: 570, Y: 570}, // BR
+		{X: 30, Y: 570},  // BL
 	}
 
 	margins := MeasureDynamicWoodMargins(img, rawOuter)
-	// 期待マージン: 25 - 10 = 15px
+	// 期待マージン: 50 - 30 = 20px
 	for i, m := range margins {
-		if m < 13.0 || m > 17.0 {
-			t.Errorf("margin[%d] = %.1f, expected approx 15.0", i, m)
+		if m < 17.0 || m > 23.0 {
+			t.Errorf("margin[%d] = %.1f, expected approx 20.0", i, m)
 		}
 	}
 }
