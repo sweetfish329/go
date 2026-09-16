@@ -113,6 +113,23 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
       area: number;
       confidence: number;
     };
+    detectAndWarp(
+      rgbaData: Uint8ClampedArray | Uint8Array,
+      width: number,
+      height: number,
+    ): {
+      corners: Array<{ x: number; y: number }>;
+      area: number;
+      confidence: number;
+      warpedWidth: number;
+      warpedHeight: number;
+      warpedRgbaBase64: string;
+    };
+    detectWarpAndAnalyze(
+      rgbaData: Uint8ClampedArray | Uint8Array,
+      width: number,
+      height: number,
+    ): FullBoardResult;
   }
 }
 

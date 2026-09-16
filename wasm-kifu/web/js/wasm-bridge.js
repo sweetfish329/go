@@ -204,6 +204,56 @@ class WasmKifu {
     }
 
     /**
+     * 四隅検出 + 射影変換をGo WASM側で一括実行する (Step 1+2 統合API)
+     *
+     * フロー: 四隅自動検出 → 碁盤の1.077比アスペクト判定 → 射影変換（平面化）
+     * 返却された warpedRgbaBase64 を使ってJS側で canvas に描画したり、
+     * さらに extractFeatures に渡す用途に使用できる。
+     *
+     * @param {Uint8ClampedArray|Uint8Array} rgbaData - RGBAピクセル配列 (width * height * 4)
+     * @param {number} width - 画像幅
+     * @param {number} height - 画像高さ
+     * @returns {Object} {
+     *   corners: Array<{x, y}>,   // 検出した四隅座標
+     *   area: number,
+     *   confidence: number,
+     *   warpedWidth: number,       // 変換後の画像幅
+     *   warpedHeight: number,      // 変換後の画像高さ
+     *   warpedRgbaBase64: string   // Base64エンコードされたRGBA画素列
+     * }
+     */
+    detectAndWarp(rgbaData, width, height) {
+        this._checkReady();
+        const u8 = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData.buffer, rgbaData.byteOffset, rgbaData.byteLength);
+        const result = wasmDetectAndWarp(u8, width, height);
+        return JSON.parse(result);
+    }
+
+    /**
+     * 四隅検出 → 射影変換 → 特徴量抽出 → 盤面認識まで、全パイプラインをGo WASM側で完結させる (フル統合API)
+     *
+     * OpenCV.jsへの依存なしに、一回のWASM呼び出しで盤面の石配置を取得できる。
+     * board-detector.js の detect() / extractFeatures() + analyzeFullBoard() の代替。
+     *
+     * @param {Uint8ClampedArray|Uint8Array} rgbaData - RGBAピクセル配列 (width * height * 4)
+     * @param {number} width - 画像幅
+     * @param {number} height - 画像高さ
+     * @returns {Object} FullBoardResult {
+     *   grid: number[],       // 361要素 (row-major: y*19+x), 0=空, 1=黒, 2=白
+     *   confidence: number,
+     *   blackCount: number,
+     *   whiteCount: number,
+     *   emptyCount: number
+     * }
+     */
+    detectWarpAndAnalyze(rgbaData, width, height) {
+        this._checkReady();
+        const u8 = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData.buffer, rgbaData.byteOffset, rgbaData.byteLength);
+        const result = wasmDetectWarpAndAnalyze(u8, width, height);
+        return JSON.parse(result);
+    }
+
+    /**
      * 直前の着手情報を取得
      * @returns {Object} {x: number, y: number, color: string, moveNumber: number, isPass: boolean}
      */

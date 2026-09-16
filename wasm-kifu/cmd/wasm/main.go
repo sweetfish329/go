@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -209,6 +210,101 @@ func detectBoardCornersWrapper(this js.Value, args []js.Value) any {
 		res.Area, res.Confidence)
 }
 
+// detectAndWarpWrapper は四隅検出 + 射影変換をGo WASM側で一括実行する。
+// 返却JSON: {"corners":[...], "area":..., "confidence":...,
+//
+//	"warpedWidth":680, "warpedHeight":732,
+//	"warpedRgbaBase64":"..."}
+func detectAndWarpWrapper(this js.Value, args []js.Value) any {
+	if len(args) < 3 {
+		return `{"error": "invalid arguments"}`
+	}
+	uint8Array := args[0]
+	w := args[1].Int()
+	h := args[2].Int()
+
+	length := w * h * 4
+	pix := make([]byte, length)
+	js.CopyBytesToGo(pix, uint8Array)
+
+	img := &image.RGBA{
+		Pix:    pix,
+		Stride: w * 4,
+		Rect:   image.Rect(0, 0, w, h),
+	}
+
+	// Step 1: 四隅検出
+	res, err := vision.DetectBoardCorners(img)
+	if err != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, err.Error())
+	}
+
+	// Step 2: 縦横比から最適出力サイズを決定 → 射影変換
+	dstW, dstH, margin := vision.WarpSize(res.Corners)
+	warped := vision.WarpPerspectiveWithMargin(img, res.Corners, dstW, dstH, margin)
+
+	// RGBA バイト列を Base64 エンコードして返す
+	encoded := base64.StdEncoding.EncodeToString(warped.Pix)
+
+	return fmt.Sprintf(
+		`{"corners":[{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f}],"area":%.1f,"confidence":%.2f,"warpedWidth":%d,"warpedHeight":%d,"warpedRgbaBase64":"%s"}`,
+		res.Corners[0].X, res.Corners[0].Y,
+		res.Corners[1].X, res.Corners[1].Y,
+		res.Corners[2].X, res.Corners[2].Y,
+		res.Corners[3].X, res.Corners[3].Y,
+		res.Area, res.Confidence,
+		dstW, dstH, encoded,
+	)
+}
+
+// detectWarpAndAnalyzeWrapper は四隅検出 → 射影変換 → 特徴量抽出 → 盤面認識まで
+// 全パイプラインを Go WASM 側で完結させる。
+// 返却JSON: FullBoardResult {grid:[...361], confidence, blackCount, whiteCount, emptyCount}
+func detectWarpAndAnalyzeWrapper(this js.Value, args []js.Value) any {
+	if len(args) < 3 {
+		return `{"error": "invalid arguments"}`
+	}
+	uint8Array := args[0]
+	w := args[1].Int()
+	h := args[2].Int()
+
+	length := w * h * 4
+	pix := make([]byte, length)
+	js.CopyBytesToGo(pix, uint8Array)
+
+	img := &image.RGBA{
+		Pix:    pix,
+		Stride: w * 4,
+		Rect:   image.Rect(0, 0, w, h),
+	}
+
+	// Step 1: 四隅検出
+	cornersRes, err := vision.DetectBoardCorners(img)
+	if err != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, err.Error())
+	}
+
+	// Step 2: 射影変換（平面化）
+	dstW, dstH, margin := vision.WarpSize(cornersRes.Corners)
+	warped := vision.WarpPerspectiveWithMargin(img, cornersRes.Corners, dstW, dstH, margin)
+
+	// Step 3: 全361交点の特徴量抽出
+	featData := vision.ExtractBoardFeatures(warped, dstW, dstH)
+
+	// Step 4: 盤面認識（AnalyzeFullBoard は JSON 文字列を受け取る）
+	featJSON, jsonErr := json.Marshal(featData)
+	if jsonErr != nil {
+		return fmt.Sprintf(`{"error": "json marshal failed: %s"}`, jsonErr.Error())
+	}
+
+	result, analyzeErr := vision.AnalyzeFullBoard(string(featJSON))
+	if analyzeErr != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, analyzeErr.Error())
+	}
+
+	return result
+}
+
 func main() {
 	// グローバルオブジェクトに関数を登録する
 	js.Global().Set("wasmNewGame", js.FuncOf(newGameWrapper))
@@ -229,6 +325,8 @@ func main() {
 	js.Global().Set("wasmSetBoardFromGrid", js.FuncOf(setBoardFromGridWrapper))
 	js.Global().Set("wasmGetLastMoveInfo", js.FuncOf(getLastMoveInfoWrapper))
 	js.Global().Set("wasmDetectBoardCorners", js.FuncOf(detectBoardCornersWrapper))
+	js.Global().Set("wasmDetectAndWarp", js.FuncOf(detectAndWarpWrapper))
+	js.Global().Set("wasmDetectWarpAndAnalyze", js.FuncOf(detectWarpAndAnalyzeWrapper))
 
 	// WASM の実行を維持するためにチャネルで待機する
 	select {}

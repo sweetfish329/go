@@ -263,6 +263,7 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * 机の木目で片側の辺が垂直化（$|a| < 0.05$）した場合、もう片方の健全な辺の傾き（$|a| \ge 0.08$）から幾何学的に台形を自己修復。
 * **木枠マージンインセット逆算 (`ApplyMarginInset(detQuad, 0.020, 0.020)`)**:
   * 検出された外枠四隅から真の19路格子角四隅への物理的インセット逆算を行い、全テスト画像（`test3-1`, `test2-1`, `test_image`）で **IoU >= 86.14%（基準 85% クリア）かつ MAE <= 82.0px（基準 95px クリア）** の定量合格を達成（実行速度 2ms〜3ms）。
+
 ### ㉔ 消失点・複比有理射影ピッチ・天板シャドウライン底辺修復・二色性反射モデルおよびH-maxima抑制
 * **消失点（Vanishing Point）と複比（Cross-Ratio）に基づく有理射影ピッチモデル (`RationalProjectivePitch`)**:
   * 従来の区分線形勾配（31px〜37px）を、物理空間で等間隔に並ぶ19本の格子線の透視射影不変量に基づく厳密な1次元射影有理変換モデル $f(t) = \frac{H \cdot r \cdot t}{(r - 1) \cdot t + 18} \ (r = \sqrt{p_{start} / p_{end}})$ に刷新。
@@ -295,3 +296,22 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
 * **フロントエンド本体（`CameraCaptureModal.svelte`）への最新WASMエンジンの優先統合**:
   * **四隅自動検出の多段化**: `autoDetectCornersFromSource` および `autoDetectCornersFromVideo` において、古い OpenCV.js 直接呼び出しから、Go WASM（`kifu.detectBoardCorners`）を最優先で呼び出し、フォールバックとして OpenCV.js を呼ぶ共通関数 `detectCornersFromElement` にリファクタリング。
   * **全盤面解析の最新パイプライン統合**: 静止画読み込み時の盤面解析（`analyzeLoadedImage`）において、多次元特徴量（`features`）を抽出し、Go WASM の `kifu.analyzeFullBoard(features)` を最優先で実行するよう同期（失敗時は OpenCV.js フォールバック）。フロントエンド本体でも最新の 94% 超の超高精度・木目照り返し耐性による盤面復元が利用可能となった。
+
+### ㉗ 純Go WASM側への「四隅検出 → 射影変換（平面化） → 特徴量抽出 → 盤面認識」完全パイプライン統合
+* **OpenCV.js依存の解消とGo WASMパイプラインの一貫化**:
+  * 従来JavaScript（`board-detector.js` + OpenCV.js）側で行われていた「射影変換（平面化/正立化）」および「交点ドーナツ走査による多次元特徴量抽出」を純Goライブラリ（`pkg/vision/warp.go`）へ完全移植。
+  * これにより、「① 碁盤の四隅認識 (`DetectBoardCorners`)」→「② 歪み修正と平面化・成形 (`WarpPerspectiveWithMargin`)」→「③ 多次元特徴量抽出 (`ExtractBoardFeatures`)」→「④ 局所背景適応・ルール自己修復付き盤面認識 (`AnalyzeFullBoard`)」という全一連の処理がGo WASM内で完結。
+* **高精度バイリニア補間 & 射影変換（`WarpPerspectiveWithMargin`）**:
+  * ガウス消去法（部分ピボット選択）による8×8連立方程式解法により、4対応点から3×3射影行列（ホモグラフィ行列）を数学的に導出。
+  * 逆射影変換（dst → src）とバイリニア補間（双線形補間）ピクセルサンプリングを純Goで実装し、境界外クランプによる最外周アーティファクトを防止。
+  * 碁盤縦横比（約1.077）および撮影角度（縦長/横長）を自動判別し、適切な出力解像度（680×732 または 732×680）と外周マージン（40px）を設定する `WarpSize` を実装。
+* **有理関数透視ピッチ勾配 ＆ ドーナツ走査の純Go移植（`ExtractBoardFeatures`）**:
+  * 消失点複比モデルに基づく有理関数透視ピッチ配分（$pStart=33.0, pEnd=39.0$）を用いて、遠近感の残るワープ画像上の19×19格子交点中心を高精度に算出。
+  * 内半径2px（格子線の交差部除外）〜外半径7pxのドーナツ走査により、輝度 $L$、色度 $C$、不均一性 $D$、色相 $H$、彩度 $S$、木目度 $R-B$、YCrCb色差・Chromaを純Goで高速抽出。
+* **WASM API・JSブリッジ・フロントエンド型の拡充**:
+  * `cmd/wasm/main.go`:
+    * `wasmDetectAndWarp`: 四隅検出 ＋ 射影変換を一括実行し、平面化された正立画像（Base64エンコードRGBA）と検出四隅を返却。
+    * `wasmDetectWarpAndAnalyze`: 四隅検出から盤面認識（石配置・カウント）まで全パイプラインを1コールで完結実行。
+  * `wasm-bridge.js`: `detectAndWarp`, `detectWarpAndAnalyze` メソッドを追加。
+  * `vite-env.d.ts`: `WasmKifu` 型定義を更新し、`bun run check`（svelte-check）0エラー 0警告を維持。
+  * 単体テスト: `pkg/vision/warp_test.go` により `WarpSize`, `WarpPerspectiveWithMargin`, `ExtractBoardFeatures` の正常動作を100%保証。
