@@ -57,7 +57,7 @@ class BoardDetector {
     }
 
     /**
-     * 碁盤の4隅を設定（左上, 右上, 右下, 左下の順）
+     * 碁盤の4隅を設定（左上, 右上, 右下, 左下の順に自動正準化）
      * @param {Array<{x: number, y: number}>} corners - 4点の座標
      * @throws {Error} 4点でない場合
      */
@@ -65,7 +65,43 @@ class BoardDetector {
         if (corners.length !== 4) {
             throw new Error('Exactly 4 corner points required');
         }
-        this.cornerPoints = corners;
+        this.cornerPoints = this._orderCorners(corners);
+    }
+
+    /**
+     * 入力ソース (img, video, canvas) から真のピクセル解像度 (naturalWidth/Height) で cv.Mat を生成
+     * HTMLImageElement を直接 cv.imread に渡すと CSS表示サイズ (img.width) で
+     * 縮小されてしまい、naturalWidth との座標ズレを起こすブラウザ固有問題を防止する。
+     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement|cv.Mat} source
+     * @returns {cv.Mat}
+     * @private
+     */
+    _readSourceMat(source) {
+        if (!source) throw new Error('Source element is null or undefined');
+        if (typeof cv !== 'undefined' && source instanceof cv.Mat) {
+            return source.clone();
+        }
+        if (typeof HTMLImageElement !== 'undefined' && source instanceof HTMLImageElement) {
+            const width = source.naturalWidth || source.width;
+            const height = source.naturalHeight || source.height;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(source, 0, 0, width, height);
+            return cv.imread(canvas);
+        }
+        if (typeof HTMLVideoElement !== 'undefined' && source instanceof HTMLVideoElement) {
+            const width = source.videoWidth || source.width;
+            const height = source.videoHeight || source.height;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(source, 0, 0, width, height);
+            return cv.imread(canvas);
+        }
+        return cv.imread(source);
     }
 
     /**
@@ -104,7 +140,7 @@ class BoardDetector {
     autoDetectCorners(source) {
         if (!this.cvReady) throw new Error('OpenCV.js not loaded');
 
-        const srcMat = cv.imread(source);
+        const srcMat = this._readSourceMat(source);
         try {
             const width = srcMat.cols;
             const height = srcMat.rows;
@@ -670,7 +706,7 @@ class BoardDetector {
             }
         }
 
-        const srcMat = cv.imread(source);
+        const srcMat = this._readSourceMat(source);
         try {
             // 射影変換で正面図に補正
             const warped = this._perspectiveTransform(srcMat);
@@ -708,7 +744,7 @@ class BoardDetector {
             }
         }
 
-        const srcMat = cv.imread(source);
+        const srcMat = this._readSourceMat(source);
         try {
             const warped = this._perspectiveTransform(srcMat);
             try {
@@ -847,7 +883,7 @@ class BoardDetector {
             throw new Error('Corners not set');
         }
 
-        const srcMat = cv.imread(source);
+        const srcMat = this._readSourceMat(source);
         try {
             const warped = this._perspectiveTransform(srcMat);
             try {
@@ -1307,7 +1343,7 @@ class BoardDetector {
                         // =========================================================
                         // ステージ 2: 静止確定時のみ高解像度解析を1回だけ発火！
                         // =========================================================
-                        const srcMat = cv.imread(source);
+                        const srcMat = this._readSourceMat(source);
                         try {
                             const warped = this._perspectiveTransform(srcMat);
                             try {
