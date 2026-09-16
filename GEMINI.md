@@ -287,3 +287,11 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * デモ画面の「🎯 4隅自動検出」および画像読み込み時において、古い OpenCV.js 側の探索関数ではなく、RANSAC・上方向ブロブ追跡・天板シャドウライン修復を備えた最新の Go WASM 側 `kifu.detectBoardCorners(rgba, w, h)` を最優先で呼び出すよう統合。
 * **黒石判定 Chroma 条件の整合化**:
   * `analyzer.go` および `board-detector.js` 内で黒石判定全体を狭すぎる `Chroma < 12.0` で一括括りしていたのを、`regression_test` と同一の `Chroma < 22.0` / `Chroma < 18.0` / 局所暗部条件へ整合化し、木目照り返しのある黒石の取りこぼしを完全解消。
+
+### ㉖ コードベースクリーンアップとフロントエンド本体（CameraCaptureModal）への最新WASMパイプライン同期
+* **未使用・冗長コードの削除とメソッド統一**:
+  * `board-detector.js` において、未参照だった後方互換用メソッド `_detectCornersFromMat` を完全削除。
+  * `demo.js` 等で呼び出されていたが未定義だった `classifyBoard(source)` を `detect(source)` の正式なエイリアスメソッドとして実装し、`vite-env.d.ts` にも型宣言を整合追加。
+* **フロントエンド本体（`CameraCaptureModal.svelte`）への最新WASMエンジンの優先統合**:
+  * **四隅自動検出の多段化**: `autoDetectCornersFromSource` および `autoDetectCornersFromVideo` において、古い OpenCV.js 直接呼び出しから、Go WASM（`kifu.detectBoardCorners`）を最優先で呼び出し、フォールバックとして OpenCV.js を呼ぶ共通関数 `detectCornersFromElement` にリファクタリング。
+  * **全盤面解析の最新パイプライン統合**: 静止画読み込み時の盤面解析（`analyzeLoadedImage`）において、多次元特徴量（`features`）を抽出し、Go WASM の `kifu.analyzeFullBoard(features)` を最優先で実行するよう同期（失敗時は OpenCV.js フォールバック）。フロントエンド本体でも最新の 94% 超の超高精度・木目照り返し耐性による盤面復元が利用可能となった。
