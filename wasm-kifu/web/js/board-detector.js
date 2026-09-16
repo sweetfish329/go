@@ -1218,6 +1218,7 @@ class BoardDetector {
      * @private
      */
     _perspectiveTransform(srcMat) {
+        const p = this.corners;
         // 日本・韓国規格の碁盤縦横比（約 1.077: 42.4cm x 45.5cm）
         // 四隅の形状から縦長か横長かを判定
         const dxTop = Math.abs(p[1].x - p[0].x);

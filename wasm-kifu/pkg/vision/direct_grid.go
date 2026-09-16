@@ -66,7 +66,7 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 	}
 
 	// 1辺に沿って最外周格子線（1線）の点群を走査・サンプリング
-	sample1LinePoints := func(p1, p2 Point, isVertical bool, pitch float64) []Point {
+	sample1LinePoints := func(p1, p2 Point, edgeType string, pitch float64) []Point {
 		nx, ny := getNormalTowardsCenter(p1, p2)
 		if nx == 0 && ny == 0 {
 			return nil
@@ -74,28 +74,45 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 		var pts []Point
 		numSamples := 35
-		maxScanIn := math.Max(35.0, math.Min(75.0, pitch*0.85))
+
+		maxScanIn := math.Max(60.0, math.Min(220.0, pitch*2.5))
+		startScan := 18.0
+		minDrop := 16.0
+		maxVal := 105.0
+
+		switch edgeType {
+		case "top":
+			startScan = math.Max(70.0, pitch*0.9)
+			maxScanIn = math.Max(90.0, pitch*1.6)
+			minDrop = 8.0
+		case "left":
+			startScan = math.Max(35.0, pitch*0.5)
+			maxVal = 95.0 // 木目シミや節の除外
+		case "bot":
+			startScan = 12.0
+		case "right":
+			startScan = 18.0
+		}
+
+		startOffset := -math.Max(15.0, pitch*0.45)
+		endOffset := maxScanIn
 
 		for i := 2; i <= numSamples-2; i++ {
 			t := float64(i) / float64(numSamples-1)
 			baseX := p1.X*(1-t) + p2.X*t
 			baseY := p1.Y*(1-t) + p2.Y*t
 
-			// 外側 (base - n * pitch*0.45) から内側 (base + n * pitch*1.0) へのプロファイルをサンプリング
-			startOffset := -math.Max(15.0, pitch*0.45)
-			endOffset := maxScanIn
-
-			// 1. 木枠エッジ (外側から入って木目 R-B >= 22 が安定する地点)
+			// 1. 木枠エッジ (外側から入って木目 R-B >= 20 が安定する地点)
 			edgeDist := -999.0
 			for d := startOffset; d <= endOffset-15.0; d += 1.0 {
 				px := int(baseX + nx*d)
 				py := int(baseY + ny*d)
 				r, g, b := getRGB(px, py)
-				if r-b >= 22 && r >= 60 && r > g && g > b {
+				if r-b >= 20 && r >= 60 && r > g && g > b {
 					// 連続木目確認
 					r1, _, b1 := getRGB(int(baseX+nx*(d+2)), int(baseY+ny*(d+2)))
 					r2, _, b2 := getRGB(int(baseX+nx*(d+4)), int(baseY+ny*(d+4)))
-					if r1-b1 >= 22 && r2-b2 >= 22 {
+					if r1-b1 >= 20 && r2-b2 >= 20 {
 						edgeDist = d
 						break
 					}
@@ -105,40 +122,35 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 				continue
 			}
 
-			// 2. 木枠エッジから内側へ最初の黒谷 (first dark valley) を探索
-			var profile []float64
-			var dists []float64
-			for d := edgeDist + 8.0; d <= edgeDist+maxScanIn; d += 1.0 {
+			// 2. 木枠エッジから内側へ最初に出現する漆黒線 (first significant dark valley) を探索
+			bestDist := -1.0
+			for d := edgeDist + startScan; d <= edgeDist+maxScanIn; d += 1.0 {
 				px := int(baseX + nx*d)
 				py := int(baseY + ny*d)
-				profile = append(profile, getGray(px, py))
-				dists = append(dists, d)
-			}
-			if len(profile) < 10 {
-				continue
-			}
-
-			bestDist := -1.0
-			for k := 3; k < len(profile)-3; k++ {
-				val := profile[k]
-				isValley := true
-				for m := 1; m <= 2; m++ {
-					if profile[k-m] <= val || profile[k+m] < val {
-						isValley = false
-						break
-					}
+				val := getGray(px, py)
+				if val > maxVal {
+					continue
 				}
-				if isValley {
-					base := (profile[k-3] + profile[k+3]) / 2.0
-					if base-val >= 8.0 {
-						bestDist = dists[k]
-						break // エッジ内側で最初に出現した黒谷 = 1線！
+
+				bgL := getGray(int(baseX+nx*(d-6)), int(baseY+ny*(d-6)))
+				bgR := getGray(int(baseX+nx*(d+6)), int(baseY+ny*(d+6)))
+				base := (bgL + bgR) / 2.0
+				drop := base - val
+				if drop >= minDrop {
+					// 局所最小点（谷の底）までアライメント
+					for dNext := d + 1.0; dNext <= d+6.0; dNext += 1.0 {
+						valNext := getGray(int(baseX+nx*dNext), int(baseY+ny*dNext))
+						if valNext < val {
+							val = valNext
+							d = dNext
+						}
 					}
+					bestDist = d
+					break // 最初に出現した漆黒線 = 1線！2線へは行かない！
 				}
 			}
 
-			// 妥当な距離 (木枠から 12px 〜 maxScanIn)
-			if bestDist > edgeDist+12.0 && bestDist <= edgeDist+maxScanIn {
+			if bestDist != -1.0 {
 				pts = append(pts, Point{
 					X: baseX + nx*bestDist,
 					Y: baseY + ny*bestDist,
@@ -249,10 +261,10 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 	}
 
 	// 1. 各辺の1線点群をサンプリング
-	ptsTop := sample1LinePoints(rawOuter[0], rawOuter[1], false, pitchH)
-	ptsRight := sample1LinePoints(rawOuter[1], rawOuter[2], true, pitchW)
-	ptsBot := sample1LinePoints(rawOuter[3], rawOuter[2], false, pitchH)
-	ptsLeft := sample1LinePoints(rawOuter[0], rawOuter[3], true, pitchW)
+	ptsTop := sample1LinePoints(rawOuter[0], rawOuter[1], "top", pitchH)
+	ptsRight := sample1LinePoints(rawOuter[1], rawOuter[2], "right", pitchW)
+	ptsBot := sample1LinePoints(rawOuter[3], rawOuter[2], "bot", pitchH)
+	ptsLeft := sample1LinePoints(rawOuter[0], rawOuter[3], "left", pitchW)
 
 	// 2. 4直線の方程式をフィッティング
 	// まず手前で鮮明な底辺直線 (cBot, dBot) をフィッティング
@@ -364,7 +376,7 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 		// (木枠エッジそのものを拾ってしまった場合や過大発散した場合は安全にフォールバック)
 		if areaRaw > 100 && area1Line > 100 {
 			ratio := area1Line / areaRaw
-			if ratio >= 0.80 && ratio <= 0.985 {
+			if ratio >= 0.70 && ratio <= 0.985 {
 				// 各頂点が画像内かつ木枠外形の内側（中心側）に収まっているか検証
 				valid := true
 				for _, c := range corners {

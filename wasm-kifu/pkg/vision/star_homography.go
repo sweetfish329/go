@@ -27,7 +27,7 @@ type StarHomographyRefiner struct {
 func NewStarHomographyRefiner() *StarHomographyRefiner {
 	return &StarHomographyRefiner{
 		MinStarsForRefine: 4,
-		SearchRadiusRatio: 0.35,
+		SearchRadiusRatio: 0.32,
 	}
 }
 
@@ -176,11 +176,19 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 	p00 := ProjectPoint(hInit, 0, 0)
 	p10 := ProjectPoint(hInit, 1.0/18.0, 0)
 	approxSpacing := math.Hypot(p10.X-p00.X, p10.Y-p00.Y)
-	searchRadius := int(math.Max(4, math.Round(approxSpacing*r.SearchRadiusRatio)))
+	searchRadius := int(math.Max(6, math.Round(approxSpacing*r.SearchRadiusRatio)))
+	donutRadius := math.Max(8.0, math.Min(16.0, approxSpacing*0.22))
 
 	getRGB := func(x, y int) (float64, float64, float64) {
+		if x < 0 || x >= w || y < 0 || y >= h {
+			return 0, 0, 0
+		}
 		r32, g32, b32, _ := img.At(x, y).RGBA()
 		return float64(r32 >> 8), float64(g32 >> 8), float64(b32 >> 8)
+	}
+	getGray := func(x, y int) float64 {
+		r, g, b := getRGB(x, y)
+		return 0.299*r + 0.587*g + 0.114*b
 	}
 
 	var detectedStars []StarPoint
@@ -194,64 +202,55 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 		cx := int(math.Round(pred.X))
 		cy := int(math.Round(pred.Y))
 
-		if cx-searchRadius < 2 || cx+searchRadius >= w-2 || cy-searchRadius < 2 || cy+searchRadius >= h-2 {
+		if cx-searchRadius < 5 || cx+searchRadius >= w-5 || cy-searchRadius < 5 || cy+searchRadius >= h-5 {
 			continue
 		}
 
-		// 探索ウィンドウ内で星（黒ドット）の探索
-		// 背景木目色のサンプリング（外枠リング）
-		var bgR, bgG, bgB, bgCount float64
+		bestX, bestY := -1, -1
+		bestContrast := -1.0
+		bestBgGray := 0.0
+
+		// 探索ウィンドウ内で星ドット（中心が暗く、周囲360度がすべて木目）を探索
 		for dy := -searchRadius; dy <= searchRadius; dy++ {
 			for dx := -searchRadius; dx <= searchRadius; dx++ {
-				dist := math.Hypot(float64(dx), float64(dy))
-				if dist >= float64(searchRadius)*0.75 && dist <= float64(searchRadius) {
-					px := cx + dx
-					py := cy + dy
-					if px >= 0 && px < w && py >= 0 && py < h {
-						cr, cg, cb := getRGB(px, py)
-						bgR += cr
-						bgG += cg
-						bgB += cb
-						bgCount++
-					}
-				}
-			}
-		}
-
-		if bgCount < 5 {
-			continue
-		}
-		bgR /= bgCount
-		bgG /= bgCount
-		bgB /= bgCount
-		bgGray := 0.299*bgR + 0.587*bgG + 0.114*bgB
-
-		// 木目判定（背景が木目色であること: R > B + 15）
-		if bgR-bgB < 15 || bgGray < 40 {
-			// 背景が木目でない場合（石で完全に覆われているか盤外）
-			continue
-		}
-
-		// 中心近傍で局所最小輝度（黒ドット）を探索
-		minGray := 1e9
-		bestX, bestY := cx, cy
-		for dy := -searchRadius + 1; dy <= searchRadius - 1; dy++ {
-			for dx := -searchRadius + 1; dx <= searchRadius - 1; dx++ {
 				px := cx + dx
 				py := cy + dy
-				cr, cg, cb := getRGB(px, py)
-				gray := 0.299*cr + 0.587*cg + 0.114*cb
-				if gray < minGray {
-					minGray = gray
+				gray := getGray(px, py)
+				if gray > 90.0 {
+					continue
+				}
+
+				// ドーナツ型木目検査: 半径 donutRadius の8方位
+				allWood := true
+				sumBg := 0.0
+				for angle := 0.0; angle < 2*math.Pi; angle += math.Pi / 4 {
+					sx := int(math.Round(float64(px) + donutRadius*math.Cos(angle)))
+					sy := int(math.Round(float64(py) + donutRadius*math.Sin(angle)))
+					sr, _, sb := getRGB(sx, sy)
+					sg := getGray(sx, sy)
+					// 木目色判定: 赤みが強く、青が低く、十分明るい
+					if sr < 95 || sr-sb < 14 || sg < 65 {
+						allWood = false
+						break
+					}
+					sumBg += sg
+				}
+				if !allWood {
+					continue
+				}
+
+				bgGray := sumBg / 8.0
+				contrast := bgGray - gray
+				if contrast > bestContrast && contrast >= 25.0 {
+					bestContrast = contrast
+					bestBgGray = bgGray
 					bestX, bestY = px, py
 				}
 			}
 		}
 
-		// コントラスト比の確認: 星ドットは周囲の木目より明らかに暗い
-		contrast := bgGray - minGray
-		if contrast < 18.0 {
-			continue // 星が見つからない
+		if bestX == -1 {
+			continue // 石で隠れているか星なし
 		}
 
 		// 重心サブピクセル精細化 (ドット近傍 3x3)
@@ -260,10 +259,9 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 			for dx := -2; dx <= 2; dx++ {
 				px := bestX + dx
 				py := bestY + dy
-				cr, cg, cb := getRGB(px, py)
-				gray := 0.299*cr + 0.587*cg + 0.114*cb
-				diff := bgGray - gray
-				if diff > contrast*0.4 {
+				gray := getGray(px, py)
+				diff := bestBgGray - gray
+				if diff > bestContrast*0.35 {
 					sumW += diff
 					sumWX += diff * float64(px)
 					sumWY += diff * float64(py)
@@ -275,17 +273,22 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 			subX := sumWX / sumW
 			subY := sumWY / sumW
 
-			// Förstner サブピクセル精細化も併用して正確な中心を確定
+			// Förstner サブピクセル精細化
 			refinedPt := RefineCornerSubPixFörstner(img, Point{X: subX, Y: subY}, DefaultFörstnerParams())
+			// 過大ドリフト防止: 3px以上離れたら重心を採用
+			finalPt := Point{X: subX, Y: subY}
+			if math.Hypot(refinedPt.X-subX, refinedPt.Y-subY) <= 3.0 {
+				finalPt = refinedPt
+			}
 
-			conf := math.Min(1.0, contrast/60.0)
+			conf := math.Min(1.0, bestContrast/60.0)
 			detectedStars = append(detectedStars, StarPoint{
 				GridX:      gx,
 				GridY:      gy,
 				NormX:      normX,
 				NormY:      normY,
-				ImgX:       refinedPt.X,
-				ImgY:       refinedPt.Y,
+				ImgX:       finalPt.X,
+				ImgY:       finalPt.Y,
 				Confidence: conf,
 			})
 		}
@@ -358,11 +361,8 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 
 	tl, tr, br, bl := initialCorners[0], initialCorners[1], initialCorners[2], initialCorners[3]
 
-	// 候補四隅群の生成:
-	// 1. まず初期四隅そのまま (dWidth = 0) で星検出を試みる
-	// 2. 初期四隅で十分な星 (>= 4個) が低誤差で検出できれば採用
-	// 3. 奥側の石密集でブロブが縮んでいる場合のみ、外側拡張候補 (dw > 0) を探索
-	dWidths := []float64{0.0, 40.0, 80.0, 120.0, 160.0}
+	// 候補四隅群の生成: 初期四隅 (dWidth = 0) で星検出を行う
+	dWidths := []float64{0.0}
 	type candidateResult struct {
 		refined       [4]Point
 		stars         []StarPoint

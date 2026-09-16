@@ -33,35 +33,35 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	var gridCorners [4]Point
 
 	method := "DirectGrid"
+	starRefiner := NewStarHomographyRefiner()
 	if directGrid != nil && directGrid.Success {
 		gridCorners = directGrid.Corners
 	} else {
 		method = "MarginInset"
-		// フォールバック: 木枠マージンインセット逆算 (日本・韓国標準規格: 横 3.2%, 縦 2.5%)
-		gridCorners = ApplyMarginInset(rawOuter, 0.032, 0.025)
-	}
+		// フォールバック: 木枠マージンインセット逆算 (日本・韓国標準規格: 横 5.5%, 縦 5.0%)
+		gridCorners = ApplyMarginInset(rawOuter, 0.055, 0.050)
 
-	// 4. 星（花点・天元）によるホモグラフィ精密化 (DirectGrid / MarginInset の成否に関わらず適用)
-	// 上下両側に星がバランスよく存在する場合（上下各行に1個以上、計4個以上）のみ適用
-	starRefiner := NewStarHomographyRefiner()
-	stars := starRefiner.DetectStarPoints(img, gridCorners)
-	hasTopStar := false
-	hasBotStar := false
-	for _, s := range stars {
-		if s.GridY <= 3 {
-			hasTopStar = true
+		// 星（花点・天元）によるホモグラフィ精密化 (MarginInset 時のみ適用)
+		// 上下両側に星がバランスよく存在する場合（上下各行に1個以上、計4個以上）のみ適用
+		stars := starRefiner.DetectStarPoints(img, gridCorners)
+		hasTopStar := false
+		hasBotStar := false
+		for _, s := range stars {
+			if s.GridY <= 3 {
+				hasTopStar = true
+			}
+			if s.GridY >= 15 {
+				hasBotStar = true
+			}
 		}
-		if s.GridY >= 15 {
-			hasBotStar = true
-		}
-	}
-	if len(stars) >= 4 && hasTopStar && hasBotStar {
-		starRefinedCorners, starCount := starRefiner.RefineCornersWithStarPoints(img, gridCorners)
-		if starCount >= 4 {
-			iouOrig := CalculateQuadIoU(gridCorners, starRefinedCorners, w, h)
-			if iouOrig >= 75.0 {
-				gridCorners = starRefinedCorners
-				method = "StarHomography"
+		if len(stars) >= 4 && hasTopStar && hasBotStar {
+			starRefinedCorners, starCount := starRefiner.RefineCornersWithStarPoints(img, gridCorners)
+			if starCount >= 4 {
+				iouOrig := CalculateQuadIoU(gridCorners, starRefinedCorners, w, h)
+				if iouOrig >= 75.0 {
+					gridCorners = starRefinedCorners
+					method = "StarHomography"
+				}
 			}
 		}
 	}
