@@ -343,6 +343,12 @@ document.getElementById('btn-camera').addEventListener('click', async () => {
     const cameraBtn = document.getElementById('btn-camera');
 
     if (cameraMode) {
+        imageMode = false;
+        const video = document.getElementById('camera-video');
+        const img = document.getElementById('camera-image');
+        video.classList.remove('hidden');
+        img.classList.add('hidden');
+
         cameraSection.classList.remove('hidden');
         autoDetectBtn.classList.remove('hidden');
         streamBtn.classList.remove('hidden');
@@ -351,13 +357,13 @@ document.getElementById('btn-camera').addEventListener('click', async () => {
         cameraBtn.textContent = '📷 カメラ閉じる';
 
         try {
-            const video = document.getElementById('camera-video');
             cameraStream = await detector.startCamera(video);
             cornerPoints = [];
             updateCornerDots();
         } catch (err) {
             showToast(`📷 カメラエラー: ${err.message}`);
             cameraMode = false;
+            imageMode = false;
             cameraSection.classList.add('hidden');
             autoDetectBtn.classList.add('hidden');
             streamBtn.classList.add('hidden');
@@ -373,6 +379,7 @@ document.getElementById('btn-camera').addEventListener('click', async () => {
 function closeCameraMode() {
     stopStreamTracking();
     cameraMode = false;
+    imageMode = false;
     document.getElementById('camera-section').classList.add('hidden');
     document.getElementById('btn-auto-detect').classList.add('hidden');
     document.getElementById('btn-stream-mode').classList.add('hidden');
@@ -380,6 +387,8 @@ function closeCameraMode() {
     document.getElementById('btn-reset-corners').classList.add('hidden');
     document.getElementById('stream-indicator').classList.add('hidden');
     document.getElementById('btn-camera').textContent = '📷 カメラ';
+    document.getElementById('camera-video').classList.remove('hidden');
+    document.getElementById('camera-image').classList.add('hidden');
 
     if (cameraStream) {
         detector.stopCamera(cameraStream);
