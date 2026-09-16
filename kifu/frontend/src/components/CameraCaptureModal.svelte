@@ -317,10 +317,51 @@
     renderCornerOverlay();
   }
 
+  function detectCornersFromElement(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): Point2D[] | null {
+    const width = (source as HTMLVideoElement).videoWidth || (source as HTMLImageElement).naturalWidth || source.width;
+    const height = (source as HTMLVideoElement).videoHeight || (source as HTMLImageElement).naturalHeight || source.height;
+    if (!width || !height) return null;
+
+    // 1. オフスクリーン Canvas で RGBA データを取得
+    const offscreen = document.createElement("canvas");
+    offscreen.width = width;
+    offscreen.height = height;
+    const ctx = offscreen.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(source, 0, 0, width, height);
+    const imgData = ctx.getImageData(0, 0, width, height);
+
+    // 2. Go WASM による高精度・ロバスト検出（RANSAC、ブロブ追跡、シャドウライン補正）
+    if (kifu.isReady()) {
+      try {
+        const res = kifu.detectBoardCorners(imgData.data, width, height);
+        if (res && res.corners && res.corners.length === 4) {
+          return res.corners;
+        }
+      } catch (err) {
+        console.warn("Wasm detectBoardCorners notice:", err);
+      }
+    }
+
+    // 3. フォールバック: OpenCV.js
+    if (detector.isReady()) {
+      try {
+        const detected = detector.autoDetectCorners(offscreen);
+        if (detected && detected.length === 4) {
+          return detected;
+        }
+      } catch (err) {
+        console.warn("OpenCV autoDetectCorners notice:", err);
+      }
+    }
+
+    return null;
+  }
+
   function autoDetectCornersFromSource(source: HTMLCanvasElement) {
     try {
       errorMessage = "";
-      const corners = detector.autoDetectCorners(source);
+      const corners = detectCornersFromElement(source);
       if (corners && corners.length === 4) {
         cornerPoints = corners;
         detector.setCorners(corners);
@@ -359,7 +400,7 @@
     if (!videoEl) return;
     try {
       errorMessage = "";
-      const corners = detector.autoDetectCorners(videoEl);
+      const corners = detectCornersFromElement(videoEl);
       if (corners && corners.length === 4) {
         cornerPoints = corners;
         detector.setCorners(corners);
@@ -515,14 +556,38 @@
       let bCount = 0;
       let wCount = 0;
 
-      // 最新の 95% 超高精度パイプライン (大域幾何最適化・レンズ歪みピークスナッピング・天板アライメント) で全盤面を認識
-      const detected = detector.detect(loadedImageMat);
-      for (let y = 0; y < 19; y++) {
-        for (let x = 0; x < 19; x++) {
-          const val = detected[y * 19 + x];
-          board[y][x] = val;
-          if (val === 1) bCount++;
-          if (val === 2) wCount++;
+      // 2. 多次元特徴量抽出 (ドーナツ走査 + 距離変換スナッピング + 局所背景適応)
+      const features = detector.extractFeatures(loadedImageMat);
+
+      // 3. Go WASM による全盤面 (361交点) 一括高精度解析
+      let fullBoard: any = null;
+      if (kifu.isReady()) {
+        try {
+          fullBoard = kifu.analyzeFullBoard(features);
+        } catch (err) {
+          console.warn("WASM analyzeFullBoard notice:", err);
+        }
+      }
+
+      if (fullBoard && fullBoard.grid && fullBoard.grid.length === 361) {
+        for (let y = 0; y < 19; y++) {
+          for (let x = 0; x < 19; x++) {
+            const val = fullBoard.grid[y * 19 + x];
+            board[y][x] = val;
+          }
+        }
+        bCount = fullBoard.blackCount ?? 0;
+        wCount = fullBoard.whiteCount ?? 0;
+      } else {
+        // フォールバック: OpenCV.js 直接分類
+        const detected = detector.detect(loadedImageMat);
+        for (let y = 0; y < 19; y++) {
+          for (let x = 0; x < 19; x++) {
+            const val = detected[y * 19 + x];
+            board[y][x] = val;
+            if (val === 1) bCount++;
+            if (val === 2) wCount++;
+          }
         }
       }
 

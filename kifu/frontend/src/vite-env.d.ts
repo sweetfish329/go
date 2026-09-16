@@ -148,6 +148,7 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
       source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement,
     ): Point2D[] | null;
     detect(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): Int8Array;
+    classifyBoard(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): Int8Array;
     extractFeatures(
       source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement,
     ): import("@wasm-kifu/web/js/wasm-bridge.js").IntersectionFeature[];

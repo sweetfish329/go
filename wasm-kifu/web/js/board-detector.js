@@ -451,16 +451,6 @@ class BoardDetector {
     }
 
     /**
-     * 後方互換ラッパー: ハフ変換による四隅検出
-     * @param {cv.Mat} srcMat
-     * @returns {Array<{x: number, y: number}>|null}
-     * @private
-     */
-    _detectCornersFromMat(srcMat) {
-        return this._detectCornersFromHough(srcMat);
-    }
-
-    /**
      * ステージ 3: 碁盤外枠の適応的二値化輪郭（Contour）から4隅を検出
      * @param {cv.Mat} srcMat
      * @returns {Array<{x: number, y: number}>|null}
@@ -693,6 +683,15 @@ class BoardDetector {
         } finally {
             srcMat.delete();
         }
+    }
+
+    /**
+     * 盤面の交点状態配列 (0=空, 1=黒, 2=白) を取得する (detect のエイリアス)
+     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source - 入力画像
+     * @returns {Int8Array} 361要素の交点状態配列
+     */
+    classifyBoard(source) {
+        return this.detect(source);
     }
 
     /**
