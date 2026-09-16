@@ -446,30 +446,77 @@ function loadImageSource(src) {
         drawCornerMarkers();
         showToast('🖼 画像を読み込みました。「🎯自動検出」または4隅タップで開始');
 
-        // 自動検出を自動試行
-        if (detector.isReady()) {
-            try {
-                const detected = detector.autoDetectCorners(img);
-                if (detected && detected.length === 4) {
-                    cornerPoints = detected;
-                    updateCornerDots();
-                    drawCornerMarkers();
-                    showToast('🎯 碁盤の4隅を自動検出しました！');
-                }
-            } catch (err) {
-                console.warn('Auto detect notice:', err);
+        // Go WASM 高精度エンジンによる四隅自動検出を試行
+        try {
+            const detected = detectCornersFromSource(img);
+            if (detected && detected.length === 4) {
+                cornerPoints = detected;
+                detector.setCorners(cornerPoints);
+                updateCornerDots();
+                drawCornerMarkers();
+                showToast('🎯 碁盤の4隅を高精度自動検出しました！');
             }
+        } catch (err) {
+            console.warn('Auto detect notice:', err);
         }
     };
 }
 
-// 4隅の自動検出
-document.getElementById('btn-auto-detect').addEventListener('click', () => {
-    if (!detector.isReady()) {
-        showToast('⚠ OpenCV.js のロードをお待ちください');
-        return;
+// 4隅の自動検出 (Go WASM 高精度 RANSAC / 天板ブロブ追跡 / シャドウライン自己修復エンジン)
+function detectCornersFromSource(source) {
+    let width, height;
+    if (source instanceof HTMLImageElement) {
+        width = source.naturalWidth || source.width;
+        height = source.naturalHeight || source.height;
+    } else if (source instanceof HTMLVideoElement) {
+        width = source.videoWidth || source.width;
+        height = source.videoHeight || source.height;
+    } else {
+        width = source.width;
+        height = source.height;
     }
 
+    if (!width || !height) {
+        return null;
+    }
+
+    // オフスクリーン Canvas で RGBA データを取得
+    const offscreen = document.createElement('canvas');
+    offscreen.width = width;
+    offscreen.height = height;
+    const ctx = offscreen.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(source, 0, 0, width, height);
+    const imgData = ctx.getImageData(0, 0, width, height);
+
+    // 1. Go WASM による高精度・ロバスト検出（RANSAC、ブロブ追跡、シャドウライン補正）
+    if (kifu.isReady()) {
+        try {
+            const res = kifu.detectBoardCorners(imgData.data, width, height);
+            if (res && res.corners && res.corners.length === 4) {
+                return res.corners;
+            }
+        } catch (err) {
+            console.warn('Wasm detectBoardCorners notice:', err);
+        }
+    }
+
+    // 2. フォールバック: OpenCV.js
+    if (detector.isReady()) {
+        try {
+            const detected = detector.autoDetectCorners(offscreen);
+            if (detected && detected.length === 4) {
+                return detected;
+            }
+        } catch (err) {
+            console.warn('OpenCV autoDetectCorners notice:', err);
+        }
+    }
+
+    return null;
+}
+
+// 4隅の自動検出ボタン
+document.getElementById('btn-auto-detect').addEventListener('click', () => {
     const source = imageMode ? document.getElementById('camera-image') : document.getElementById('camera-video');
     let canvasSource = source;
 
@@ -480,12 +527,13 @@ document.getElementById('btn-auto-detect').addEventListener('click', () => {
     }
 
     try {
-        const detected = detector.autoDetectCorners(canvasSource);
+        const detected = detectCornersFromSource(canvasSource);
         if (detected && detected.length === 4) {
             cornerPoints = detected;
+            detector.setCorners(cornerPoints);
             updateCornerDots();
             drawCornerMarkers();
-            showToast('🎯 碁盤の4隅を自動検出しました！');
+            showToast('🎯 碁盤の4隅を高精度自動検出しました！');
         } else {
             showToast('⚠ 自動検出できませんでした。手動で4隅をタップしてください');
         }
@@ -733,7 +781,7 @@ function processDetectedFeatures(features, isAutoTriggered = false) {
 // 認識実行 (撮影 / 静止画)
 document.getElementById('btn-capture').addEventListener('click', () => {
     if (!detector.hasCornersSet()) {
-        showToast('⚠ 碁盤の4隅を先にタップしてください');
+        showToast('⚠ 碁盤の4隅を先にタップまたは「🎯自動検出」してください');
         return;
     }
 
@@ -746,8 +794,48 @@ document.getElementById('btn-capture').addEventListener('click', () => {
     }
 
     try {
-        // 多次元特徴量抽出 (ドーナツ走査 + Dani Ferrari 動的平均石アルゴリズム)
+        // 多次元特徴量抽出 (ドーナツ走査 + 距離変換スナッピング + 局所背景適応)
         const features = detector.extractFeatures(source);
+
+        if (imageMode) {
+            // 静止画モード: 全盤面 (361交点) の黒石・白石・空交点を一括高精度解析 & 復元
+            let fullBoard = null;
+            if (kifu.isReady()) {
+                try {
+                    fullBoard = kifu.analyzeFullBoard(features);
+                } catch (err) {
+                    console.warn('WASM analyzeFullBoard error:', err);
+                }
+            }
+
+            if (fullBoard && fullBoard.grid && fullBoard.grid.length === 361) {
+                kifu.setBoardFromGrid(fullBoard.grid);
+                drawBoard();
+                const bCount = fullBoard.blackCount ?? 0;
+                const wCount = fullBoard.whiteCount ?? 0;
+                const conf = fullBoard.confidence ? Math.round(fullBoard.confidence * 100) : 100;
+                showToast(`✅ 全盤面を認識しました！ (黒: ${bCount}個, 白: ${wCount}個 / 信頼度: ${conf}%)`);
+                return;
+            }
+
+            // フォールバック: OpenCV.js 直接分類
+            if (detector.isReady()) {
+                const classified = detector.classifyBoard(source);
+                if (classified && classified.length === 361) {
+                    kifu.setBoardFromGrid(classified);
+                    drawBoard();
+                    let b = 0, w = 0;
+                    for (const s of classified) {
+                        if (s === 1) b++;
+                        else if (s === 2) w++;
+                    }
+                    showToast(`✅ 盤面を認識しました！ (黒: ${b}個, 白: ${w}個)`);
+                    return;
+                }
+            }
+        }
+
+        // カメラ動画モード: 直前手からの1手差分着手を判定
         processDetectedFeatures(features, false);
     } catch (err) {
         showToast(`❌ 認識エラー: ${err.message}`);

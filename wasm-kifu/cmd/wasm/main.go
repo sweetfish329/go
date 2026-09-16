@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"image"
 	"syscall/js"
@@ -128,6 +129,51 @@ func applyDetectedMoveWrapper(this js.Value, args []js.Value) any {
 	return int(gameEngine.ApplyDetectedMove(x, y, color))
 }
 
+func setBoardFromGridWrapper(this js.Value, args []js.Value) any {
+	if len(args) < 1 {
+		return 1
+	}
+	var grid [19][19]int8
+	arg := args[0]
+	if arg.Type() == js.TypeString {
+		var flatGrid []int8
+		if err := json.Unmarshal([]byte(arg.String()), &flatGrid); err == nil && len(flatGrid) == 361 {
+			for y := 0; y < 19; y++ {
+				for x := 0; x < 19; x++ {
+					grid[y][x] = flatGrid[y*19+x]
+				}
+			}
+		} else {
+			return 1
+		}
+	} else if arg.Type() == js.TypeObject {
+		length := arg.Length()
+		if length == 361 {
+			for i := 0; i < 361; i++ {
+				x := i % 19
+				y := i / 19
+				grid[y][x] = int8(arg.Index(i).Int())
+			}
+		} else if length == 19 {
+			for y := 0; y < 19; y++ {
+				row := arg.Index(y)
+				for x := 0; x < 19; x++ {
+					grid[y][x] = int8(row.Index(x).Int())
+				}
+			}
+		} else {
+			return 1
+		}
+	} else {
+		return 1
+	}
+
+	if err := gameEngine.SetBoardFromGrid(grid); err != nil {
+		return 1
+	}
+	return 0
+}
+
 func getLastMoveInfoWrapper(this js.Value, args []js.Value) any {
 	return gameEngine.LastMoveInfoJSON()
 }
@@ -180,6 +226,7 @@ func main() {
 	js.Global().Set("wasmAnalyzeBoardFeatures", js.FuncOf(analyzeBoardFeaturesWrapper))
 	js.Global().Set("wasmAnalyzeFullBoard", js.FuncOf(analyzeFullBoardWrapper))
 	js.Global().Set("wasmApplyDetectedMove", js.FuncOf(applyDetectedMoveWrapper))
+	js.Global().Set("wasmSetBoardFromGrid", js.FuncOf(setBoardFromGridWrapper))
 	js.Global().Set("wasmGetLastMoveInfo", js.FuncOf(getLastMoveInfoWrapper))
 	js.Global().Set("wasmDetectBoardCorners", js.FuncOf(detectBoardCornersWrapper))
 

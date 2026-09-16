@@ -1204,15 +1204,13 @@ class BoardDetector {
             }
 
             // 2. 黒石判定: 無彩色かつ低輝度、局所背景より暗い、かつ無彩色(Chroma低)で暗い木目の影を除外
-            if (stone === 0) {
-                if (f.rmb < 35.0 && (!f.chroma || f.chroma < 14.0)) {
-                    if (f.r < 75.0 && (f.normR < 0.90 || f.normB < 0.90)) {
-                        stone = 1;
-                    } else if (f.normB < 0.82 && f.normR < 0.88) {
-                        stone = 1;
-                    } else if (f.b < 45.0 && f.r < 75.0 && f.rmb < 25.0) {
-                        stone = 1;
-                    }
+            if (stone === 0 && f.rmb < 35.0) {
+                if (f.r < 75.0 && (f.normR < 0.90 || f.normB < 0.90) && (!f.chroma || f.chroma < 22.0)) {
+                    stone = 1;
+                } else if (f.normB < 0.82 && f.normR < 0.88 && (!f.chroma || f.chroma < 18.0)) {
+                    stone = 1;
+                } else if (f.b < 45.0 && f.r < 75.0 && f.rmb < 25.0) {
+                    stone = 1;
                 }
             }
 

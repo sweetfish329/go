@@ -605,15 +605,13 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 			}
 
 			// 2. 黒石判定: 低木目度 (無彩色 Chroma低) かつ 低輝度、局所背景より暗い
-			if stone == 0 {
-				if rmb < 35.0 && (item.chroma == 0 || item.chroma < 12.0) {
-					if rVal < 75.0 && (normR < 0.90 || normB < 0.90) {
-						stone = 1
-					} else if normB < 0.82 && normR < 0.88 {
-						stone = 1
-					} else if bVal < 45.0 && rVal < 75.0 && rmb < 25.0 {
-						stone = 1
-					}
+			if stone == 0 && rmb < 35.0 {
+				if rVal < 75.0 && (normR < 0.90 || normB < 0.90) && (item.chroma == 0 || item.chroma < 22.0) {
+					stone = 1
+				} else if normB < 0.82 && normR < 0.88 && (item.chroma == 0 || item.chroma < 18.0) {
+					stone = 1
+				} else if bVal < 45.0 && rVal < 75.0 && rmb < 25.0 {
+					stone = 1
 				}
 			}
 

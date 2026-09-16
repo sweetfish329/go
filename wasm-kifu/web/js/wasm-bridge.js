@@ -180,6 +180,16 @@ class WasmKifu {
     }
 
     /**
+     * 361要素の交点状態配列 (0=空, 1=黒, 2=白) または 19x19 配列から盤面状態を一括設定
+     * @param {Array<number>|Array<Array<number>>} grid - 盤面状態配列
+     * @returns {boolean} 成功したかどうか
+     */
+    setBoardFromGrid(grid) {
+        this._checkReady();
+        return wasmSetBoardFromGrid(grid) === 0;
+    }
+
+    /**
      * 画像データ (RGBA) から碁盤の19路格子4隅 [TL, TR, BR, BL] を高精度・ロバストに自動検出
      * @param {Uint8ClampedArray|Uint8Array} rgbaData - RGBAピクセル配列 (width * height * 4)
      * @param {number} width - 画像幅

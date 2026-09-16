@@ -23,6 +23,7 @@ declare function wasmAnalyzeBoardImage(imageData: string, width: number, height:
 declare function wasmAnalyzeBoardFeatures(featuresJSON: string): string;
 declare function wasmAnalyzeFullBoard(featuresJSON: string): string;
 declare function wasmApplyDetectedMove(x: number, y: number, color: number): number;
+declare function wasmSetBoardFromGrid(grid: number[] | number[][] | string): number;
 declare function wasmGetLastMoveInfo(): string;
 declare function wasmDetectBoardCorners(
   rgbaData: Uint8Array,
@@ -101,6 +102,7 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
     analyzeBoardFeatures(features: IntersectionFeature[]): AnalysisResult;
     analyzeFullBoard(features: IntersectionFeature[]): FullBoardResult;
     applyDetectedMove(x: number, y: number, color: number): number;
+    setBoardFromGrid(grid: number[] | number[][]): boolean;
     getLastMoveInfo(): LastMoveInfo;
     detectBoardCorners(
       rgbaData: Uint8ClampedArray | Uint8Array,

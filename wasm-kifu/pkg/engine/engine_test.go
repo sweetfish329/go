@@ -469,3 +469,31 @@ func TestRepairBoardWithRules(t *testing.T) {
 		t.Errorf("Dead stone at (9,9) should be repaired to 0, got %d", repaired[9][9])
 	}
 }
+
+func TestSetBoardFromGrid(t *testing.T) {
+	ge := NewGame()
+	var grid [19][19]int8
+	grid[3][3] = 1   // 黒 (3,3)
+	grid[15][15] = 2 // 白 (15,15)
+	grid[9][9] = 1   // 黒 (9,9)
+
+	if err := ge.SetBoardFromGrid(grid); err != nil {
+		t.Fatalf("SetBoardFromGrid failed: %v", err)
+	}
+
+	state := ge.GetBoardState()
+	if state.Stones[3][3] != 1 {
+		t.Errorf("Expected black stone at (3,3), got %d", state.Stones[3][3])
+	}
+	if state.Stones[15][15] != 2 {
+		t.Errorf("Expected white stone at (15,15), got %d", state.Stones[15][15])
+	}
+	if state.Stones[9][9] != 1 {
+		t.Errorf("Expected black stone at (9,9), got %d", state.Stones[9][9])
+	}
+
+	sgf := ge.ExportSGF()
+	if !strings.Contains(sgf, "AB") || !strings.Contains(sgf, "AW") {
+		t.Errorf("Exported SGF should contain AB and AW, got: %s", sgf)
+	}
+}

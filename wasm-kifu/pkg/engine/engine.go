@@ -5,6 +5,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/rooklift/sgf"
 )
@@ -98,6 +99,35 @@ func (ge *GameEngine) ImportSGF(s string) error {
 	ge.moveNumber = len(line) - 1 // ルートノードを除く
 	ge.resigned = false
 	return nil
+}
+
+// SetBoardFromGrid は 19x19 の盤面配置 (0=空, 1=黒, 2=白) を受け取り、
+// SGF の AB/AW プロパティを生成してゲームエンジンを一括初期化する。
+func (ge *GameEngine) SetBoardFromGrid(grid [19][19]int8) error {
+	var abList, awList []string
+	for y := 0; y < 19; y++ {
+		for x := 0; x < 19; x++ {
+			stone := grid[y][x]
+			if stone == 1 {
+				p := sgf.Point(x, y)
+				abList = append(abList, fmt.Sprintf("[%s]", p))
+			} else if stone == 2 {
+				p := sgf.Point(x, y)
+				awList = append(awList, fmt.Sprintf("[%s]", p))
+			}
+		}
+	}
+
+	sgfStr := "(;GM[1]FF[4]SZ[19]"
+	if len(abList) > 0 {
+		sgfStr += "AB" + strings.Join(abList, "")
+	}
+	if len(awList) > 0 {
+		sgfStr += "AW" + strings.Join(awList, "")
+	}
+	sgfStr += ")"
+
+	return ge.ImportSGF(sgfStr)
 }
 
 // CurrentPlayer は現在の手番を返す (1=Black, 2=White)
