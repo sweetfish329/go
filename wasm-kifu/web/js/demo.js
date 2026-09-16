@@ -568,8 +568,13 @@ function handleCornerClick(e, elem, naturalWidth, naturalHeight) {
     drawCornerMarkers();
 
     if (cornerPoints.length === 4) {
-        detector.setCorners(cornerPoints);
-        showToast('✅ 4隅を設定しました。「📸認識実行」で認識');
+        const source = imageMode ? document.getElementById('camera-image') : document.getElementById('camera-video');
+        const refined = detector.setCorners(cornerPoints, source);
+        if (refined && refined.length === 4) {
+            cornerPoints = refined;
+            drawCornerMarkers();
+        }
+        showToast('✅ 4隅を設定・高精度吸着しました。「📸認識実行」で認識');
     }
 }
 

@@ -249,6 +249,44 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		}
 	}
 
+	// 5.5 幅エンベロープ・フィルタ (Width Envelope Filter):
+	// 奥側の石の密集による内側凹みや、手前側木口側面による外側突起を除去
+	// 健全な中央領域 (Y=35%〜65%) の代表幅を算出し、奥側で不自然に狭い点を除外
+	if len(leftPts) >= 10 && len(rightPts) >= 10 {
+		var midWidths []float64
+		midYMin := float64(h) * 0.35
+		midYMax := float64(h) * 0.65
+		for i := 0; i < len(leftPts) && i < len(rightPts); i++ {
+			if leftPts[i].Y >= midYMin && leftPts[i].Y <= midYMax {
+				w := rightPts[i].X - leftPts[i].X
+				if w > 50 {
+					midWidths = append(midWidths, w)
+				}
+			}
+		}
+		if len(midWidths) >= 5 {
+			sort.Float64s(midWidths)
+			medMidWidth := midWidths[len(midWidths)/2]
+			midYCenter := (midYMin + midYMax) * 0.5
+
+			var cleanLeft, cleanRight []Point
+			for i := 0; i < len(leftPts) && i < len(rightPts); i++ {
+				y := leftPts[i].Y
+				w := rightPts[i].X - leftPts[i].X
+				// 奥側 (y < midYCenter): 遠近法で物理的に許容される最小幅
+				minExpectedW := medMidWidth - math.Max(0, midYCenter-y)*0.35
+				if w >= minExpectedW*0.88 {
+					cleanLeft = append(cleanLeft, leftPts[i])
+					cleanRight = append(cleanRight, rightPts[i])
+				}
+			}
+			if len(cleanLeft) >= 10 {
+				leftPts = cleanLeft
+				rightPts = cleanRight
+			}
+		}
+	}
+
 	// 6. RANSAC 左右直線フィッティング (部分欠損・対局者の服や手による遮蔽耐性)
 	fitVertLine := func(pts []Point) (float64, float64) {
 		n := len(pts)
@@ -409,19 +447,9 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	cT, dT := 0.0, bestTopY
 
 	// 8. 机の木目による片側垂直化の自動修復 (台形対称性拘束):
-	// 片側の傾きがほぼ垂直 (|a| < 0.05) で、もう片側が正常に傾いている (|a| >= 0.08) 場合、
-	// 健全な側の傾きによって幾何学的に台形を自己修復する
-	if math.Abs(aL) < 0.05 && math.Abs(aR) >= 0.08 {
-		blX := aL*botY + bL
-		tlX := blX + aR*(botY-bestTopY)
-		aL = (tlX - blX) / (bestTopY - botY)
-		bL = blX - aL*botY
-	} else if math.Abs(aR) < 0.05 && math.Abs(aL) >= 0.08 {
-		brX := aR*botY + bR
-		trX := brX - aL*(botY-bestTopY)
-		aR = (trX - brX) / (bestTopY - botY)
-		bR = brX - aR*botY
-	}
+	// ※ カメラのアングルによって片側が垂直に見える正常な構図が存在するため、
+	// 健全な直線を勝手に書き換えて破綻させる危険な決め打ちは行わない。
+	_ = botY
 
 	// 直線交点計算 (a: x = a*y + b, c: y = c*x + d)
 	intersect := func(a, b, c, d float64) Point {
@@ -446,8 +474,8 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		{X: detBL.X, Y: detBL.Y},
 	}
 
-	// 9. 木枠マージンインセット逆算 (NotebookLM 幾何モデル: 片側約 2.0%)
-	gridCorners := ApplyMarginInset(rawOuter, 0.020, 0.020)
+	// 9. 木枠マージンインセット逆算 (NotebookLM 幾何モデル: 片側約 1.2%)
+	gridCorners := ApplyMarginInset(rawOuter, 0.012, 0.012)
 
 	// 10. 星（花点・天元）によるホモグラフィ精密化 (Star Points Homography Refinement)
 	// 盤面上の黒丸ドット（星）を検出し、木枠マージン誤差や射影歪みを非線形・最小二乗補正

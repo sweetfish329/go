@@ -26,7 +26,7 @@ type StarHomographyRefiner struct {
 // NewStarHomographyRefiner はリファイナーを初期化する
 func NewStarHomographyRefiner() *StarHomographyRefiner {
 	return &StarHomographyRefiner{
-		MinStarsForRefine: 4,
+		MinStarsForRefine: 7,
 		SearchRadiusRatio: 0.35,
 	}
 }
@@ -294,35 +294,118 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 	return detectedStars
 }
 
-// RefineCornersWithStarPoints は検出された星（花点）を用いてホモグラフィを再推定し、真の4隅を精密化する
+// RefineCornersWithStarPoints は検出された星（花点）を用いてホモグラフィを再推定し、真の4隅を精密化する。
+// 天板奥側（上辺）が外周石や影により縮んで検出された場合にも対応するため、
+// マルチスケール候補（外周拡張）から最も幾何学的整合性の高い星群を自動選択する。
 func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, initialCorners [4]Point) ([4]Point, int) {
-	detectedStars := r.DetectStarPoints(img, initialCorners)
-	if len(detectedStars) < r.MinStarsForRefine {
-		// 星が十分に検出されなかった場合は初期4隅を安全に返す
-		return initialCorners, len(detectedStars)
-	}
+	w := float64(img.Bounds().Dx())
+	h := float64(img.Bounds().Dy())
+	maxReprojAllowed := math.Max(15.0, math.Max(w, h)*0.012)
+	maxAllowedDev := math.Max(w, h) * 0.15
 
-	hRefined, err := findHomographyLeastSquares(detectedStars)
-	if err != nil {
-		return initialCorners, len(detectedStars)
-	}
+	tl, tr, br, bl := initialCorners[0], initialCorners[1], initialCorners[2], initialCorners[3]
 
-	// 精密化されたホモグラフィから4隅 [TL, TR, BR, BL] を再計算
-	refinedCorners := [4]Point{
-		projectPoint(hRefined, 0, 0), // TL
-		projectPoint(hRefined, 1, 0), // TR
-		projectPoint(hRefined, 1, 1), // BR
-		projectPoint(hRefined, 0, 1), // BL
+	// 候補四隅群の生成:
+	// 1. まず初期四隅そのまま (dWidth = 0) で星検出を試みる
+	// 2. 初期四隅で十分な星 (>= 7個) が低誤差で検出できればそれを最優先採用
+	// 3. 奥側の石密集でブロブが縮んでいる場合のみ、外側拡張候補 (dw > 0) を探索
+	dWidths := []float64{0.0, 40.0, 80.0, 120.0, 160.0}
+	type candidateResult struct {
+		refined       [4]Point
+		stars         []StarPoint
+		meanReprojErr float64
+		score         float64
+		dWidth        float64
 	}
+	var bestCand *candidateResult
 
-	// 異常な歪みが生じていないか検証 (初期4隅からの乖離が大きすぎる場合はフォールバック)
-	maxAllowedDeviation := 35.0
-	for i := 0; i < 4; i++ {
-		dist := math.Hypot(refinedCorners[i].X-initialCorners[i].X, refinedCorners[i].Y-initialCorners[i].Y)
-		if dist > maxAllowedDeviation {
-			return initialCorners, len(detectedStars)
+	for _, dw := range dWidths {
+		candCorners := [4]Point{
+			{X: tl.X - dw*0.5, Y: tl.Y},
+			{X: tr.X + dw*0.5, Y: tr.Y},
+			br,
+			bl,
+		}
+
+		detectedStars := r.DetectStarPoints(img, candCorners)
+		if len(detectedStars) < r.MinStarsForRefine {
+			continue
+		}
+
+		hRefined, err := findHomographyLeastSquares(detectedStars)
+		if err != nil {
+			continue
+		}
+
+		refined := [4]Point{
+			projectPoint(hRefined, 0, 0),
+			projectPoint(hRefined, 1, 0),
+			projectPoint(hRefined, 1, 1),
+			projectPoint(hRefined, 0, 1),
+		}
+
+		// 再投影誤差
+		totalReprojErr := 0.0
+		totalConf := 0.0
+		for _, star := range detectedStars {
+			proj := projectPoint(hRefined, star.NormX, star.NormY)
+			errD := math.Hypot(proj.X-star.ImgX, proj.Y-star.ImgY)
+			totalReprojErr += errD
+			totalConf += star.Confidence
+		}
+		meanReprojErr := totalReprojErr / float64(len(detectedStars))
+
+		if meanReprojErr > maxReprojAllowed {
+			continue
+		}
+
+		// 妥当性チェック
+		oob := false
+		for i := 0; i < 4; i++ {
+			if refined[i].X < -50 || refined[i].X > w+50 ||
+				refined[i].Y < -50 || refined[i].Y > h+50 {
+				oob = true
+				break
+			}
+			dist := math.Hypot(refined[i].X-initialCorners[i].X, refined[i].Y-initialCorners[i].Y)
+			if dist > maxAllowedDev {
+				oob = true
+				break
+			}
+		}
+		if oob {
+			continue
+		}
+
+		// ベース (dw == 0) で星が 7個以上・低誤差なら即座に採用
+		if dw == 0.0 && len(detectedStars) >= 7 && meanReprojErr <= 9.0 {
+			bestCand = &candidateResult{
+				refined:       refined,
+				stars:         detectedStars,
+				meanReprojErr: meanReprojErr,
+				score:         1e9,
+				dWidth:        dw,
+			}
+			break
+		}
+
+		// 総合スコア: 星の数重視 (1個あたり+15点)、再投影誤差ペナルティ (-1点/px)、拡張ペナルティ
+		score := float64(len(detectedStars))*15.0 - meanReprojErr*1.5 + totalConf*5.0 - dw*0.1
+
+		if bestCand == nil || score > bestCand.score {
+			bestCand = &candidateResult{
+				refined:       refined,
+				stars:         detectedStars,
+				meanReprojErr: meanReprojErr,
+				score:         score,
+				dWidth:        dw,
+			}
 		}
 	}
 
-	return refinedCorners, len(detectedStars)
+	if bestCand == nil {
+		return initialCorners, 0
+	}
+
+	return bestCand.refined, len(bestCand.stars)
 }

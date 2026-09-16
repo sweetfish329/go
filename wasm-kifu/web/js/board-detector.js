@@ -183,9 +183,8 @@ class BoardDetector {
             // ステージ 1: 木目天板の色域セグメンテーションと輪郭近似
             let corners = this._detectBoardByWoodColor(srcMat);
             if (corners && this._validateCorners(corners, width, height)) {
-                const ordered = this._orderCorners(corners);
-                // 木枠マージン (左右・上下 約3.5%) を逆算して真の19路格子角へインセット (NotebookLM 幾何モデル)
-                const gridCorners = this._applyWoodMarginInset(ordered, 0.035, 0.035);
+                // 木枠マージン (左右・上下 約1.5%) を逆算して真の19路格子角へインセット (NotebookLM 幾何モデル)
+                const gridCorners = this._applyWoodMarginInset(ordered, 0.015, 0.015);
                 const refined = this._refineDetectedCorners(srcMat, gridCorners);
                 this.setCorners(refined);
                 return refined;
@@ -413,7 +412,7 @@ class BoardDetector {
                     const cBR = projRefined(1, 1);
                     const cBL = projRefined(0, 1);
 
-                    const maxDev = 35.0;
+                    const maxDev = Math.max(35.0, Math.max(width, height) * 0.12);
                     if (Math.hypot(cTL.x - corners[0].x, cTL.y - corners[0].y) <= maxDev &&
                         Math.hypot(cTR.x - corners[1].x, cTR.y - corners[1].y) <= maxDev &&
                         Math.hypot(cBR.x - corners[2].x, cBR.y - corners[2].y) <= maxDev &&

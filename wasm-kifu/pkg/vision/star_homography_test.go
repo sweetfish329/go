@@ -67,3 +67,56 @@ func TestStarHomographyRefinement(t *testing.T) {
 		}
 	}
 }
+
+func TestStarHomography_TestImage(t *testing.T) {
+	img, err := LoadImageUpright("../../web/test_image.jpg")
+	if err != nil {
+		t.Skip("test_image.jpg not found, skipping")
+	}
+
+	gtCorners := [4]Point{
+		{X: 448, Y: 545},  // TL
+		{X: 1588, Y: 595}, // TR
+		{X: 1552, Y: 1955},// BR
+		{X: 112, Y: 1695}, // BL
+	}
+
+	refiner := NewStarHomographyRefiner()
+	starsGT := refiner.DetectStarPoints(img, gtCorners)
+	t.Logf("Detected %d stars with GT corners:", len(starsGT))
+	for _, s := range starsGT {
+		t.Logf("  Star (%d,%d) at (%.1f, %.1f) conf=%.2f", s.GridX, s.GridY, s.ImgX, s.ImgY, s.Confidence)
+	}
+
+	hFromTrueStars, err := findHomographyLeastSquares(starsGT)
+	if err != nil {
+		t.Fatalf("findHomographyLeastSquares failed: %v", err)
+	}
+	cornersFromTrueStars := [4]Point{
+		projectPoint(hFromTrueStars, 0, 0),
+		projectPoint(hFromTrueStars, 1, 0),
+		projectPoint(hFromTrueStars, 1, 1),
+		projectPoint(hFromTrueStars, 0, 1),
+	}
+	t.Logf("Corners from True Stars:")
+	for i, c := range cornersFromTrueStars {
+		dist := math.Hypot(c.X-gtCorners[i].X, c.Y-gtCorners[i].Y)
+		t.Logf("  Corner %d: (%.1f, %.1f) vs GT (%.1f, %.1f) -> Error = %.1f px",
+			i, c.X, c.Y, gtCorners[i].X, gtCorners[i].Y, dist)
+	}
+
+
+	res, err := DetectBoardCorners(img)
+	if err != nil {
+		t.Fatalf("DetectBoardCorners failed: %v", err)
+	}
+	t.Logf("Initial RawOuter: %v", res.RawOuter)
+	t.Logf("Initial Corners: %v", res.Corners)
+
+	starsInit := refiner.DetectStarPoints(img, res.RawOuter)
+	t.Logf("Detected %d stars with res.RawOuter:", len(starsInit))
+	for _, s := range starsInit {
+		t.Logf("  Star (%d,%d) at (%.1f, %.1f) conf=%.2f", s.GridX, s.GridY, s.ImgX, s.ImgY, s.Confidence)
+	}
+}
+
