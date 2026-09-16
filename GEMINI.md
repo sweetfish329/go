@@ -315,3 +315,22 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * `wasm-bridge.js`: `detectAndWarp`, `detectWarpAndAnalyze` メソッドを追加。
   * `vite-env.d.ts`: `WasmKifu` 型定義を更新し、`bun run check`（svelte-check）0エラー 0警告を維持。
   * 単体テスト: `pkg/vision/warp_test.go` により `WarpSize`, `WarpPerspectiveWithMargin`, `ExtractBoardFeatures` の正常動作を100%保証。
+
+### ㉘ 碁盤四隅認識精度の高度化：Förstnerサブピクセル・星ホモグラフィ精密化・複比外挿・1パラメータ分割モデル統合
+* **Förstner反復サブピクセル精細化 (`corners_subpix.go` / `_refineCornersSubPix`)**:
+  * ユーザーの指・マウスによる手動タップや自動検出結果の数ピクセルのブレを解消するため、格子線エッジの構造テンソル $M = \sum w \begin{pmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{pmatrix}$ と正規方程式 $M p = b$ を解く Förstner 演算子を純GoおよびOpenCV.jsの両方に実装。
+  * 0.01px以下の移動量へ収束するまで最大5回反復する Iterative Förstner を採用し、0.1px 以下のサブピクセル精度で真の直交交点に自動吸着。手動タップ時（4点指定時）にも即座に自動吸着してズレを自動修正。
+* **「星（天元・花点）」を利用したホモグラフィ精密化 (`star_homography.go` / `_refineCornersWithStarPoints`)**:
+  * 碁盤ごとの木枠天板余白マージン（3.0%〜4.5%）の個体差や斜め遠近の歪みによる系統的ズレを解消。
+  * 盤面上の9つの「星（花点・天元）」（$(4,4), (10,4), (16,4), \dots$）の理論位置近傍を探索し、木目背景上の高コントラストな黒丸ドットを検出。
+  * 4箇所以上の星が検出された場合、理論盤面正規化座標と画像座標の対応点ペアから RANSAC / 最小二乗法でホモグラフィ行列を精密化し、真の19路格子4隅を再投影・更新。天板マージン固定比率の依存を完全排除。
+* **射影幾何学・複比（Cross-Ratio）と消失点によるオクルージョン4隅外挿 (`cross_ratio.go` / `_extrapolateCornersViaCrossRatio`)**:
+  * 対局者の手や密集した石で外周端線（1路・19路、A列・T列）が遮蔽されている場合に対応。
+  * 観測された直線群から消失点（Vanishing Point $V$）をロバスト推定し、射影不変量である複比 $\text{CR}(A, B; C, D)$ の保存則を用いて、内側の見えている格子線から遮蔽された外周端線・四隅を数学的厳密解として外挿・復元。
+* **1パラメータ Division Model（樽型レンズ歪み補正）(`division_model.go` / `DivisionModel`)**:
+  * スマホの広角カメラによる樽型歪み（Barrel Distortion）を、チェッカーボード不要で直線エッジを保持しながら補正する Fitzgibbon 1パラメータ分割モデル（$r_u = \frac{r_d}{1 + k_1 (r_d/R)^2}$）を実装。
+  * 安定解（分子有理化 $r_d = \frac{2c}{1 + \sqrt{1 - 4ac}}$）による高速な正変換・逆変換・画像不歪化パイプラインを提供。
+* **テストと品質保証**:
+  * 単体テスト（`corners_subpix_test.go`, `star_homography_test.go`, `cross_ratio_test.go`, `division_model_test.go`）を追加し、`go test ./pkg/vision/...`（全27テスト）および `eval-corners`, `regression` テスト全パス。
+  * フロントエンド（`CameraCaptureModal.svelte`）との連携により、手動4隅タップ時にも自動でサブピクセル吸着と星精密化が発動するように統合。
+

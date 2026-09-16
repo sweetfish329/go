@@ -58,14 +58,49 @@ class BoardDetector {
 
     /**
      * 碁盤の4隅を設定（左上, 右上, 右下, 左下の順に自動正準化）
+     * source が提供された場合、自動的にサブピクセル吸着（Förstner）および星精密化を実行
      * @param {Array<{x: number, y: number}>} corners - 4点の座標
+     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement|cv.Mat} [source=null] - オプション画像ソース
      * @throws {Error} 4点でない場合
      */
-    setCorners(corners) {
-        if (corners.length !== 4) {
+    setCorners(corners, source = null) {
+        if (!corners || corners.length !== 4) {
             throw new Error('Exactly 4 corner points required');
         }
-        this.cornerPoints = this._orderCorners(corners);
+        let ordered = this._orderCorners(corners);
+        if (source && this.cvReady) {
+            try {
+                ordered = this.refineCorners(source, ordered);
+            } catch (err) {
+                console.warn('Auto corner refinement notice:', err);
+            }
+        }
+        this.cornerPoints = ordered;
+    }
+
+    /**
+     * 指定された4隅（または設定済みの4隅）を画像から「星（花点）」および「サブピクセル勾配」で精密化
+     * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement|cv.Mat} source
+     * @param {Array<{x: number, y: number}>} [corners=null]
+     * @returns {Array<{x: number, y: number}>}
+     */
+    refineCorners(source, corners = null) {
+        if (!this.cvReady) throw new Error('OpenCV.js not loaded');
+        const target = corners || this.cornerPoints;
+        if (!target || target.length !== 4) {
+            throw new Error('4 corner points required for refinement');
+        }
+        const srcMat = this._readSourceMat(source);
+        try {
+            const refined = this._refineDetectedCorners(srcMat, target);
+            const ordered = this._orderCorners(refined);
+            if (!corners || this.cornerPoints) {
+                this.cornerPoints = ordered;
+            }
+            return ordered;
+        } finally {
+            srcMat.delete();
+        }
     }
 
     /**
@@ -151,27 +186,30 @@ class BoardDetector {
                 const ordered = this._orderCorners(corners);
                 // 木枠マージン (左右・上下 約3.5%) を逆算して真の19路格子角へインセット (NotebookLM 幾何モデル)
                 const gridCorners = this._applyWoodMarginInset(ordered, 0.035, 0.035);
-                this.setCorners(gridCorners);
-                return gridCorners;
+                const refined = this._refineDetectedCorners(srcMat, gridCorners);
+                this.setCorners(refined);
+                return refined;
             }
 
             // 照明ムラを補正した画像を取得 (ステージ 2, 3用)
             const equalized = this._applyCLAHE(srcMat);
             try {
-                // ステージ 2: 格子線群のハフ変換 ＆ 境界線交点
+                // ステージ 2: 格子線群のハフ変換 ＆ 境界線交点 (消失点・複比外挿フォールバック付き)
                 corners = this._detectCornersFromHough(equalized);
                 if (corners && this._validateCorners(corners, width, height)) {
                     const ordered = this._orderCorners(corners);
-                    this.setCorners(ordered);
-                    return ordered;
+                    const refined = this._refineDetectedCorners(srcMat, ordered);
+                    this.setCorners(refined);
+                    return refined;
                 }
 
                 // ステージ 3: 適応的二値化による最大輪郭四角形
                 corners = this._detectBoardContour(equalized);
                 if (corners && this._validateCorners(corners, width, height)) {
                     const ordered = this._orderCorners(corners);
-                    this.setCorners(ordered);
-                    return ordered;
+                    const refined = this._refineDetectedCorners(srcMat, ordered);
+                    this.setCorners(refined);
+                    return refined;
                 }
 
                 return null;
@@ -181,6 +219,413 @@ class BoardDetector {
         } finally {
             srcMat.delete();
         }
+    }
+
+    /**
+     * 検出または指定された4隅を「星（花点）によるホモグラフィ再推定」と
+     * 「Förstner / cornerSubPix サブピクセル吸着」の2段階で高精度化
+     * @param {cv.Mat} srcMat
+     * @param {Array<{x: number, y: number}>} corners
+     * @returns {Array<{x: number, y: number}>} 精密化された4隅
+     * @private
+     */
+    _refineDetectedCorners(srcMat, corners) {
+        if (!corners || corners.length !== 4) return corners;
+        let refined = corners;
+
+        // 1. 星（花点・天元）によるホモグラフィ精密化 (木枠固定マージンのズレ・歪みを解消)
+        try {
+            const starRefined = this._refineCornersWithStarPoints(srcMat, refined);
+            if (starRefined && starRefined.length === 4) {
+                refined = starRefined;
+            }
+        } catch (err) {
+            console.warn('Star points homography refinement notice:', err);
+        }
+
+        // 2. Förstner / cornerSubPix サブピクセル精細化 (0.1px 精度へ吸着)
+        try {
+            refined = this._refineCornersSubPix(srcMat, refined);
+        } catch (err) {
+            console.warn('Sub-pixel corner refinement notice:', err);
+        }
+
+        return refined;
+    }
+
+    /**
+     * 盤面上の9つの「星（花点・天元）」を検出し、ホモグラフィ行列（射影変換）を精密化
+     * 外枠木枠マージンの個体差やカメラの傾斜による系統的ズレを完全に排除する
+     * @param {cv.Mat} srcMat
+     * @param {Array<{x: number, y: number}>} corners
+     * @returns {Array<{x: number, y: number}>}
+     * @private
+     */
+    _refineCornersWithStarPoints(srcMat, corners) {
+        const starCoords = [
+            [3, 3], [9, 3], [15, 3],
+            [3, 9], [9, 9], [15, 9],
+            [3, 15], [9, 15], [15, 15],
+        ];
+
+        const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, 1, 0, 1, 1, 0, 1]);
+        const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            corners[0].x, corners[0].y,
+            corners[1].x, corners[1].y,
+            corners[2].x, corners[2].y,
+            corners[3].x, corners[3].y,
+        ]);
+        const H = cv.getPerspectiveTransform(srcPts, dstPts);
+
+        const width = srcMat.cols;
+        const height = srcMat.rows;
+        const data = srcMat.data;
+
+        const hData = H.data64F;
+        const project = (u, v) => {
+            const w = hData[6] * u + hData[7] * v + hData[8];
+            const px = (hData[0] * u + hData[1] * v + hData[2]) / w;
+            const py = (hData[3] * u + hData[4] * v + hData[5]) / w;
+            return { x: px, y: py };
+        };
+
+        const p00 = project(0, 0);
+        const p10 = project(1 / 18, 0);
+        const approxStep = Math.hypot(p10.x - p00.x, p10.y - p00.y);
+        const searchRadius = Math.max(4, Math.round(approxStep * 0.35));
+
+        const detectedStars = [];
+
+        for (const [gx, gy] of starCoords) {
+            const normX = gx / 18.0;
+            const normY = gy / 18.0;
+            const pred = project(normX, normY);
+            const cx = Math.round(pred.x);
+            const cy = Math.round(pred.y);
+
+            if (cx - searchRadius < 2 || cx + searchRadius >= width - 2 ||
+                cy - searchRadius < 2 || cy + searchRadius >= height - 2) {
+                continue;
+            }
+
+            // 外周リングサンプリングで背景木目色を算出
+            let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
+            for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+                for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                    const dist = Math.hypot(dx, dy);
+                    if (dist >= searchRadius * 0.75 && dist <= searchRadius) {
+                        const px = cx + dx, py = cy + dy;
+                        const ptr = (py * width + px) * 4;
+                        bgR += data[ptr];
+                        bgG += data[ptr + 1];
+                        bgB += data[ptr + 2];
+                        bgCount++;
+                    }
+                }
+            }
+            if (bgCount < 5) continue;
+            bgR /= bgCount; bgG /= bgCount; bgB /= bgCount;
+            const bgGray = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
+
+            // 木目色度チェック (R - B >= 14, 適切な明るさ)
+            if (bgR - bgB < 14 || bgGray < 40) continue;
+
+            // 中心近傍で黒丸ドット（局所最小輝度）を探索
+            let minGray = 1e9;
+            let bestX = cx, bestY = cy;
+            for (let dy = -searchRadius + 1; dy <= searchRadius - 1; dy++) {
+                for (let dx = -searchRadius + 1; dx <= searchRadius - 1; dx++) {
+                    const px = cx + dx, py = cy + dy;
+                    const ptr = (py * width + px) * 4;
+                    const gray = 0.299 * data[ptr] + 0.587 * data[ptr + 1] + 0.114 * data[ptr + 2];
+                    if (gray < minGray) {
+                        minGray = gray;
+                        bestX = px;
+                        bestY = py;
+                    }
+                }
+            }
+
+            const contrast = bgGray - minGray;
+            if (contrast < 18.0) continue;
+
+            // 重心サブピクセル精細化
+            let sumW = 0, sumWX = 0, sumWY = 0;
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const px = bestX + dx, py = bestY + dy;
+                    const ptr = (py * width + px) * 4;
+                    const gray = 0.299 * data[ptr] + 0.587 * data[ptr + 1] + 0.114 * data[ptr + 2];
+                    const diff = bgGray - gray;
+                    if (diff > contrast * 0.4) {
+                        sumW += diff;
+                        sumWX += diff * px;
+                        sumWY += diff * py;
+                    }
+                }
+            }
+
+            if (sumW > 0) {
+                detectedStars.push({
+                    normX,
+                    normY,
+                    imgX: sumWX / sumW,
+                    imgY: sumWY / sumW,
+                });
+            }
+        }
+
+        srcPts.delete();
+        dstPts.delete();
+        H.delete();
+
+        // 星が4点以上検出された場合、ホモグラフィを精密化
+        if (detectedStars.length >= 4) {
+            const numPts = detectedStars.length;
+            const srcStarMat = new cv.Mat(numPts, 1, cv.CV_32FC2);
+            const dstStarMat = new cv.Mat(numPts, 1, cv.CV_32FC2);
+
+            for (let i = 0; i < numPts; i++) {
+                srcStarMat.data32F[i * 2] = detectedStars[i].normX;
+                srcStarMat.data32F[i * 2 + 1] = detectedStars[i].normY;
+                dstStarMat.data32F[i * 2] = detectedStars[i].imgX;
+                dstStarMat.data32F[i * 2 + 1] = detectedStars[i].imgY;
+            }
+
+            let refinedCorners = corners;
+            try {
+                const mask = new cv.Mat();
+                const HRefined = cv.findHomography(srcStarMat, dstStarMat, cv.RANSAC, 4.0, mask);
+                mask.delete();
+
+                if (HRefined && !HRefined.empty()) {
+                    const rh = HRefined.data64F;
+                    const projRefined = (u, v) => {
+                        const w = rh[6] * u + rh[7] * v + rh[8];
+                        return {
+                            x: (rh[0] * u + rh[1] * v + rh[2]) / w,
+                            y: (rh[3] * u + rh[4] * v + rh[5]) / w,
+                        };
+                    };
+
+                    const cTL = projRefined(0, 0);
+                    const cTR = projRefined(1, 0);
+                    const cBR = projRefined(1, 1);
+                    const cBL = projRefined(0, 1);
+
+                    const maxDev = 35.0;
+                    if (Math.hypot(cTL.x - corners[0].x, cTL.y - corners[0].y) <= maxDev &&
+                        Math.hypot(cTR.x - corners[1].x, cTR.y - corners[1].y) <= maxDev &&
+                        Math.hypot(cBR.x - corners[2].x, cBR.y - corners[2].y) <= maxDev &&
+                        Math.hypot(cBL.x - corners[3].x, cBL.y - corners[3].y) <= maxDev) {
+                        refinedCorners = [cTL, cTR, cBR, cBL];
+                    }
+                }
+                if (HRefined) HRefined.delete();
+            } catch (err) {
+                console.warn('findHomography error:', err);
+            } finally {
+                srcStarMat.delete();
+                dstStarMat.delete();
+            }
+
+            return refinedCorners;
+        }
+
+        return corners;
+    }
+
+    /**
+     * サブピクセル精細化 (OpenCV cv.cornerSubPix または反復 Förstner 構造テンソル)
+     * @param {cv.Mat} srcMat
+     * @param {Array<{x: number, y: number}>} corners
+     * @returns {Array<{x: number, y: number}>}
+     * @private
+     */
+    _refineCornersSubPix(srcMat, corners) {
+        const width = srcMat.cols;
+        const height = srcMat.rows;
+        const gray = new cv.Mat();
+        try {
+            cv.cvtColor(srcMat, gray, cv.COLOR_RGBA2GRAY);
+
+            if (typeof cv.cornerSubPix === 'function') {
+                const cornerMat = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                    corners[0].x, corners[0].y,
+                    corners[1].x, corners[1].y,
+                    corners[2].x, corners[2].y,
+                    corners[3].x, corners[3].y,
+                ]);
+                const winSize = new cv.Size(5, 5);
+                const zeroZone = new cv.Size(-1, -1);
+                const criteria = new cv.TermCriteria(cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.05);
+
+                cv.cornerSubPix(gray, cornerMat, winSize, zeroZone, criteria);
+
+                const res = [];
+                for (let i = 0; i < 4; i++) {
+                    const sx = cornerMat.data32F[i * 2];
+                    const sy = cornerMat.data32F[i * 2 + 1];
+                    const orig = corners[i];
+                    if (Math.hypot(sx - orig.x, sy - orig.y) <= 6.0 && !isNaN(sx) && !isNaN(sy)) {
+                        res.push({ x: sx, y: sy });
+                    } else {
+                        res.push(orig);
+                    }
+                }
+                cornerMat.delete();
+                return res;
+            }
+
+            // フォールバック: 反復 Förstner 構造テンソル演算子
+            return corners.map(pt => this._forstnerRefinePoint(gray, pt, width, height));
+        } finally {
+            gray.delete();
+        }
+    }
+
+    /**
+     * Förstner コーナー検出演算子 (構造テンソルの反復最小化)
+     * @param {cv.Mat} grayMat
+     * @param {{x: number, y: number}} pt
+     * @param {number} width
+     * @param {number} height
+     * @returns {{x: number, y: number}}
+     * @private
+     */
+    _forstnerRefinePoint(grayMat, pt, width, height) {
+        let curX = pt.x;
+        let curY = pt.y;
+        const r = 5;
+        const data = grayMat.data;
+
+        for (let iter = 0; iter < 5; iter++) {
+            const ix = Math.round(curX);
+            const iy = Math.round(curY);
+
+            if (ix - r - 1 < 0 || ix + r + 1 >= width || iy - r - 1 < 0 || iy + r + 1 >= height) {
+                break;
+            }
+
+            let m00 = 0, m01 = 0, m11 = 0;
+            let b0 = 0, b1 = 0;
+            const twoSigmaSq = 2.0 * (r / 2.0) * (r / 2.0);
+
+            for (let dy = -r; dy <= r; dy++) {
+                const py = iy + dy;
+                for (let dx = -r; dx <= r; dx++) {
+                    const px = ix + dx;
+
+                    const gx = (data[py * width + (px + 1)] - data[py * width + (px - 1)]) * 0.5;
+                    const gy = (data[(py + 1) * width + px] - data[(py - 1) * width + px]) * 0.5;
+
+                    const distSq = (px - curX) * (px - curX) + (py - curY) * (py - curY);
+                    const weight = Math.exp(-distSq / twoSigmaSq);
+
+                    const gx2 = gx * gx * weight;
+                    const gy2 = gy * gy * weight;
+                    const gxy = gx * gy * weight;
+
+                    m00 += gx2;
+                    m01 += gxy;
+                    m11 += gy2;
+
+                    b0 += gx2 * px + gxy * py;
+                    b1 += gxy * px + gy2 * py;
+                }
+            }
+
+            const det = m00 * m11 - m01 * m01;
+            const trace = m00 + m11;
+            if (det <= 50.0 || trace <= 3.0 || det / trace < 3.0) {
+                break;
+            }
+
+            const nextX = (m11 * b0 - m01 * b1) / det;
+            const nextY = (m00 * b1 - m01 * b0) / det;
+
+            if (isNaN(nextX) || isNaN(nextY)) break;
+            if (Math.hypot(nextX - pt.x, nextY - pt.y) > 6.0) break;
+
+            const shift = Math.hypot(nextX - curX, nextY - curY);
+            curX = nextX;
+            curY = nextY;
+            if (shift < 0.01) break;
+        }
+
+        return { x: curX, y: curY };
+    }
+
+    /**
+     * 射影幾何学（消失点・複比 Cross-Ratio）によるオクルージョン4隅外挿
+     * 対局者の手や石で外周端線（0番、18番）が隠れている場合、内側の格子線群から数学的に4隅を復元
+     * @param {Array<{x1, y1, x2, y2, mx, my}>} linesH - 水平線群
+     * @param {Array<{x1, y1, x2, y2, mx, my}>} linesV - 垂直線群
+     * @param {number} width - 画像幅
+     * @param {number} height - 画像高さ
+     * @returns {Array<{x: number, y: number}>|null}
+     * @private
+     */
+    _extrapolateCornersViaCrossRatio(linesH, linesV, width, height) {
+        if (linesH.length < 2 || linesV.length < 2) return null;
+
+        // 垂直線の消失点 (V_vert: 水平線群の交点) と水平線の消失点 (V_horiz: 垂直線群の交点)
+        const findVanishingPoint = (lines) => {
+            const pts = [];
+            for (let i = 0; i < lines.length; i++) {
+                for (let j = i + 1; j < lines.length; j++) {
+                    const l1 = lines[i], l2 = lines[j];
+                    const denom = (l1.x1 - l1.x2) * (l2.y1 - l2.y2) - (l1.y1 - l1.y2) * (l2.x1 - l2.x2);
+                    if (Math.abs(denom) > 1e-4) {
+                        const px = ((l1.x1 * l1.y2 - l1.y1 * l1.x2) * (l2.x1 - l2.x2) - (l1.x1 - l1.x2) * (l2.x1 * l2.y2 - l2.y1 * l2.x2)) / denom;
+                        const py = ((l1.x1 * l1.y2 - l1.y1 * l1.x2) * (l2.y1 - l2.y2) - (l1.y1 - l1.y2) * (l2.x1 * l2.y2 - l2.y1 * l2.x2)) / denom;
+                        if (Math.hypot(px, py) < 1e6) {
+                            pts.push({ x: px, y: py });
+                        }
+                    }
+                }
+            }
+            if (pts.length === 0) return null;
+            pts.sort((a, b) => a.y - b.y);
+            return pts[Math.floor(pts.length / 2)];
+        };
+
+        const vVert = findVanishingPoint(vertLines);
+
+        // 複比 (Cross-Ratio) 外挿関数: CR(c1, c2; cTarget, V) = CR(t1, t2; target, inf)
+        const extrapolate1D = (t1, c1, t2, c2, targetT, vCoord) => {
+            if (Math.abs(t2 - t1) < 1e-4) return c1;
+            if (!vCoord || Math.abs(vCoord) > 1e5) {
+                return c1 + (targetT - t1) * (c2 - c1) / (t2 - t1);
+            }
+            const k = (targetT - t1) / (targetT - t2);
+            const denomV = Math.abs(vCoord - c1) < 1e-4 ? 1e-4 : (vCoord - c1);
+            const r = (vCoord - c2) / denomV;
+            if (Math.abs(r) < 1e-6 || Math.abs(1.0 - k / r) < 1e-6) {
+                return c1 + (targetT - t1) * (c2 - c1) / (t2 - t1);
+            }
+            const m = k / r;
+            return (c1 - m * c2) / (1.0 - m);
+        };
+
+        // 水平線の中央Y座標から端線 (0 と 18) を外挿
+        const firstH = linesH[0], lastH = linesH[linesH.length - 1];
+        const vY = vVert ? vVert.y : null;
+        const yTop = extrapolate1D(1, firstH.my, linesH.length, lastH.my, 0, vY);
+        const yBot = extrapolate1D(1, firstH.my, linesH.length, lastH.my, 18, vY);
+
+        const firstV = linesV[0], lastV = linesV[linesV.length - 1];
+        const vHoriz = findVanishingPoint(linesH);
+        const vX = vHoriz ? vHoriz.x : null;
+        const xLeft = extrapolate1D(1, firstV.mx, linesV.length, lastV.mx, 0, vX);
+        const xRight = extrapolate1D(1, firstV.mx, linesV.length, lastV.mx, 18, vX);
+
+        return [
+            { x: Math.round(xLeft), y: Math.round(yTop) },
+            { x: Math.round(xRight), y: Math.round(yTop) },
+            { x: Math.round(xRight), y: Math.round(yBot) },
+            { x: Math.round(xLeft), y: Math.round(yBot) },
+        ];
     }
 
     /**
@@ -469,6 +914,13 @@ class BoardDetector {
             if (tl && tr && br && bl) {
                 return [tl, tr, br, bl];
             }
+
+            // 射影幾何学・複比 (Cross-Ratio) 外挿フォールバック (手や石による端線オクルージョン対策)
+            const crCorners = this._extrapolateCornersViaCrossRatio(cleanH, cleanV, width, height);
+            if (crCorners) {
+                return crCorners;
+            }
+
             return null;
         } catch (err) {
             console.warn('Hough corner detection warning:', err);
@@ -1606,6 +2058,77 @@ class BoardDetector {
     }
 }
 
-export { BoardDetector };
+/**
+ * 1パラメータ Division Model (Fitzgibbon 2001) による広角カメラ樽型レンズ歪み補正
+ */
+class DivisionModel {
+    /**
+     * @param {number} width - 画像幅
+     * @param {number} height - 画像高さ
+     * @param {number} [k1=-0.15] - 歪み係数 (< 0 で樽型歪み補正)
+     */
+    constructor(width, height, k1 = -0.15) {
+        this.width = width;
+        this.height = height;
+        this.centerX = width / 2.0;
+        this.centerY = height / 2.0;
+        this.maxRadius = Math.hypot(this.centerX, this.centerY);
+        this.k1 = k1;
+    }
+
+    /**
+     * 歪み画像座標 Pd を不歪化座標 Pu に変換
+     * @param {{x: number, y: number}} pd
+     * @returns {{x: number, y: number}}
+     */
+    undistortPoint(pd) {
+        const dx = pd.x - this.centerX;
+        const dy = pd.y - this.centerY;
+        const rnSq = (dx * dx + dy * dy) / (this.maxRadius * this.maxRadius);
+        const factor = 1.0 + this.k1 * rnSq;
+        const denom = Math.abs(factor) < 1e-4 ? 1e-4 : factor;
+        return {
+            x: this.centerX + dx / denom,
+            y: this.centerY + dy / denom,
+        };
+    }
+
+    /**
+     * 不歪化座標 Pu を歪み画像座標 Pd に逆変換
+     * @param {{x: number, y: number}} pu
+     * @returns {{x: number, y: number}}
+     */
+    distortPoint(pu) {
+        const dx = pu.x - this.centerX;
+        const dy = pu.y - this.centerY;
+        const ru = Math.hypot(dx, dy);
+        if (ru < 1e-6 || Math.abs(this.k1) < 1e-7) return { ...pu };
+
+        const a = (this.k1 * ru) / (this.maxRadius * this.maxRadius);
+        const b = -1.0;
+        const c = ru;
+        const discriminant = b * b - 4.0 * a * c;
+        if (discriminant < 0) return { ...pu };
+
+        const rd = (2.0 * c) / (1.0 + Math.sqrt(discriminant));
+        const scale = rd / ru;
+        return {
+            x: this.centerX + dx * scale,
+            y: this.centerY + dy * scale,
+        };
+    }
+
+    /**
+     * 4隅座標を一括不歪化
+     * @param {Array<{x: number, y: number}>} corners
+     * @returns {Array<{x: number, y: number}>}
+     */
+    undistortCorners(corners) {
+        return corners.map(pt => this.undistortPoint(pt));
+    }
+}
+
+export { BoardDetector, DivisionModel };
+
 
 

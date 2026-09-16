@@ -157,7 +157,14 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
     constructor();
     waitForOpenCV(): Promise<void>;
     isReady(): boolean;
-    setCorners(corners: Point2D[]): void;
+    setCorners(
+      corners: Point2D[],
+      source?: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement | any,
+    ): void;
+    refineCorners(
+      source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement | any,
+      corners?: Point2D[] | null,
+    ): Point2D[];
     hasCornersSet(): boolean;
     resetCorners(): void;
     setThresholds(thresholds: Partial<DetectorThresholds>): void;
@@ -184,6 +191,16 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
     ): Promise<MediaStream>;
     stopCamera(stream: MediaStream | null): void;
     captureFrame(videoElement: HTMLVideoElement, canvasElement: HTMLCanvasElement): void;
+  }
+
+  export class DivisionModel {
+    constructor(width: number, height: number, k1?: number);
+    width: number;
+    height: number;
+    k1: number;
+    undistortPoint(pd: Point2D): Point2D;
+    distortPoint(pu: Point2D): Point2D;
+    undistortCorners(corners: Point2D[]): Point2D[];
   }
 }
 

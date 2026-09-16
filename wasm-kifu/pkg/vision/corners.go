@@ -449,6 +449,18 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	// 9. 木枠マージンインセット逆算 (NotebookLM 幾何モデル: 片側約 2.0%)
 	gridCorners := ApplyMarginInset(rawOuter, 0.020, 0.020)
 
+	// 10. 星（花点・天元）によるホモグラフィ精密化 (Star Points Homography Refinement)
+	// 盤面上の黒丸ドット（星）を検出し、木枠マージン誤差や射影歪みを非線形・最小二乗補正
+	starRefiner := NewStarHomographyRefiner()
+	starRefinedCorners, starCount := starRefiner.RefineCornersWithStarPoints(img, gridCorners)
+	if starCount >= 4 {
+		gridCorners = starRefinedCorners
+	}
+
+	// 11. Förstner 反復サブピクセル精細化 (Förstner Sub-Pixel Refinement)
+	// 0.1px 以下のサブピクセル交点座標へ自動吸着
+	gridCorners = RefineCornersSubPix(img, gridCorners)
+
 	area := polygonArea([]Point{gridCorners[0], gridCorners[1], gridCorners[2], gridCorners[3]})
 	imgArea := float64(w * h)
 

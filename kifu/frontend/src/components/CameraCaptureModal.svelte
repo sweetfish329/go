@@ -391,6 +391,17 @@
     cornerPoints = [...cornerPoints, point];
 
     if (cornerPoints.length === 4) {
+      const source = loadedImageMat || previewCanvas;
+      if (source && detector.isReady()) {
+        try {
+          const refined = detector.refineCorners(source, cornerPoints);
+          if (refined && refined.length === 4) {
+            cornerPoints = refined;
+          }
+        } catch (err) {
+          console.warn("Corner refinement notice:", err);
+        }
+      }
       detector.setCorners(cornerPoints);
     }
     renderCornerOverlay();
