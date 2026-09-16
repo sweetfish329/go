@@ -26,7 +26,7 @@ type StarHomographyRefiner struct {
 // NewStarHomographyRefiner はリファイナーを初期化する
 func NewStarHomographyRefiner() *StarHomographyRefiner {
 	return &StarHomographyRefiner{
-		MinStarsForRefine: 7,
+		MinStarsForRefine: 4,
 		SearchRadiusRatio: 0.35,
 	}
 }
@@ -417,8 +417,9 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 				oob = true
 				break
 			}
+			maxDist := math.Max(90.0, math.Max(w, h)*0.065)
 			dist := math.Hypot(refined[i].X-initialCorners[i].X, refined[i].Y-initialCorners[i].Y)
-			if dist > 45.0 {
+			if dist > maxDist {
 				oob = true
 				break
 			}
