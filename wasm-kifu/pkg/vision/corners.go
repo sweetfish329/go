@@ -306,30 +306,81 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	aL, bL := fitVertLine(leftPts)
 	aR, bR := fitVertLine(rightPts)
 
-	// 底辺直線: 手前側の最左下点 BL と最右下点 BR から直接決定 (傾いた底辺に完全追従)
-	var bestBL, bestBR Point
-	minScoreBL, maxScoreBR := 1e18, -1e18
+	// 底辺直線: RANSAC 水平直線フィッティング (単一ピクセルの外れ値・木口側面突起耐性)
+	fitHorizLine := func(pts []Point) (float64, float64) {
+		n := len(pts)
+		if n < 5 {
+			return 0, 0
+		}
+		bestInliers := []Point{}
+		maxInliers := 0
+		bestC, bestD := 0.0, 0.0
+
+		for iter := 0; iter < 100; iter++ {
+			i1 := (iter * 19) % n
+			i2 := (iter*37 + 11) % n
+			if i1 == i2 || math.Abs(pts[i1].X-pts[i2].X) < 30.0 {
+				continue
+			}
+			p1, p2 := pts[i1], pts[i2]
+			c := (p2.Y - p1.Y) / (p2.X - p1.X)
+			if math.Abs(c) > 0.6 {
+				continue
+			}
+			d := p1.Y - c*p1.X
+
+			var inliers []Point
+			for _, p := range pts {
+				if math.Abs(p.Y-(c*p.X+d)) < 25.0 {
+					inliers = append(inliers, p)
+				}
+			}
+			if len(inliers) > maxInliers {
+				maxInliers = len(inliers)
+				bestInliers = inliers
+				bestC, bestD = c, d
+			}
+		}
+
+		if len(bestInliers) >= 5 {
+			meanX, meanY := 0.0, 0.0
+			for _, p := range bestInliers {
+				meanX += p.X
+				meanY += p.Y
+			}
+			meanX /= float64(len(bestInliers))
+			meanY /= float64(len(bestInliers))
+			var num, den float64
+			for _, p := range bestInliers {
+				num += (p.X - meanX) * (p.Y - meanY)
+				den += (p.X - meanX) * (p.X - meanX)
+			}
+			if den > 1e-6 {
+				bestC = num / den
+			}
+			bestD = meanY - bestC*meanX
+		}
+		return bestC, bestD
+	}
+
+	cB, dB := fitHorizLine(botPts)
+
+	// 最左点・最右点のX座標から手前底辺の幅と代表Yを推定
+	minX, maxX := 1e18, -1e18
 	for _, p := range botPts {
-		scoreBL := p.X - p.Y*0.25
-		scoreBR := p.X + p.Y*0.25
-		if scoreBL < minScoreBL {
-			minScoreBL = scoreBL
-			bestBL = p
+		if p.X < minX {
+			minX = p.X
 		}
-		if scoreBR > maxScoreBR {
-			maxScoreBR = scoreBR
-			bestBR = p
+		if p.X > maxX {
+			maxX = p.X
 		}
 	}
+	wBot := maxX - minX
 
-	cB := 0.0
-	if math.Abs(bestBR.X-bestBL.X) > 10.0 {
-		cB = (bestBR.Y - bestBL.Y) / (bestBR.X - bestBL.X)
-	}
-	dB := bestBL.Y - cB*bestBL.X
-
-	wBot := math.Hypot(bestBR.X-bestBL.X, bestBR.Y-bestBL.Y)
-	botY := (bestBL.Y + bestBR.Y) / 2.0
+	// 天板稜線・シャドウライン（法線不連続）による手前底辺の高精度自己修復 (NotebookLM 学術数理モデル)
+	// 卓上盤・脚付盤の側面木口（厚み）へのマスク引きずられを防止し、上面真の稜線へ底辺を引き戻す
+	cB, dB = refineBottomLineWithShadow(img, cB, dB, minX, maxX, wBot)
+	botY := cB*((minX+maxX)/2.0) + dB
 
 	// 7. 画像中心から上方向へ連続する天板ブロブの上端を追跡 (奥の机への飛び移りを完全遮断)
 	centerGY := int(float64(h) * 0.50 / scaleY)
@@ -548,4 +599,118 @@ func CalculateQuadIoU(q1, q2 [4]Point, width, height int) float64 {
 		return 0.0
 	}
 	return float64(intersectionCount) / float64(unionCount) * 100.0
+}
+
+// refineBottomLineWithShadow は天板上面と手前側面（木口）の境界稜線（シャドウライン・法線不連続）を探索し、
+// 厚みのある卓上盤や脚付盤でも底辺直線 (cB, dB) を側面底から天板上面エッジへ高精度に引き戻す (NotebookLM 学術数理モデル)。
+func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBot float64) (float64, float64) {
+	bounds := img.Bounds()
+	imgH := bounds.Dy()
+	maxThick := math.Min(160.0, wBot*0.12)
+	if maxThick < 20.0 {
+		return cB, dB
+	}
+
+	type edgeCand struct {
+		x     float64
+		y     float64
+		score float64
+	}
+	var cands []edgeCand
+
+	// 盤面中央 20%〜80% の領域をサンプリング (外周ノイズ・手前机ノイズの混入を防止)
+	numSteps := 20
+	stepX := (maxX - minX) * 0.60 / float64(numSteps)
+	for i := 0; i <= numSteps; i++ {
+		x := minX + (maxX-minX)*0.20 + float64(i)*stepX
+		ix := int(x)
+		if ix < 5 || ix >= bounds.Dx()-5 {
+			continue
+		}
+		initY := cB*x + dB
+
+		bestY := -1.0
+		bestScore := 0.0
+
+		// initY から上方向に 12px〜maxThick の範囲をスキャン
+		for dy := 12.0; dy <= maxThick; dy += 2.0 {
+			y := initY - dy
+			iy := int(y)
+			if iy < 10 || iy >= imgH-10 {
+				continue
+			}
+
+			// Y方向の垂直輝度勾配 (Sobel 相当)
+			rU, gU, bU, _ := img.At(ix, iy-3).RGBA()
+			rD, gD, bD, _ := img.At(ix, iy+3).RGBA()
+			grayU := 0.299*float64(rU>>8) + 0.587*float64(gU>>8) + 0.114*float64(bU>>8)
+			grayD := 0.299*float64(rD>>8) + 0.587*float64(gD>>8) + 0.114*float64(bD>>8)
+			gradY := (grayD - grayU) / 6.0
+
+			rC, gC, bC, _ := img.At(ix, iy).RGBA()
+			r8 := float64(rC >> 8)
+			b8 := float64(bC >> 8)
+			grayC := 0.299*r8 + 0.587*float64(gC>>8) + 0.114*b8
+
+			wood := r8 - b8
+
+			// 木目天板領域内のシャドウライン (負の勾配、局所的暗さ・面取り)
+			if wood > 20 {
+				score := math.Abs(gradY) + (100.0-grayC)*0.08
+				if score > bestScore {
+					bestScore = score
+					bestY = y
+				}
+			}
+		}
+
+		if bestScore > 4.5 && bestY > 0 {
+			cands = append(cands, edgeCand{x: x, y: bestY, score: bestScore})
+		}
+	}
+
+	if len(cands) < 5 {
+		return cB, dB
+	}
+
+	// 候補点群から、大域底辺傾き cB を維持しつつ、
+	// シャドウラインの高さ切片 d = y - cB*x のインライア中央値をロバスト推定
+	type candOffset struct {
+		d     float64
+		score float64
+	}
+	var offsets []candOffset
+	for _, cand := range cands {
+		d := cand.y - cB*cand.x
+		offsets = append(offsets, candOffset{d: d, score: cand.score})
+	}
+
+	// 最も多くのインライア（±15px以内）を集める最適な d を探索
+	maxInliers := 0
+	var bestInlierDs []float64
+
+	for _, o := range offsets {
+		var curInliers []float64
+		for _, other := range offsets {
+			if math.Abs(other.d-o.d) < 15.0 {
+				curInliers = append(curInliers, other.d)
+			}
+		}
+		if len(curInliers) > maxInliers {
+			maxInliers = len(curInliers)
+			bestInlierDs = curInliers
+		}
+	}
+
+	if maxInliers >= 5 {
+		sort.Float64s(bestInlierDs)
+		medD := bestInlierDs[len(bestInlierDs)/2]
+		// 上面へのシフト量が適正範囲（10px〜maxThick）の場合のみ更新
+		shift := dB - medD
+		if shift >= 10.0 && shift <= maxThick {
+			return cB, medD
+		}
+	}
+
+	return cB, dB
 }

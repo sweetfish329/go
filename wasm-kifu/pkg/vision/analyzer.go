@@ -53,6 +53,9 @@ type IntersectionFeatures struct {
 	Cb    float64 `json:"cb,omitempty"`    // YCrCb 青色色差 (0-255: 石は128付近, 木目は<128)
 	Chroma float64 `json:"chroma,omitempty"` // 無彩色度 sqrt((Cr-128)^2 + (Cb-128)^2) (石は低, 木目は高)
 	SigmaChroma float64 `json:"sigmaChroma,omitempty"` // 近傍領域のクロミナンス標準偏差 (テカリ分離用)
+	MaxChroma float64 `json:"maxChroma,omitempty"` // 最大色彩度 max(R,G,B)/(R+G+B) (木目は高, 無彩色/鏡面反射は1/3付近)
+	SpecWeight float64 `json:"specWeight,omitempty"` // 鏡面反射成分の強さ min(R,G,B)
+	DiffuseR float64 `json:"diffuseR,omitempty"` // 鏡面反射除去後の拡散アルベド R - min(R,G,B)
 }
 
 // RGBToYCrCb は標準RGBから Y, Cr, Cb (ITU-R BT.601) を算出する
@@ -68,6 +71,27 @@ func ComputeChroma(cr, cb float64) float64 {
 	dCr := cr - 128.0
 	dCb := cb - 128.0
 	return math.Sqrt(dCr*dCr + dCb*dCb)
+}
+
+// ComputeDichromaticReflection は二色性反射モデル (Dichromatic Reflection Model) に基づき、
+// 最大色彩度 (Maximum Chroma) σ(x) = max(R,G,B)/(R+G+B) および
+// 白色鏡面反射光成分 ws = min(R,G,B)、拡散反射アルベド (diffR, diffG, diffB) を算出する。
+func ComputeDichromaticReflection(r, g, b float64) (maxChroma, specWeight, diffR, diffG, diffB float64) {
+	sum := r + g + b
+	maxC := math.Max(r, math.Max(g, b))
+	minC := math.Min(r, math.Min(g, b))
+
+	if sum > 1e-6 {
+		maxChroma = maxC / sum
+	} else {
+		maxChroma = 1.0 / 3.0
+	}
+
+	specWeight = minC
+	diffR = r - minC
+	diffG = g - minC
+	diffB = b - minC
+	return
 }
 
 // BoardFeaturesData は全交点の多次元特徴量データ
@@ -603,6 +627,20 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 			}
 
 			res.Grid[y*BoardSize+x] = stone
+		}
+	}
+
+	// 囲碁ルール自己修復 (Bitboard・呼吸点0の死石・ノイズ自己修復: NotebookLM 数理モデル)
+	var raw2D [BoardSize][BoardSize]int8
+	for y := 0; y < BoardSize; y++ {
+		for x := 0; x < BoardSize; x++ {
+			raw2D[y][x] = res.Grid[y*BoardSize+x]
+		}
+	}
+	repaired2D, _ := engine.RepairBoardWithRules(raw2D)
+	for y := 0; y < BoardSize; y++ {
+		for x := 0; x < BoardSize; x++ {
+			res.Grid[y*BoardSize+x] = repaired2D[y][x]
 		}
 	}
 

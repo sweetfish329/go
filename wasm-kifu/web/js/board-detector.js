@@ -966,18 +966,20 @@ class BoardDetector {
         const boardW = w - 2 * margin;
         const boardH = h - 2 * margin;
 
-        // 碁盤の透視ピッチ勾配の計算 (奥側が狭く、手前側が広い遠近感を考慮)
-        const rowWeights = [];
-        for (let i = 0; i < this.boardSize - 1; i++) {
-            rowWeights.push(33.0 + (39.0 - 33.0) * (i / (this.boardSize - 2)));
+        // 消失点・複比（Cross-Ratio）に基づく有理関数透視ピッチモデル (NotebookLM 学術数理モデル)
+        // f(t) = (H * r * t) / ((r - 1) * t + 18) (r = sqrt(pStart / pEnd))
+        const pStart = 33.0;
+        const pEnd = 39.0;
+        const rRatio = Math.sqrt(pStart / pEnd);
+        const numDenomCoeff = rRatio - 1.0;
+        const gridY = [];
+        for (let i = 0; i < this.boardSize; i++) {
+            const t = i;
+            const denom = numDenomCoeff * t + (this.boardSize - 1);
+            const yOffset = (denom !== 0) ? (boardH * rRatio * t) / denom : (boardH * (t / (this.boardSize - 1)));
+            gridY.push(margin + Math.round(yOffset));
         }
-        const totalRowW = rowWeights.reduce((a, b) => a + b, 0);
-        const gridY = [margin];
-        let accY = 0;
-        for (let i = 0; i < this.boardSize - 1; i++) {
-            accY += (rowWeights[i] / totalRowW) * boardH;
-            gridY.push(margin + Math.round(accY));
-        }
+        gridY[0] = margin;
         gridY[this.boardSize - 1] = margin + boardH;
 
         const stepX = boardW / (this.boardSize - 1);
@@ -1024,6 +1026,7 @@ class BoardDetector {
         const rawFeatures = [];
         const sampleRadius = Math.floor(stepX * 0.30);
         const snapR = 9;
+        const hMaximaThresh = 2.5; // H-maxima 抑制閾値: 微小ノイズピークによる誤スナップを抑制
 
         try {
             for (let y = 0; y < this.boardSize; y++) {
@@ -1062,9 +1065,13 @@ class BoardDetector {
                         }
                     }
 
-                    // より強いピークを持つ石の中心を採用
-                    const sampleX = maxDW > maxDB ? bestPeakWX : bestPeakBX;
-                    const sampleY = maxDW > maxDB ? bestPeakWY : bestPeakBY;
+                    // H-maxima 抑制: ピーク強度が閾値未満の場合は中心スナップを行わず理論交点を保持
+                    let sampleX = cx;
+                    let sampleY = searchCY;
+                    if (Math.max(maxDW, maxDB) >= hMaximaThresh) {
+                        sampleX = maxDW > maxDB ? bestPeakWX : bestPeakBX;
+                        sampleY = maxDW > maxDB ? bestPeakWY : bestPeakBY;
+                    }
 
                     // スナップ点周辺の平均色をサンプリング (RGB 3チャンネル)
                     let sumR = 0, sumG = 0, sumB = 0, count = 0;
@@ -1092,6 +1099,14 @@ class BoardDetector {
                     const cb = -0.168736 * avgR - 0.331264 * avgG + 0.500 * avgB + 128.0;
                     const chroma = Math.hypot(cr - 128.0, cb - 128.0);
 
+                    // 二色性反射モデル (Dichromatic Reflection Model: NotebookLM 学術モデル)
+                    const sumRGB = avgR + avgG + avgB;
+                    const maxRGB = Math.max(avgR, avgG, avgB);
+                    const minRGB = Math.min(avgR, avgG, avgB);
+                    const maxChroma = sumRGB > 0 ? maxRGB / sumRGB : 1.0 / 3.0;
+                    const specWeight = minRGB;
+                    const diffuseR = avgR - minRGB;
+
                     // 理論交点 (cx, cy) の色
                     const cR = rPlane.ucharAt(cy, cx);
                     const cB = bPlane.ucharAt(cy, cx);
@@ -1105,6 +1120,7 @@ class BoardDetector {
                         g: avgG,
                         b: avgB,
                         cr, cb, chroma,
+                        maxChroma, specWeight, diffuseR,
                         rmb: rmb,
                         cR, cB, cRmb,
                         avgR, avgB,

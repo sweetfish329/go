@@ -17,6 +17,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/sweetfish329/go/wasm-kifu/pkg/engine"
+	"github.com/sweetfish329/go/wasm-kifu/pkg/vision"
 )
 
 // ─────────────────── 共通型 ───────────────────
@@ -264,26 +267,12 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 	boardW := float64(dstW) - 2*margin
 	boardH := float64(dstH) - 2*margin
 
-	// ピッチ勾配 Y 方向
+	// 消失点・複比（Cross-Ratio）に基づく有理関数透視ピッチモデル (NotebookLM 学術数理モデル)
 	ps, pe := tc.PitchStart, tc.PitchEnd
 	if ps == 0 && pe == 0 {
 		ps, pe = boardH/18, boardH/18
 	}
-	rowW := make([]float64, 18)
-	for i := range rowW {
-		rowW[i] = ps + (pe-ps)*(float64(i)/17)
-	}
-	totalW := 0.0
-	for _, v := range rowW {
-		totalW += v
-	}
-	baseY := make([]float64, 19)
-	acc := 0.0
-	for i := 0; i < 18; i++ {
-		acc += (rowW[i] / totalW) * boardH
-		baseY[i+1] = acc
-	}
-	baseY[18] = boardH
+	baseY := vision.RationalProjectivePitch(boardH, ps, pe)
 
 	// グリッド点生成 + サンプリング
 	type pd struct {
@@ -375,8 +364,7 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 	}
 
 	// 石判定 (NormR/NormB チャンネル分割 + Chroma無彩色判定)
-	matches := 0
-	var conf [3][3]int
+	var rawGrid [19][19]int8
 	for y := 0; y < 19; y++ {
 		for x := 0; x < 19; x++ {
 			d := data[y][x]
@@ -399,7 +387,18 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 					stone = 1
 				}
 			}
+			rawGrid[y][x] = stone
+		}
+	}
 
+	// 囲碁ルール大域自己修復 (Bitboard・呼吸点0の死石・ノイズ自己修復: NotebookLM 学術モデル)
+	repairedGrid, _ := engine.RepairBoardWithRules(rawGrid)
+
+	matches := 0
+	var conf [3][3]int
+	for y := 0; y < 19; y++ {
+		for x := 0; x < 19; x++ {
+			stone := repairedGrid[y][x]
 			a := gt.Grid[y][x]
 			conf[a][stone]++
 			if a == stone {
