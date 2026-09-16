@@ -442,9 +442,10 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 
 	// 7. 画像中心から上方向へ連続する天板ブロブの上端を追跡 (奥の机への飛び移りを完全遮断)
 	centerGY := int(float64(h) * 0.50 / scaleY)
+	var topPts []Point
 	var centerTopYs []float64
 
-	for gx := int(float64(gw) * 0.35); gx <= int(float64(gw)*0.65); gx++ {
+	for gx := int(float64(gw) * 0.25); gx <= int(float64(gw)*0.75); gx++ {
 		currTopGY := centerGY
 		for gy := centerGY; gy >= 0; gy-- {
 			if boardMask[gy][gx] {
@@ -454,7 +455,9 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 			}
 		}
 		if currTopGY < centerGY {
-			centerTopYs = append(centerTopYs, float64(currTopGY)*scaleY)
+			pt := Point{X: float64(gx) * scaleX, Y: float64(currTopGY) * scaleY}
+			topPts = append(topPts, pt)
+			centerTopYs = append(centerTopYs, pt.Y)
 		}
 	}
 
@@ -464,7 +467,16 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		medBlobTopY := centerTopYs[len(centerTopYs)/2]
 		bestTopY = medBlobTopY - 25.0 // 天板上端木枠の厚み分オフセット
 	}
-	cT, dT := 0.0, bestTopY
+
+	// 上辺直線 RANSAC フィッティング (透視投影幾何拘束: 底辺の傾き cB との整合性)
+	cT, dT := cB, bestTopY-cB*float64(w)*0.5 // 初期値: 底辺の傾きを平行移動
+	if len(topPts) >= 10 {
+		fittedC, fittedD := fitHorizLine(topPts)
+		// 傾きが底辺と矛盾しない範囲 (|fittedC - cB| <= 0.12) かつ水平に近い場合
+		if math.Abs(fittedC-cB) <= 0.12 && math.Abs(fittedC) <= 0.18 {
+			cT, dT = fittedC, fittedD - 25.0 // 木枠上端厚みオフセット
+		}
+	}
 
 	// 8. 机の木目による片側垂直化の自動修復 (台形対称性拘束):
 	// ※ カメラのアングルによって片側が垂直に見える正常な構図が存在するため、
@@ -494,16 +506,21 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 		{X: detBL.X, Y: detBL.Y},
 	}
 
-	// 9. 木枠マージンインセット逆算 (日本の碁盤標準: 片側約 3.2% / 2.5%)
-	// 木枠天板の端から内側の「1線（外枠格子線）」の4交点へと高精度縮退
-	gridCorners := ApplyMarginInset(rawOuter, 0.032, 0.025)
+	// 9. 木枠マージン動的測定 ＆ 幾何平行移動 (Dynamic Margin Measurement & Shift)
+	// 木枠天板の端から内側へ走査して、実測された最外周黒格子線（1線）マージンにより4辺を平行移動
+	margins := MeasureDynamicWoodMargins(img, rawOuter)
+	gridCorners := ApplyDynamicMarginShift(rawOuter, margins)
 
 	// 10. 星（花点・天元）によるホモグラフィ精密化 (Star Points Homography Refinement)
-	// 盤面上の黒丸ドット（星）を検出し、木枠マージン誤差や射影歪みを非線形・最小二乗補正
+	// 盤面上の黒丸ドット（星）を検出し、射影歪みを非線形・最小二乗補正
 	starRefiner := NewStarHomographyRefiner()
 	starRefinedCorners, starCount := starRefiner.RefineCornersWithStarPoints(img, gridCorners)
 	if starCount >= 4 {
-		gridCorners = starRefinedCorners
+		// 外挿による四隅の過大収縮・発散を防止するため、IoU が悪化しない場合のみ適用
+		iouOrig := CalculateQuadIoU(gridCorners, starRefinedCorners, w, h)
+		if iouOrig >= 80.0 {
+			gridCorners = starRefinedCorners
+		}
 	}
 
 	// 11. Förstner 反復サブピクセル精細化 (Förstner Sub-Pixel Refinement)

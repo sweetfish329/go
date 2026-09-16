@@ -25,9 +25,9 @@ const statusEl = document.getElementById('status');
 // ======================
 async function init() {
     try {
-        // WASM ロード
+        // WASM ロード (キャッシュバスター付き)
         setStatus('WASM をロード中...', 'loading');
-        await kifu.load('wasm/kifu.wasm');
+        await kifu.load(`wasm/kifu.wasm?t=${Date.now()}`);
         setStatus('WASM ✓ / OpenCV.js ロード中...', 'loading');
 
         // 新規ゲーム開始
@@ -448,14 +448,21 @@ function loadImageSource(src) {
     img.classList.remove('hidden');
     img.src = src;
 
-    img.onload = () => {
+    img.onload = async () => {
         cornerPoints = [];
         detector.resetCorners();
         updateCornerDots();
         drawCornerMarkers();
-        showToast('🖼 画像を読み込みました。「🎯自動検出」または4隅タップで開始');
 
-        // Go WASM 高精度エンジンによる四隅自動検出を試行
+        // WASM のロード完了を最大3秒待機（初期化中のフォールバック防止）
+        if (!kifu.isReady()) {
+            showToast('⏳ WASM エンジン初期化待機中...');
+            for (let i = 0; i < 30 && !kifu.isReady(); i++) {
+                await new Promise((r) => setTimeout(r, 100));
+            }
+        }
+
+        // 高精度エンジンによる四隅自動検出を試行
         try {
             const detected = detectCornersFromSource(img);
             if (detected && detected.length === 4) {
@@ -463,10 +470,12 @@ function loadImageSource(src) {
                 detector.setCorners(cornerPoints);
                 updateCornerDots();
                 drawCornerMarkers();
-                showToast('🎯 碁盤の4隅を高精度自動検出しました！');
+            } else {
+                showToast('🖼 画像を読み込みました。「🎯自動検出」または4隅タップで開始');
             }
         } catch (err) {
             console.warn('Auto detect notice:', err);
+            showToast('🖼 画像を読み込みました。「🎯自動検出」または4隅タップで開始');
         }
     };
 }
@@ -496,29 +505,44 @@ function detectCornersFromSource(source) {
     const ctx = offscreen.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(source, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
+    console.log(`[Corners] Image source dimensions: ${width}x${height}`);
 
-    // 1. Go WASM による高精度・ロバスト検出（RANSAC、ブロブ追跡、シャドウライン補正）
+    // 1. Go WASM による高精度・ロバスト検出（動的マージン実測、RANSAC、ブロブ追跡、シャドウライン補正）
     if (kifu.isReady()) {
         try {
+            console.log('[Corners] 🚀 Running Go WASM detectBoardCorners...');
             const res = kifu.detectBoardCorners(imgData.data, width, height);
+            console.log('[Corners] Go WASM response:', res);
             if (res && res.corners && res.corners.length === 4) {
+                console.log('[Corners] ✅ Go WASM detected corners successfully:', res.corners);
+                showToast('🎯 碁盤の4隅を自動検出しました (Go WASM 動的マージン)');
                 return res.corners;
             }
+            if (res && res.error) {
+                console.warn('[Corners] ❌ Go WASM returned error:', res.error);
+            }
         } catch (err) {
-            console.warn('Wasm detectBoardCorners notice:', err);
+            console.warn('[Corners] ❌ Wasm detectBoardCorners exception:', err);
         }
+    } else {
+        console.warn('[Corners] ⚠️ kifu is not ready yet');
     }
 
     // 2. フォールバック: OpenCV.js
     if (detector.isReady()) {
         try {
+            console.log('[Corners] 🔄 Falling back to OpenCV.js autoDetectCorners...');
             const detected = detector.autoDetectCorners(offscreen);
+            console.log('[Corners] OpenCV.js result:', detected);
             if (detected && detected.length === 4) {
+                showToast('🎯 碁盤の4隅を自動検出しました (OpenCV.js)');
                 return detected;
             }
         } catch (err) {
-            console.warn('OpenCV autoDetectCorners notice:', err);
+            console.warn('[Corners] OpenCV autoDetectCorners notice:', err);
         }
+    } else {
+        console.warn('[Corners] detector (OpenCV.js) is not ready');
     }
 
     return null;

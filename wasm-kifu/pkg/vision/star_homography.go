@@ -355,7 +355,6 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 	w := float64(img.Bounds().Dx())
 	h := float64(img.Bounds().Dy())
 	maxReprojAllowed := math.Max(15.0, math.Max(w, h)*0.015)
-	maxAllowedDev := math.Max(w, h) * 0.20
 
 	tl, tr, br, bl := initialCorners[0], initialCorners[1], initialCorners[2], initialCorners[3]
 
@@ -410,16 +409,16 @@ func (r *StarHomographyRefiner) RefineCornersWithStarPoints(img image.Image, ini
 		}
 		meanReprojErr := totalReprojErr / float64(len(inlierStars))
 
-		// 妥当性チェック
+		// 妥当性チェック: 画像境界内かつ過大ドリフト防止
 		oob := false
 		for i := 0; i < 4; i++ {
-			if refined[i].X < -80 || refined[i].X > w+80 ||
-				refined[i].Y < -80 || refined[i].Y > h+80 {
+			if refined[i].X < 5 || refined[i].X > w-5 ||
+				refined[i].Y < 5 || refined[i].Y > h-5 {
 				oob = true
 				break
 			}
 			dist := math.Hypot(refined[i].X-initialCorners[i].X, refined[i].Y-initialCorners[i].Y)
-			if dist > maxAllowedDev {
+			if dist > 45.0 {
 				oob = true
 				break
 			}
