@@ -113,8 +113,10 @@ class BoardDetector {
             let corners = this._detectBoardByWoodColor(srcMat);
             if (corners && this._validateCorners(corners, width, height)) {
                 const ordered = this._orderCorners(corners);
-                this.setCorners(ordered);
-                return ordered;
+                // 木枠マージン (左右・上下 約3.5%) を逆算して真の19路格子角へインセット (NotebookLM 幾何モデル)
+                const gridCorners = this._applyWoodMarginInset(ordered, 0.035, 0.035);
+                this.setCorners(gridCorners);
+                return gridCorners;
             }
 
             // 照明ムラを補正した画像を取得 (ステージ 2, 3用)
@@ -626,6 +628,45 @@ class BoardDetector {
     }
 
     /**
+     * 木枠マージン (m_x, m_y) のインセット逆算補正
+     * 天板外形輪郭が検出された際、外枠マージン（日本・韓国規格: 約3.5%）を内側へ線形インセットし、
+     * 真の19路格子角 (A19, T19, T1, A1) に収束させる (NotebookLM 幾何モデル)
+     * @param {Array<{x: number, y: number}>} corners - [TL, TR, BR, BL]
+     * @param {number} [insetX=0.035] - 横方向インセット比率
+     * @param {number} [insetY=0.035] - 縦方向インセット比率
+     * @returns {Array<{x: number, y: number}>} 補正後の格子4隅
+     * @private
+     */
+    _applyWoodMarginInset(corners, insetX = 0.035, insetY = 0.035) {
+        if (!corners || corners.length !== 4) return corners;
+        const [tl, tr, br, bl] = corners;
+
+        const vTop = { x: tr.x - tl.x, y: tr.y - tl.y };
+        const vBot = { x: br.x - bl.x, y: br.y - bl.y };
+        const vLeft = { x: bl.x - tl.x, y: bl.y - tl.y };
+        const vRight = { x: br.x - tr.x, y: br.y - tr.y };
+
+        return [
+            {
+                x: Math.round(tl.x + insetX * vTop.x + insetY * vLeft.x),
+                y: Math.round(tl.y + insetX * vTop.y + insetY * vLeft.y),
+            },
+            {
+                x: Math.round(tr.x - insetX * vTop.x + insetY * vRight.x),
+                y: Math.round(tr.y - insetX * vTop.y + insetY * vRight.y),
+            },
+            {
+                x: Math.round(br.x - insetX * vBot.x - insetY * vRight.x),
+                y: Math.round(br.y - insetX * vBot.y - insetY * vRight.y),
+            },
+            {
+                x: Math.round(bl.x + insetX * vBot.x - insetY * vLeft.x),
+                y: Math.round(bl.y + insetX * vBot.y - insetY * vLeft.y),
+            },
+        ];
+    }
+
+    /**
      * 画像から盤面状態を検出する
      * @param {HTMLCanvasElement|HTMLVideoElement|HTMLImageElement} source - 入力画像
      * @returns {Int8Array} 361要素の交点状態配列 (0=空, 1=黒, 2=白)
@@ -945,10 +986,11 @@ class BoardDetector {
             gridX.push(margin + Math.round(i * stepX));
         }
 
-        // 光学チャンネル分離 (Red = 木目反射を受けにくい白石検出用, Blue = テカリを排した黒石検出用)
+        // 光学チャンネル分離 (Red = 木目反射を受けにくい白石検出用, Blue = テカリを排した黒石検出用, Green = YCrCb/Chroma用)
         const rgbaPlanes = new cv.MatVector();
         cv.split(warpedMat, rgbaPlanes);
         const rPlane = rgbaPlanes.get(0);
+        const gPlane = rgbaPlanes.get(1);
         const bPlane = rgbaPlanes.get(2);
         const rmbPlane = new cv.Mat();
         cv.subtract(rPlane, bPlane, rmbPlane);
@@ -986,13 +1028,18 @@ class BoardDetector {
         try {
             for (let y = 0; y < this.boardSize; y++) {
                 const cy = gridY[y];
+                // 碁石の厚み(約9mm)と俯角による視差(Parallax)幾何補正 (NotebookLM モデル)
+                // 奥側(y小)ほど視線が浅く、石上面の重心が手前(+Y方向)に浮き上がるため探索中心をオフセット
+                const parallaxShiftY = (1.0 - y / (this.boardSize - 1)) * 3.0;
+                const searchCY = cy + parallaxShiftY;
+
                 for (let x = 0; x < this.boardSize; x++) {
                     const cx = gridX[x];
 
                     // 局所距離変換の最大値探索 (近傍の石中心へスナップ)
                     let maxDW = 0, maxDB = 0;
-                    let bestPeakWX = cx, bestPeakWY = cy;
-                    let bestPeakBX = cx, bestPeakBY = cy;
+                    let bestPeakWX = cx, bestPeakWY = searchCY;
+                    let bestPeakBX = cx, bestPeakBY = searchCY;
 
                     // 盤外への誤スナップを防ぐ境界クランプ
                     const minDX = (x === 0) ? -2 : -snapR;
@@ -1004,7 +1051,7 @@ class BoardDetector {
                         for (let dx = minDX; dx <= maxDX; dx++) {
                             if (dx * dx + dy * dy <= snapR * snapR) {
                                 const px = cx + dx;
-                                const py = cy + dy;
+                                const py = Math.round(searchCY + dy);
                                 if (px >= 0 && px < w && py >= 0 && py < h) {
                                     const dw = distW.floatAt(py, px);
                                     const db = distB.floatAt(py, px);
@@ -1019,8 +1066,8 @@ class BoardDetector {
                     const sampleX = maxDW > maxDB ? bestPeakWX : bestPeakBX;
                     const sampleY = maxDW > maxDB ? bestPeakWY : bestPeakBY;
 
-                    // スナップ点周辺の平均色をサンプリング
-                    let sumR = 0, sumB = 0, count = 0;
+                    // スナップ点周辺の平均色をサンプリング (RGB 3チャンネル)
+                    let sumR = 0, sumG = 0, sumB = 0, count = 0;
                     for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
                         for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
                             if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
@@ -1028,6 +1075,7 @@ class BoardDetector {
                                 const py = sampleY + dy;
                                 if (px >= 0 && px < w && py >= 0 && py < h) {
                                     sumR += rPlane.ucharAt(py, px);
+                                    sumG += gPlane.ucharAt(py, px);
                                     sumB += bPlane.ucharAt(py, px);
                                     count++;
                                 }
@@ -1035,8 +1083,14 @@ class BoardDetector {
                         }
                     }
                     const avgR = count > 0 ? sumR / count : rPlane.ucharAt(sampleY, sampleX);
+                    const avgG = count > 0 ? sumG / count : gPlane.ucharAt(sampleY, sampleX);
                     const avgB = count > 0 ? sumB / count : bPlane.ucharAt(sampleY, sampleX);
                     const rmb = avgR - avgB;
+
+                    // YCrCb 色差と無彩色度 (Chroma) の計算 (NotebookLM 色彩モデル: 影と黒石の分離)
+                    const cr = 0.500 * avgR - 0.418688 * avgG - 0.081312 * avgB + 128.0;
+                    const cb = -0.168736 * avgR - 0.331264 * avgG + 0.500 * avgB + 128.0;
+                    const chroma = Math.hypot(cr - 128.0, cb - 128.0);
 
                     // 理論交点 (cx, cy) の色
                     const cR = rPlane.ucharAt(cy, cx);
@@ -1048,7 +1102,9 @@ class BoardDetector {
                         sampleX, sampleY,
                         l: (cR + cB) / 2,
                         r: avgR,
+                        g: avgG,
                         b: avgB,
+                        cr, cb, chroma,
                         rmb: rmb,
                         cR, cB, cRmb,
                         avgR, avgB,
@@ -1094,6 +1150,7 @@ class BoardDetector {
         } finally {
             rgbaPlanes.delete();
             rPlane.delete();
+            gPlane.delete();
             bPlane.delete();
             rmbPlane.delete();
             whiteMask.delete();
@@ -1110,7 +1167,7 @@ class BoardDetector {
     }
 
     /**
-     * 射影変換済み画像の各交点で石の色を判定 (局所背景適応 ＋ 赤青チャンネル分離)
+     * 射影変換済み画像の各交点で石の色を判定 (局所背景適応 ＋ 赤青チャンネル分離 ＋ YCrCb/Chroma影除外)
      * @param {cv.Mat} warpedMat - 射影変換済み画像
      * @returns {Int8Array} 交点状態配列
      * @private
@@ -1130,9 +1187,9 @@ class BoardDetector {
                 stone = 2;
             }
 
-            // 2. 黒石判定: 無彩色かつ低輝度、局所背景より暗い
+            // 2. 黒石判定: 無彩色かつ低輝度、局所背景より暗い、かつ無彩色(Chroma低)で暗い木目の影を除外
             if (stone === 0) {
-                if (f.rmb < 35.0) {
+                if (f.rmb < 35.0 && (!f.chroma || f.chroma < 14.0)) {
                     if (f.r < 75.0 && (f.normR < 0.90 || f.normB < 0.90)) {
                         stone = 1;
                     } else if (f.normB < 0.82 && f.normR < 0.88) {

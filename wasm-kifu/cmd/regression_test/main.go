@@ -287,7 +287,8 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 
 	// グリッド点生成 + サンプリング
 	type pd struct {
-		R, B         float64
+		R, G, B      float64
+		Chroma       float64
 		NormR, NormB float64
 	}
 	var data [19][19]pd
@@ -316,7 +317,7 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 			tX := float64(x) / 18
 			cx := margin + (boardW/2) + (tX*boardW-(boardW/2))*scX + offX
 
-			var sR2, sB2, cnt float64
+			var sR2, sG2, sB2, cnt float64
 			for dy := -sR; dy <= sR; dy++ {
 				for dx := -sR; dx <= sR; dx++ {
 					if dx*dx+dy*dy <= sR*sR {
@@ -324,18 +325,24 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 						if px >= 0 && px < dstW && py >= 0 && py < dstH {
 							c := warped.RGBAAt(px, py)
 							sR2 += float64(c.R)
+							sG2 += float64(c.G)
 							sB2 += float64(c.B)
 							cnt++
 						}
 					}
 				}
 			}
-			r, b := 80.0, 40.0
+			r, g, b := 80.0, 60.0, 40.0
 			if cnt > 0 {
 				r = sR2 / cnt
+				g = sG2 / cnt
 				b = sB2 / cnt
 			}
-			data[y][x] = pd{R: r, B: b}
+			cr := 0.500*r - 0.418688*g - 0.081312*b + 128.0
+			cb := -0.168736*r - 0.331264*g + 0.500*b + 128.0
+			chroma := math.Hypot(cr-128.0, cb-128.0)
+
+			data[y][x] = pd{R: r, G: g, B: b, Chroma: chroma}
 		}
 	}
 
@@ -367,7 +374,7 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 		}
 	}
 
-	// 石判定 (NormR/NormB チャンネル分割)
+	// 石判定 (NormR/NormB チャンネル分割 + Chroma無彩色判定)
 	matches := 0
 	var conf [3][3]int
 	for y := 0; y < 19; y++ {
@@ -382,11 +389,11 @@ func runTestCase(tc TestCase) (*TestResult, error) {
 			} else if d.R >= 135 && rmb <= 22 {
 				stone = 2
 			}
-			// 黒石
+			// 黒石 (無彩色制約 Chroma で木目影を排除)
 			if stone == 0 && rmb < 35 {
-				if d.R < 75 && (d.NormR < 0.90 || d.NormB < 0.90) {
+				if d.R < 75 && (d.NormR < 0.90 || d.NormB < 0.90) && (d.Chroma == 0 || d.Chroma < 22.0) {
 					stone = 1
-				} else if d.NormB < 0.82 && d.NormR < 0.88 {
+				} else if d.NormB < 0.82 && d.NormR < 0.88 && (d.Chroma == 0 || d.Chroma < 18.0) {
 					stone = 1
 				} else if d.B < 45 && d.R < 75 && rmb < 25 {
 					stone = 1

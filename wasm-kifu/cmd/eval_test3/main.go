@@ -166,6 +166,7 @@ type PointData struct {
 	X, Y                    int
 	CX, CY                  int
 	R, G, B, L              float64
+	Cr, Cb, Chroma          float64
 	RMB, NormR, NormB       float64
 	LocalBgR, LocalBgB      float64
 }
@@ -206,17 +207,23 @@ func evaluateGridPoints(warped *image.RGBA, gt GroundTruth, testLabel string, gr
 				b = sumB / count
 			}
 			l := 0.299*r + 0.587*g + 0.114*b
+			cr := 0.500*r - 0.418688*g - 0.081312*b + 128.0
+			cb := -0.168736*r - 0.331264*g + 0.500*b + 128.0
+			chroma := math.Hypot(cr-128.0, cb-128.0)
 
 			data[y][x] = PointData{
-				X:   x,
-				Y:   y,
-				CX:  cx,
-				CY:  cy,
-				R:   r,
-				G:   g,
-				B:   b,
-				L:   l,
-				RMB: r - b,
+				X:      x,
+				Y:      y,
+				CX:     cx,
+				CY:     cy,
+				R:      r,
+				G:      g,
+				B:      b,
+				L:      l,
+				Cr:     cr,
+				Cb:     cb,
+				Chroma: chroma,
+				RMB:    r - b,
 			}
 		}
 	}
@@ -274,7 +281,7 @@ func evaluateGridPoints(warped *image.RGBA, gt GroundTruth, testLabel string, gr
 
 			// 黒石判定: 無彩色かつ低輝度、局所背景より暗い
 			if stone == 0 {
-				if d.RMB < 35.0 {
+				if d.RMB < 35.0 && d.Chroma < 11.0 {
 					if d.R < 75.0 && (d.NormR < 0.90 || d.NormB < 0.90) {
 						stone = 1
 					} else if d.NormB < 0.82 && d.NormR < 0.88 {
@@ -367,8 +374,8 @@ func evaluateGridPoints(warped *image.RGBA, gt GroundTruth, testLabel string, gr
 			p := detected[y][x]
 			if a != p {
 				d := data[y][x]
-				fmt.Printf("%s%d (%d,%d) [cx=%d,cy=%d]: 正解=%s, 予測=%s | R=%.1f, B=%.1f, RMB=%.1f, NormR=%.2f, NormB=%.2f\n",
-					colNames[x], 19-y, x, y, d.CX, d.CY, typeNames[a], typeNames[p], d.R, d.B, d.RMB, d.NormR, d.NormB)
+				fmt.Printf("%s%d (%d,%d) [cx=%d,cy=%d]: 正解=%s, 予測=%s | R=%.1f, G=%.1f, B=%.1f, RMB=%.1f, Chroma=%.1f, NormR=%.2f, NormB=%.2f\n",
+					colNames[x], 19-y, x, y, d.CX, d.CY, typeNames[a], typeNames[p], d.R, d.G, d.B, d.RMB, d.Chroma, d.NormR, d.NormB)
 				errCount++
 			}
 		}

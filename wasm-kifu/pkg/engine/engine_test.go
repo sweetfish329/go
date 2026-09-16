@@ -397,3 +397,75 @@ func TestGetBoardState(t *testing.T) {
 func containsSubstring(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
+
+func TestBitboard_BasicAndLiberties(t *testing.T) {
+	var bb BoardBitboards
+
+	// (3,3) に黒石を1個配置 -> 呼吸点 4
+	bb.Black.Set(3, 3)
+	libs, _ := bb.GetLiberties(3, 3)
+	if libs != 4 {
+		t.Errorf("Expected 4 liberties for isolated stone at (3,3), got %d", libs)
+	}
+
+	// (3,4) に黒石を連結 -> 連のサイズ 2, 呼吸点 6
+	bb.Black.Set(3, 4)
+	libs, _ = bb.GetLiberties(3, 3)
+	if libs != 6 {
+		t.Errorf("Expected 6 liberties for 2-stone group, got %d", libs)
+	}
+
+	// 周囲を白石で囲む
+	bb.White.Set(2, 3)
+	bb.White.Set(4, 3)
+	bb.White.Set(3, 2)
+	bb.White.Set(2, 4)
+	bb.White.Set(4, 4)
+	bb.White.Set(3, 5)
+
+	libs, _ = bb.GetLiberties(3, 3)
+	if libs != 0 {
+		t.Errorf("Expected 0 liberties when completely surrounded, got %d", libs)
+	}
+}
+
+func TestZobrist_HashConsistency(t *testing.T) {
+	var grid1 [19][19]int8
+	grid1[3][3] = 1 // 黒
+	grid1[15][15] = 2 // 白
+
+	h1 := ComputeHashFromGrid(grid1, 1)
+	h2 := ComputeHashFromGrid(grid1, 1)
+	if h1 != h2 {
+		t.Errorf("Zobrist hash should be deterministic: %d vs %d", h1, h2)
+	}
+
+	var grid2 [19][19]int8
+	grid2[3][3] = 1
+	grid2[15][15] = 1 // 黒に変える
+	h3 := ComputeHashFromGrid(grid2, 1)
+	if h1 == h3 {
+		t.Errorf("Different board state should produce different hash: %d vs %d", h1, h3)
+	}
+}
+
+func TestRepairBoardWithRules(t *testing.T) {
+	var grid [19][19]int8
+	// 白が黒1子を完全に囲っている (黒の呼吸点 0)
+	grid[9][9] = 1 // 黒
+	grid[8][9] = 2 // 白
+	grid[10][9] = 2 // 白
+	grid[9][8] = 2 // 白
+	grid[9][10] = 2 // 白
+
+	repaired, anomalies := RepairBoardWithRules(grid)
+	if len(anomalies) != 1 {
+		t.Fatalf("Expected 1 anomaly for dead stone, got %d", len(anomalies))
+	}
+	if anomalies[0].X != 9 || anomalies[0].Y != 9 {
+		t.Errorf("Expected anomaly at (9,9), got (%d,%d)", anomalies[0].X, anomalies[0].Y)
+	}
+	if repaired[9][9] != 0 {
+		t.Errorf("Dead stone at (9,9) should be repaired to 0, got %d", repaired[9][9])
+	}
+}

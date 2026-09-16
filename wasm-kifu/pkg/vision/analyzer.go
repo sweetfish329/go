@@ -48,6 +48,26 @@ type IntersectionFeatures struct {
 	AvgB  float64 `json:"avgB,omitempty"` // 近傍平均 Blue
 	MaxDW float64 `json:"maxDW,omitempty"` // Distance Transform max value for white (密集白石サルベージ用)
 	MaxDB float64 `json:"maxDB,omitempty"` // Distance Transform max value for black (密集黒石サルベージ用)
+	G     float64 `json:"g,omitempty"`     // Green channel (0-255)
+	Cr    float64 `json:"cr,omitempty"`    // YCrCb 赤色色差 (0-255: 石は128付近, 木目は>128)
+	Cb    float64 `json:"cb,omitempty"`    // YCrCb 青色色差 (0-255: 石は128付近, 木目は<128)
+	Chroma float64 `json:"chroma,omitempty"` // 無彩色度 sqrt((Cr-128)^2 + (Cb-128)^2) (石は低, 木目は高)
+	SigmaChroma float64 `json:"sigmaChroma,omitempty"` // 近傍領域のクロミナンス標準偏差 (テカリ分離用)
+}
+
+// RGBToYCrCb は標準RGBから Y, Cr, Cb (ITU-R BT.601) を算出する
+func RGBToYCrCb(r, g, b float64) (y, cr, cb float64) {
+	y = 0.299000*r + 0.587000*g + 0.114000*b
+	cr = 0.500000*r - 0.418688*g - 0.081312*b + 128.0
+	cb = -0.168736*r - 0.331264*g + 0.500000*b + 128.0
+	return
+}
+
+// ComputeChroma は中立色(128,128)からの色差ノルムを算出する（石は無彩色で0に近く、木目は茶色・黄色で高い）
+func ComputeChroma(cr, cb float64) float64 {
+	dCr := cr - 128.0
+	dCb := cb - 128.0
+	return math.Sqrt(dCr*dCr + dCb*dCb)
 }
 
 // BoardFeaturesData は全交点の多次元特徴量データ
@@ -467,11 +487,12 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 
 	// 19x19 配列にマッピング
 	type gridItem struct {
-		f     IntersectionFeatures
-		rVal  float64
-		bVal  float64
-		normR float64
-		normB float64
+		f      IntersectionFeatures
+		rVal   float64
+		bVal   float64
+		chroma float64
+		normR  float64
+		normB  float64
 	}
 	var grid [BoardSize][BoardSize]gridItem
 	for i, f := range featData.Features {
@@ -489,10 +510,20 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 		if bVal == 0 {
 			bVal = f.L
 		}
+		chroma := f.Chroma
+		if chroma == 0 && (f.G > 0 || rVal > 0 || bVal > 0) {
+			gVal := f.G
+			if gVal == 0 {
+				gVal = rVal*0.65 + bVal*0.35
+			}
+			_, cr, cb := RGBToYCrCb(rVal, gVal, bVal)
+			chroma = ComputeChroma(cr, cb)
+		}
 		grid[y][x] = gridItem{
-			f:    f,
-			rVal: rVal,
-			bVal: bVal,
+			f:      f,
+			rVal:   rVal,
+			bVal:   bVal,
+			chroma: chroma,
 		}
 	}
 
@@ -549,9 +580,9 @@ func AnalyzeFullBoard(featuresJSON string) (string, error) {
 				stone = 2
 			}
 
-			// 2. 黒石判定: 低木目度 (無彩色) かつ 低輝度、局所背景より暗い
+			// 2. 黒石判定: 低木目度 (無彩色 Chroma低) かつ 低輝度、局所背景より暗い
 			if stone == 0 {
-				if rmb < 35.0 {
+				if rmb < 35.0 && (item.chroma == 0 || item.chroma < 12.0) {
 					if rVal < 75.0 && (normR < 0.90 || normB < 0.90) {
 						stone = 1
 					} else if normB < 0.82 && normR < 0.88 {
