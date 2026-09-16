@@ -516,6 +516,7 @@ function detectCornersFromSource(source) {
             if (res && res.corners && res.corners.length === 4) {
                 console.log('[Corners] ✅ Go WASM detected corners successfully:', res.corners);
                 showToast('🎯 碁盤の4隅を自動検出しました (Go WASM 動的マージン)');
+                updateDebugCorners(offscreen, res);
                 return res.corners;
             }
             if (res && res.error) {
@@ -536,6 +537,10 @@ function detectCornersFromSource(source) {
             console.log('[Corners] OpenCV.js result:', detected);
             if (detected && detected.length === 4) {
                 showToast('🎯 碁盤の4隅を自動検出しました (OpenCV.js)');
+                updateDebugCorners(offscreen, {
+                    corners: detected,
+                    method: 'OpenCV.js',
+                });
                 return detected;
             }
         } catch (err) {
@@ -599,6 +604,16 @@ function handleCornerClick(e, elem, naturalWidth, naturalHeight) {
             drawCornerMarkers();
         }
         showToast('✅ 4隅を設定・高精度吸着しました。「📸認識実行」で認識');
+
+        // 手動指定四隅をデバッグ表示へ反映
+        const offscreen = document.createElement('canvas');
+        offscreen.width = naturalWidth;
+        offscreen.height = naturalHeight;
+        offscreen.getContext('2d').drawImage(source, 0, 0, naturalWidth, naturalHeight);
+        updateDebugCorners(offscreen, {
+            corners: cornerPoints,
+            method: 'Manual Tap + Förstner',
+        });
     }
 }
 
@@ -853,6 +868,24 @@ document.getElementById('btn-capture').addEventListener('click', () => {
                 const wCount = fullBoard.whiteCount ?? 0;
                 const conf = fullBoard.confidence ? Math.round(fullBoard.confidence * 100) : 100;
                 showToast(`✅ 全盤面を認識しました！ (黒: ${bCount}個, 白: ${wCount}個 / 信頼度: ${conf}%)`);
+
+                // デバッグ用: 歪み補正正面画像と全361交点判定オーバーレイを更新
+                try {
+                    const natW = source.naturalWidth || source.videoWidth || source.width;
+                    const natH = source.naturalHeight || source.videoHeight || source.height;
+                    const warpCanvas = document.createElement('canvas');
+                    warpCanvas.width = natW;
+                    warpCanvas.height = natH;
+                    warpCanvas.getContext('2d').drawImage(source, 0, 0, natW, natH);
+                    const imgData = warpCanvas.getContext('2d').getImageData(0, 0, natW, natH);
+                    const warpRes = kifu.detectAndWarp(imgData.data, natW, natH);
+                    if (warpRes && warpRes.warpedRgbaBase64) {
+                        updateDebugWarpAndClassification(warpRes, fullBoard.grid);
+                    }
+                } catch (e) {
+                    console.warn('Debug warp update notice:', e);
+                }
+
                 return;
             }
 
@@ -868,6 +901,14 @@ document.getElementById('btn-capture').addEventListener('click', () => {
                         else if (s === 2) w++;
                     }
                     showToast(`✅ 盤面を認識しました！ (黒: ${b}個, 白: ${w}個)`);
+
+                    // デバッグ用: OpenCV.js 補正画像と判定オーバーレイを更新
+                    try {
+                        updateDebugClassificationOpenCV(source, classified);
+                    } catch (e) {
+                        console.warn('Debug opencv update notice:', e);
+                    }
+
                     return;
                 }
             }
@@ -881,6 +922,332 @@ document.getElementById('btn-capture').addEventListener('click', () => {
     }
 });
 
+
+// ======================
+// 中間生成物デバッグ表示機能 (Debug Stages Viewer)
+// ======================
+let debugMode = false;
+const debugState = {
+    sourceCanvas: null,
+    cornerRes: null,
+    warpedRes: null,
+    classifiedGrid: null,
+};
+
+const debugSection = document.getElementById('debug-section');
+const btnDebugToggle = document.getElementById('btn-debug-toggle');
+const debugModal = document.getElementById('debug-modal');
+const debugModalCanvas = document.getElementById('debug-modal-canvas');
+const debugModalTitle = document.getElementById('debug-modal-title');
+
+// デバッグトグルボタン
+btnDebugToggle.addEventListener('click', () => {
+    debugMode = !debugMode;
+    if (debugMode) {
+        btnDebugToggle.classList.add('btn-accent');
+        btnDebugToggle.textContent = '🛠 デバッグ: ON';
+        debugSection.classList.remove('hidden');
+        renderAllDebugStages();
+    } else {
+        btnDebugToggle.classList.remove('btn-accent');
+        btnDebugToggle.textContent = '🛠 デバッグ';
+        debugSection.classList.add('hidden');
+    }
+});
+
+// RGBA Base64 文字列を Canvas に描画する汎用ヘルパー
+function drawRgbaBase64ToCanvas(base64Data, width, height, canvas) {
+    if (!base64Data || !width || !height || !canvas) return;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const binary = atob(base64Data);
+    const imgData = ctx.createImageData(width, height);
+    for (let i = 0; i < binary.length; i++) {
+        imgData.data[i] = binary.charCodeAt(i);
+    }
+    ctx.putImageData(imgData, 0, 0);
+}
+
+// Stage 1: 天板ブロブ抽出マスクの描画
+function renderStage1Blob(blobBase64, width, height) {
+    const canvas = document.getElementById('debug-canvas-blob');
+    const meta = document.getElementById('debug-blob-meta');
+    const placeholder = document.getElementById('debug-blob-placeholder');
+
+    if (!blobBase64 || !width || !height || !canvas) return;
+    drawRgbaBase64ToCanvas(blobBase64, width, height, canvas);
+    if (meta) meta.textContent = `${width}×${height} px`;
+    if (placeholder) placeholder.style.display = 'none';
+}
+
+// Stage 2: 四隅・1線幾何検出オーバーレイの描画
+function renderStage2Corners(sourceCanvas, cornerRes) {
+    const canvas = document.getElementById('debug-canvas-corners');
+    const meta = document.getElementById('debug-corners-meta');
+    const placeholder = document.getElementById('debug-corners-placeholder');
+
+    if (!sourceCanvas || !cornerRes || !cornerRes.corners || !canvas) return;
+
+    canvas.width = sourceCanvas.width;
+    canvas.height = sourceCanvas.height;
+    const ctx = canvas.getContext('2d');
+
+    // 1. 元画像を描画
+    ctx.drawImage(sourceCanvas, 0, 0);
+
+    // 2. 木枠外縁 (rawOuter) を青色破線で描画
+    if (cornerRes.rawOuter && cornerRes.rawOuter.length === 4) {
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = Math.max(2, Math.round(canvas.width * 0.0025));
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(cornerRes.rawOuter[0].x, cornerRes.rawOuter[0].y);
+        for (let i = 1; i < 4; i++) {
+            ctx.lineTo(cornerRes.rawOuter[i].x, cornerRes.rawOuter[i].y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // 3. 検出された星 (花点・天元) を金色星マークで描画
+    if (cornerRes.stars && cornerRes.stars.length > 0) {
+        cornerRes.stars.forEach(s => {
+            const sx = s.x !== undefined ? s.x : s.ImgX;
+            const sy = s.y !== undefined ? s.y : s.ImgY;
+            if (sx && sy) {
+                ctx.fillStyle = '#f1c40f';
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(sx, sy, Math.max(6, Math.round(canvas.width * 0.006)), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+        });
+    }
+
+    // 4. 1線四隅 (corners) を赤色実線 ＆ 番号マーカーで描画
+    const corners = cornerRes.corners;
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = Math.max(3, Math.round(canvas.width * 0.0035));
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (let i = 1; i < 4; i++) {
+        ctx.lineTo(corners[i].x, corners[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // コーナー番号バッジ
+    const r = Math.max(12, Math.round(canvas.width * 0.012));
+    corners.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(r * 1.1)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i + 1, p.x, p.y);
+    });
+
+    const methodText = cornerRes.method || 'DirectGrid';
+    if (meta) meta.textContent = `${methodText} (${canvas.width}×${canvas.height})`;
+    if (placeholder) placeholder.style.display = 'none';
+
+    // バッジ更新
+    const methodBadge = document.getElementById('debug-method-badge');
+    if (methodBadge) methodBadge.textContent = `手法: ${methodText}`;
+    const starsBadge = document.getElementById('debug-stars-badge');
+    if (starsBadge) starsBadge.textContent = `星: ${cornerRes.stars ? cornerRes.stars.length : 0}個`;
+    const confBadge = document.getElementById('debug-conf-badge');
+    if (confBadge && cornerRes.confidence) {
+        confBadge.textContent = `信頼度: ${Math.round(cornerRes.confidence * 100)}%`;
+    }
+}
+
+// Stage 3: 歪み補正後 正面碁盤画像の描画
+function renderStage3Warped(warpedBase64, width, height) {
+    const canvas = document.getElementById('debug-canvas-warped');
+    const meta = document.getElementById('debug-warped-meta');
+    const placeholder = document.getElementById('debug-warped-placeholder');
+
+    if (!warpedBase64 || !width || !height || !canvas) return;
+    drawRgbaBase64ToCanvas(warpedBase64, width, height, canvas);
+    if (meta) meta.textContent = `${width}×${height} px (正面化)`;
+    if (placeholder) placeholder.style.display = 'none';
+}
+
+// Stage 4: 全361交点 判定グリッドオーバーレイの描画
+function renderStage4Classified(warpedBase64, width, height, grid, margin = 20) {
+    const canvas = document.getElementById('debug-canvas-classified');
+    const meta = document.getElementById('debug-classified-meta');
+    const placeholder = document.getElementById('debug-classified-placeholder');
+
+    if (!warpedBase64 || !grid || grid.length !== 361 || !canvas) return;
+
+    // まず補正碁盤を下敷きとして描画
+    drawRgbaBase64ToCanvas(warpedBase64, width, height, canvas);
+    const ctx = canvas.getContext('2d');
+
+    // 19x19 の交点座標を計算
+    const gridW = width - 2 * margin;
+    const gridH = height - 2 * margin;
+    const pitchX = gridW / 18.0;
+    const pitchY = gridH / 18.0;
+    const stoneRadius = Math.min(pitchX, pitchY) * 0.44;
+
+    let bCount = 0, wCount = 0, eCount = 0;
+
+    for (let gy = 0; gy < 19; gy++) {
+        for (let gx = 0; gx < 19; gx++) {
+            const idx = gy * 19 + gx;
+            const state = grid[idx];
+            const cx = margin + gx * pitchX;
+            const cy = margin + gy * pitchY;
+
+            if (state === 1) {
+                // 黒石 (Black): 半透明黒丸 + 白いリング
+                bCount++;
+                ctx.beginPath();
+                ctx.arc(cx, cy, stoneRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(20, 20, 25, 0.85)';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            } else if (state === 2) {
+                // 白石 (White): 半透明白丸 + 黒いリング
+                wCount++;
+                ctx.beginPath();
+                ctx.arc(cx, cy, stoneRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(250, 250, 252, 0.88)';
+                ctx.fill();
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            } else {
+                // 空点 (Empty): 半透明の緑色小ドット
+                eCount++;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(46, 204, 113, 0.7)';
+                ctx.fill();
+            }
+        }
+    }
+
+    if (meta) meta.textContent = `黒:${bCount} 白:${wCount} 空:${eCount}`;
+    if (placeholder) placeholder.style.display = 'none';
+}
+
+// デバッグ状態の更新ハンドラー (四隅検出時)
+function updateDebugCorners(sourceCanvas, res) {
+    debugState.sourceCanvas = sourceCanvas;
+    debugState.cornerRes = res;
+    if (debugMode) {
+        if (res.blobMaskRgbaBase64 && res.blobWidth && res.blobHeight) {
+            renderStage1Blob(res.blobMaskRgbaBase64, res.blobWidth, res.blobHeight);
+        }
+        renderStage2Corners(sourceCanvas, res);
+    }
+}
+
+// デバッグ状態の更新ハンドラー (歪み補正 ＆ 盤面分類時)
+function updateDebugWarpAndClassification(warpRes, grid) {
+    debugState.warpedRes = warpRes;
+    debugState.classifiedGrid = grid;
+    if (debugMode) {
+        renderStage3Warped(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight);
+        renderStage4Classified(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight, grid, warpRes.margin || 20);
+    }
+}
+
+// OpenCV.js フォールバック時の分類結果描画
+function updateDebugClassificationOpenCV(source, grid) {
+    debugState.classifiedGrid = grid;
+    if (!debugMode || !detector.isReady()) return;
+
+    try {
+        const srcMat = detector._readSourceMat(source);
+        const warpedMat = detector._perspectiveTransform(srcMat);
+        const warpedCanvas = document.createElement('canvas');
+        cv.imshow(warpedCanvas, warpedMat);
+        const ctx = warpedCanvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, warpedCanvas.width, warpedCanvas.height);
+        
+        // Base64 エンコード
+        const binary = String.fromCharCode.apply(null, imgData.data);
+        const base64 = btoa(binary);
+
+        renderStage3Warped(base64, warpedCanvas.width, warpedCanvas.height);
+        renderStage4Classified(base64, warpedCanvas.width, warpedCanvas.height, grid, 20);
+
+        warpedMat.delete();
+        srcMat.delete();
+    } catch (e) {
+        console.warn('OpenCV debug render notice:', e);
+    }
+}
+
+// 全デバッグステージの再描画
+function renderAllDebugStages() {
+    if (debugState.cornerRes) {
+        if (debugState.cornerRes.blobMaskRgbaBase64) {
+            renderStage1Blob(
+                debugState.cornerRes.blobMaskRgbaBase64,
+                debugState.cornerRes.blobWidth,
+                debugState.cornerRes.blobHeight
+            );
+        }
+        if (debugState.sourceCanvas) {
+            renderStage2Corners(debugState.sourceCanvas, debugState.cornerRes);
+        }
+    }
+    if (debugState.warpedRes) {
+        renderStage3Warped(
+            debugState.warpedRes.warpedRgbaBase64,
+            debugState.warpedRes.warpedWidth,
+            debugState.warpedRes.warpedHeight
+        );
+        if (debugState.classifiedGrid) {
+            renderStage4Classified(
+                debugState.warpedRes.warpedRgbaBase64,
+                debugState.warpedRes.warpedWidth,
+                debugState.warpedRes.warpedHeight,
+                debugState.classifiedGrid,
+                debugState.warpedRes.margin || 20
+            );
+        }
+    }
+}
+
+// カードクリックでモーダル拡大プレビュー
+document.querySelectorAll('.debug-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const stageCanvas = card.querySelector('canvas');
+        const title = card.querySelector('h3').textContent;
+        if (!stageCanvas || stageCanvas.width === 0) return;
+
+        debugModalCanvas.width = stageCanvas.width;
+        debugModalCanvas.height = stageCanvas.height;
+        const mctx = debugModalCanvas.getContext('2d');
+        mctx.drawImage(stageCanvas, 0, 0);
+        debugModalTitle.textContent = title;
+        debugModal.classList.remove('hidden');
+    });
+});
+
+debugModal.addEventListener('click', () => {
+    debugModal.classList.add('hidden');
+});
 
 // ======================
 // 起動

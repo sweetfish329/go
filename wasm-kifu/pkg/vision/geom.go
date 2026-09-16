@@ -1,6 +1,7 @@
 package vision
 
 import (
+	"image"
 	"math"
 	"sort"
 )
@@ -13,10 +14,13 @@ type Point struct {
 
 // CornerDetectionResult は四隅自動認識の結果
 type CornerDetectionResult struct {
-	Corners    [4]Point `json:"corners"`  // [TL, TR, BR, BL] (19路格子四隅)
-	RawOuter   [4]Point `json:"rawOuter"` // 天板外隅
-	Area       float64  `json:"area"`
-	Confidence float64  `json:"confidence"`
+	Corners      [4]Point    `json:"corners"`         // [TL, TR, BR, BL] (19路格子四隅)
+	RawOuter     [4]Point    `json:"rawOuter"`        // 天板外隅
+	Area         float64     `json:"area"`
+	Confidence   float64     `json:"confidence"`
+	Method       string      `json:"method"`          // "DirectGrid" または "MarginInset"
+	Stars        []StarPoint `json:"stars,omitempty"` // 検出された星点
+	BlobMaskRGBA *image.RGBA `json:"-"`               // デバッグ用ブロブ画像
 }
 
 // LineHV は直線方程式を表す

@@ -3,6 +3,7 @@ package vision
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"math"
 	"sort"
 )
@@ -376,3 +377,22 @@ func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBo
 
 	return cB, dB
 }
+
+// ToRGBA は天板ブロブの2値マスクを可視化・デバッグ用の *image.RGBA 画像として生成する。
+// 天板領域は木目調（明るい黄褐色）、背景は暗色でレンダリングする。
+func (b *BoardBlobResult) ToRGBA() *image.RGBA {
+	rgba := image.NewRGBA(image.Rect(0, 0, b.GW, b.GH))
+	for y := 0; y < b.GH; y++ {
+		for x := 0; x < b.GW; x++ {
+			if b.Mask[y][x] {
+				// 天板ブロブ領域: 碁盤色 (R: 219, G: 178, B: 104)
+				rgba.SetRGBA(x, y, color.RGBA{R: 219, G: 178, B: 104, A: 255})
+			} else {
+				// 背景: 暗灰色 (R: 35, G: 38, B: 48)
+				rgba.SetRGBA(x, y, color.RGBA{R: 35, G: 38, B: 48, A: 255})
+			}
+		}
+	}
+	return rgba
+}
+

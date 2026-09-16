@@ -531,3 +531,169 @@ footer p {
         font-size: 0.8rem;
     }
 }
+
+/* ===================================
+   中間生成物デバッグ表示 (Debug Section)
+   =================================== */
+#debug-section {
+    width: 100%;
+    max-width: 800px;
+    margin-top: var(--gap-md);
+    padding: var(--gap-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-accent);
+    box-shadow: var(--shadow-md);
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+    margin-bottom: var(--gap-xs);
+}
+
+.debug-header h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.debug-badges {
+    display: flex;
+    gap: var(--gap-xs);
+    flex-wrap: wrap;
+}
+
+.debug-description {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--gap-md);
+    line-height: 1.4;
+}
+
+.debug-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--gap-md);
+}
+
+.debug-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--gap-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.debug-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.debug-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.debug-card-header h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.debug-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.debug-canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #0b0b14;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-in;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.debug-canvas-wrap canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.debug-placeholder {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-align: center;
+    padding: var(--gap-md);
+}
+
+.debug-caption {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+}
+
+/* モーダル拡大プレビュー */
+#debug-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--gap-md);
+    cursor: zoom-out;
+}
+
+#debug-modal.hidden {
+    display: none;
+}
+
+#debug-modal-img-wrap {
+    max-width: 90vw;
+    max-height: 80vh;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--gap-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#debug-modal-canvas {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+}
+
+#debug-modal-title {
+    margin-top: var(--gap-xs);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}

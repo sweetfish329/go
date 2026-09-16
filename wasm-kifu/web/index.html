@@ -85,11 +85,86 @@
                 <button id="btn-stream-mode" class="btn btn-accent hidden" title="リアルタイム自動着手検知（静止安定トリガー）">⚡ 自動記録: OFF</button>
                 <button id="btn-capture" class="btn btn-accent hidden" title="撮影して認識">📸 認識実行</button>
                 <button id="btn-reset-corners" class="btn hidden" title="4隅リセット">🔄 4隅リセット</button>
+                <button id="btn-debug-toggle" class="btn" title="中間生成物（ブロブマスク、幾何四隅、歪み補正、判定グリッド）の表示切替">🛠 デバッグ</button>
                 <button id="btn-export" class="btn btn-success" title="SGF出力">📄 SGF出力</button>
             </div>
         </section>
 
+        <!-- 中間生成物デバッグ表示 -->
+        <section id="debug-section" class="hidden">
+            <div class="debug-header">
+                <h2>🛠 中間生成物・ビジョン解析デバッグ</h2>
+                <div class="debug-badges">
+                    <span id="debug-method-badge" class="badge">手法: 未実行</span>
+                    <span id="debug-stars-badge" class="badge">星(花点): 0個</span>
+                    <span id="debug-conf-badge" class="badge">信頼度: -</span>
+                </div>
+            </div>
+            <p class="debug-description">
+                4隅認識前の事前処理（天板木目ブロブマスク）、幾何四隅・星検出、射影変換による正面歪み補正、全361交点の石判定結果を段階別に可視化します（カードクリックで拡大）。
+            </p>
+            <div class="debug-grid">
+                <!-- Stage 1: 天板ブロブ抽出マスク -->
+                <div class="debug-card" data-stage="1" title="クリックで拡大">
+                    <div class="debug-card-header">
+                        <h3>Stage 1: 🟫 天板ブロブ抽出マスク</h3>
+                        <span id="debug-blob-meta" class="debug-meta">-</span>
+                    </div>
+                    <div class="debug-canvas-wrap">
+                        <canvas id="debug-canvas-blob"></canvas>
+                        <div id="debug-blob-placeholder" class="debug-placeholder">画像読み込みまたは4隅自動検出で表示</div>
+                    </div>
+                    <p class="debug-caption">木目適応2値化とモルフォロジー閉・開処理により抽出された天板領域</p>
+                </div>
 
+                <!-- Stage 2: 四隅・幾何検出オーバーレイ -->
+                <div class="debug-card" data-stage="2" title="クリックで拡大">
+                    <div class="debug-card-header">
+                        <h3>Stage 2: 📐 四隅・1線幾何検出</h3>
+                        <span id="debug-corners-meta" class="debug-meta">-</span>
+                    </div>
+                    <div class="debug-canvas-wrap">
+                        <canvas id="debug-canvas-corners"></canvas>
+                        <div id="debug-corners-placeholder" class="debug-placeholder">4隅検出時に表示</div>
+                    </div>
+                    <p class="debug-caption">元画像上の木枠外縁（青線）、1線四隅（赤線①②③④）、検出星（黄点）</p>
+                </div>
+
+                <!-- Stage 3: 歪み補正・正面碁盤画像 -->
+                <div class="debug-card" data-stage="3" title="クリックで拡大">
+                    <div class="debug-card-header">
+                        <h3>Stage 3: 🔄 歪み補正後 正面碁盤</h3>
+                        <span id="debug-warped-meta" class="debug-meta">-</span>
+                    </div>
+                    <div class="debug-canvas-wrap">
+                        <canvas id="debug-canvas-warped"></canvas>
+                        <div id="debug-warped-placeholder" class="debug-placeholder">「📸 認識実行」で表示</div>
+                    </div>
+                    <p class="debug-caption">射影変換（透視補正）により斜め視点から正面正対化された碁盤</p>
+                </div>
+
+                <!-- Stage 4: 全361交点 判定グリッドオーバーレイ -->
+                <div class="debug-card" data-stage="4" title="クリックで拡大">
+                    <div class="debug-card-header">
+                        <h3>Stage 4: ♟ 361交点 特徴量・石判定</h3>
+                        <span id="debug-classified-meta" class="debug-meta">-</span>
+                    </div>
+                    <div class="debug-canvas-wrap">
+                        <canvas id="debug-canvas-classified"></canvas>
+                        <div id="debug-classified-placeholder" class="debug-placeholder">「📸 認識実行」で表示</div>
+                    </div>
+                    <p class="debug-caption">正面碁盤上の全361交点における黒石・白石・空点の分類結果</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- モーダル拡大プレビュー -->
+        <div id="debug-modal" class="hidden">
+            <div id="debug-modal-img-wrap">
+                <canvas id="debug-modal-canvas"></canvas>
+                <div id="debug-modal-title">プレビュー</div>
+            </div>
+        </div>
 
         <!-- SGF表示 -->
         <section id="sgf-output" class="hidden">

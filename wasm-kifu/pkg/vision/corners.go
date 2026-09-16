@@ -32,9 +32,11 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	directGrid, _ := Detect1LinesDirectly(img, blob, rawOuter)
 	var gridCorners [4]Point
 
+	method := "DirectGrid"
 	if directGrid != nil && directGrid.Success {
 		gridCorners = directGrid.Corners
 	} else {
+		method = "MarginInset"
 		// フォールバック: 木枠マージンインセット逆算 (日本・韓国標準規格: 横 3.2%, 縦 2.5%)
 		gridCorners = ApplyMarginInset(rawOuter, 0.032, 0.025)
 
@@ -58,6 +60,7 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 				iouOrig := CalculateQuadIoU(gridCorners, starRefinedCorners, w, h)
 				if iouOrig >= 80.0 {
 					gridCorners = starRefinedCorners
+					method = "StarHomography"
 				}
 			}
 		}
@@ -66,14 +69,21 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 	// 5. Förstner 十字交差点サブピクセル吸着 (0.1px 精度へ自動収束)
 	gridCorners = RefineCornersSubPix(img, gridCorners)
 
+	// 可視化・デバッグ用: 星（花点）の検出結果を取得
+	starRefiner := NewStarHomographyRefiner()
+	detectedStars := starRefiner.DetectStarPoints(img, gridCorners)
+
 	area := PolygonArea([]Point{gridCorners[0], gridCorners[1], gridCorners[2], gridCorners[3]})
 	imgArea := float64(w * h)
 
 	return &CornerDetectionResult{
-		Corners:    gridCorners,
-		RawOuter:   rawOuter,
-		Area:       area,
-		Confidence: math.Min(1.0, area/(imgArea*0.5)),
+		Corners:      gridCorners,
+		RawOuter:     rawOuter,
+		Area:         area,
+		Confidence:   math.Min(1.0, area/(imgArea*0.5)),
+		Method:       method,
+		Stars:        detectedStars,
+		BlobMaskRGBA: blob.ToRGBA(),
 	}, nil
 }
 

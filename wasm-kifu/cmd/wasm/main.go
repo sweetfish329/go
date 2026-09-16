@@ -179,6 +179,26 @@ func getLastMoveInfoWrapper(this js.Value, args []js.Value) any {
 	return gameEngine.LastMoveInfoJSON()
 }
 
+type cornerDebugResponse struct {
+	Corners            [4]vision.Point    `json:"corners"`
+	RawOuter           [4]vision.Point    `json:"rawOuter"`
+	Area               float64            `json:"area"`
+	Confidence         float64            `json:"confidence"`
+	Method             string             `json:"method"`
+	Stars              []vision.StarPoint `json:"stars,omitempty"`
+	BlobMaskRgbaBase64 string             `json:"blobMaskRgbaBase64,omitempty"`
+	BlobWidth          int                `json:"blobWidth,omitempty"`
+	BlobHeight         int                `json:"blobHeight,omitempty"`
+	WarpedWidth        int                `json:"warpedWidth,omitempty"`
+	WarpedHeight       int                `json:"warpedHeight,omitempty"`
+	WarpedRgbaBase64   string             `json:"warpedRgbaBase64,omitempty"`
+	Margin             float64            `json:"margin,omitempty"`
+	Grid               []int8             `json:"grid,omitempty"`
+	BlackCount         int                `json:"blackCount,omitempty"`
+	WhiteCount         int                `json:"whiteCount,omitempty"`
+	EmptyCount         int                `json:"emptyCount,omitempty"`
+}
+
 func detectBoardCornersWrapper(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
 		return `{"error": "invalid arguments"}`
@@ -202,19 +222,30 @@ func detectBoardCornersWrapper(this js.Value, args []js.Value) any {
 		return fmt.Sprintf(`{"error": "%s"}`, err.Error())
 	}
 
-	return fmt.Sprintf(`{"corners":[{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f}],"area":%.1f,"confidence":%.2f}`,
-		res.Corners[0].X, res.Corners[0].Y,
-		res.Corners[1].X, res.Corners[1].Y,
-		res.Corners[2].X, res.Corners[2].Y,
-		res.Corners[3].X, res.Corners[3].Y,
-		res.Area, res.Confidence)
+	resp := cornerDebugResponse{
+		Corners:    res.Corners,
+		RawOuter:   res.RawOuter,
+		Area:       res.Area,
+		Confidence: res.Confidence,
+		Method:     res.Method,
+		Stars:      res.Stars,
+	}
+
+	if res.BlobMaskRGBA != nil {
+		resp.BlobMaskRgbaBase64 = base64.StdEncoding.EncodeToString(res.BlobMaskRGBA.Pix)
+		resp.BlobWidth = res.BlobMaskRGBA.Bounds().Dx()
+		resp.BlobHeight = res.BlobMaskRGBA.Bounds().Dy()
+	}
+
+	bytes, jsonErr := json.Marshal(resp)
+	if jsonErr != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, jsonErr.Error())
+	}
+	return string(bytes)
 }
 
-// detectAndWarpWrapper は四隅検出 + 射影変換をGo WASM側で一括実行する。
-// 返却JSON: {"corners":[...], "area":..., "confidence":...,
-//
-//	"warpedWidth":680, "warpedHeight":732,
-//	"warpedRgbaBase64":"..."}
+// detectAndWarpWrapper は四隅検出 + 射影変換（歪み補正）をGo WASM側で一括実行し、
+// ブロブマスクと補正後正面画像を含むデバッグ情報を返却する。
 func detectAndWarpWrapper(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
 		return `{"error": "invalid arguments"}`
@@ -243,23 +274,34 @@ func detectAndWarpWrapper(this js.Value, args []js.Value) any {
 	dstW, dstH, margin := vision.WarpSize(res.Corners)
 	warped := vision.WarpPerspectiveWithMargin(img, res.Corners, dstW, dstH, margin)
 
-	// RGBA バイト列を Base64 エンコードして返す
-	encoded := base64.StdEncoding.EncodeToString(warped.Pix)
+	resp := cornerDebugResponse{
+		Corners:          res.Corners,
+		RawOuter:         res.RawOuter,
+		Area:             res.Area,
+		Confidence:       res.Confidence,
+		Method:           res.Method,
+		Stars:            res.Stars,
+		WarpedWidth:      dstW,
+		WarpedHeight:     dstH,
+		WarpedRgbaBase64: base64.StdEncoding.EncodeToString(warped.Pix),
+		Margin:           margin,
+	}
 
-	return fmt.Sprintf(
-		`{"corners":[{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f},{"x":%.1f,"y":%.1f}],"area":%.1f,"confidence":%.2f,"warpedWidth":%d,"warpedHeight":%d,"warpedRgbaBase64":"%s"}`,
-		res.Corners[0].X, res.Corners[0].Y,
-		res.Corners[1].X, res.Corners[1].Y,
-		res.Corners[2].X, res.Corners[2].Y,
-		res.Corners[3].X, res.Corners[3].Y,
-		res.Area, res.Confidence,
-		dstW, dstH, encoded,
-	)
+	if res.BlobMaskRGBA != nil {
+		resp.BlobMaskRgbaBase64 = base64.StdEncoding.EncodeToString(res.BlobMaskRGBA.Pix)
+		resp.BlobWidth = res.BlobMaskRGBA.Bounds().Dx()
+		resp.BlobHeight = res.BlobMaskRGBA.Bounds().Dy()
+	}
+
+	bytes, jsonErr := json.Marshal(resp)
+	if jsonErr != nil {
+		return fmt.Sprintf(`{"error": "%s"}`, jsonErr.Error())
+	}
+	return string(bytes)
 }
 
 // detectWarpAndAnalyzeWrapper は四隅検出 → 射影変換 → 特徴量抽出 → 盤面認識まで
-// 全パイプラインを Go WASM 側で完結させる。
-// 返却JSON: FullBoardResult {grid:[...361], confidence, blackCount, whiteCount, emptyCount}
+// 全パイプラインを Go WASM 側で完結させ、全中間生成物（ブロブ・四隅・補正画像・石判定）を返却する。
 func detectWarpAndAnalyzeWrapper(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
 		return `{"error": "invalid arguments"}`
@@ -291,18 +333,51 @@ func detectWarpAndAnalyzeWrapper(this js.Value, args []js.Value) any {
 	// Step 3: 全361交点の特徴量抽出
 	featData := vision.ExtractBoardFeatures(warped, dstW, dstH)
 
-	// Step 4: 盤面認識（AnalyzeFullBoard は JSON 文字列を受け取る）
+	// Step 4: 盤面認識
 	featJSON, jsonErr := json.Marshal(featData)
 	if jsonErr != nil {
 		return fmt.Sprintf(`{"error": "json marshal failed: %s"}`, jsonErr.Error())
 	}
 
-	result, analyzeErr := vision.AnalyzeFullBoard(string(featJSON))
+	resultJSON, analyzeErr := vision.AnalyzeFullBoard(string(featJSON))
 	if analyzeErr != nil {
 		return fmt.Sprintf(`{"error": "%s"}`, analyzeErr.Error())
 	}
 
-	return result
+	// 全中間生成物レスポンスの構築
+	var fullResult vision.FullBoardResult
+	if err := json.Unmarshal([]byte(resultJSON), &fullResult); err != nil {
+		return resultJSON
+	}
+
+	resp := cornerDebugResponse{
+		Corners:          cornersRes.Corners,
+		RawOuter:         cornersRes.RawOuter,
+		Area:             cornersRes.Area,
+		Confidence:       fullResult.Confidence,
+		Method:           cornersRes.Method,
+		Stars:            cornersRes.Stars,
+		WarpedWidth:      dstW,
+		WarpedHeight:     dstH,
+		WarpedRgbaBase64: base64.StdEncoding.EncodeToString(warped.Pix),
+		Margin:           margin,
+		Grid:             fullResult.Grid[:],
+		BlackCount:       fullResult.BlackCount,
+		WhiteCount:       fullResult.WhiteCount,
+		EmptyCount:       fullResult.EmptyCount,
+	}
+
+	if cornersRes.BlobMaskRGBA != nil {
+		resp.BlobMaskRgbaBase64 = base64.StdEncoding.EncodeToString(cornersRes.BlobMaskRGBA.Pix)
+		resp.BlobWidth = cornersRes.BlobMaskRGBA.Bounds().Dx()
+		resp.BlobHeight = cornersRes.BlobMaskRGBA.Bounds().Dy()
+	}
+
+	bytes, jsonErr := json.Marshal(resp)
+	if jsonErr != nil {
+		return resultJSON
+	}
+	return string(bytes)
 }
 
 func main() {
