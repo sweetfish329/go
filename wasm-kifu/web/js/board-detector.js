@@ -1001,6 +1001,45 @@ class BoardDetector {
         const boardW = w - 2 * margin;
         const boardH = h - 2 * margin;
 
+        // ========================================================
+        // 前処理: CLAHE (照明ムラ・明度差の均等化)
+        // 暗い照明・白飛び・スポット光などで閾値が全部ズレる問題を解消。
+        // Lab色空間の L チャンネルにのみ適用することで、
+        // 色相(RMB, YCrCb/Chroma)には影響させずに明度だけ正規化する。
+        // ========================================================
+        let normalizedMat = warpedMat;
+        const claheTemp = { bgr: null, lab: null, channels: null, lIn: null, lOut: null, merged: null, result: null };
+        try {
+            claheTemp.bgr = new cv.Mat();
+            claheTemp.lab = new cv.Mat();
+            claheTemp.lIn = new cv.Mat();
+            claheTemp.lOut = new cv.Mat();
+            claheTemp.channels = new cv.MatVector();
+            claheTemp.merged = new cv.Mat();
+            claheTemp.result = new cv.Mat();
+
+            cv.cvtColor(warpedMat, claheTemp.bgr, cv.COLOR_RGBA2BGR);
+            cv.cvtColor(claheTemp.bgr, claheTemp.lab, cv.COLOR_BGR2Lab);
+            cv.split(claheTemp.lab, claheTemp.channels);
+            claheTemp.channels.get(0).copyTo(claheTemp.lIn);
+
+            if (typeof cv.createCLAHE === 'function') {
+                const clahe = cv.createCLAHE(3.0, new cv.Size(8, 8));
+                clahe.apply(claheTemp.lIn, claheTemp.lOut);
+                clahe.delete();
+            } else {
+                cv.equalizeHist(claheTemp.lIn, claheTemp.lOut);
+            }
+            claheTemp.channels.set(0, claheTemp.lOut);
+            cv.merge(claheTemp.channels, claheTemp.merged);
+            cv.cvtColor(claheTemp.merged, claheTemp.bgr, cv.COLOR_Lab2BGR);
+            cv.cvtColor(claheTemp.bgr, claheTemp.result, cv.COLOR_BGR2RGBA);
+            normalizedMat = claheTemp.result;
+        } catch {
+            // CLAHE が失敗した場合は生の warpedMat をそのまま使う
+            normalizedMat = warpedMat;
+        }
+
         // 消失点・複比（Cross-Ratio）に基づく有理関数透視ピッチモデル (NotebookLM 学術数理モデル)
         // f(t) = (H * r * t) / ((r - 1) * t + 18) (r = sqrt(pStart / pEnd))
         const pStart = 33.0;
@@ -1025,7 +1064,7 @@ class BoardDetector {
 
         // 光学チャンネル分離 (Red = 木目反射を受けにくい白石検出用, Blue = テカリを排した黒石検出用, Green = YCrCb/Chroma用)
         const rgbaPlanes = new cv.MatVector();
-        cv.split(warpedMat, rgbaPlanes);
+        cv.split(normalizedMat, rgbaPlanes);
         const rPlane = rgbaPlanes.get(0);
         const gPlane = rgbaPlanes.get(1);
         const bPlane = rgbaPlanes.get(2);
@@ -1214,6 +1253,14 @@ class BoardDetector {
             temp.delete();
             distW.delete();
             distB.delete();
+            // CLAHE 一時 Mat のクリーンアップ (normalizedMat が warpedMat と別インスタンスの場合のみ)
+            if (normalizedMat !== warpedMat) {
+                normalizedMat.delete();
+            }
+            for (const key of ['bgr', 'lab', 'lIn', 'lOut', 'merged']) {
+                if (claheTemp[key] && !claheTemp[key].isDeleted()) claheTemp[key].delete();
+            }
+            if (claheTemp.channels && !claheTemp.channels.isDeleted()) claheTemp.channels.delete();
         }
     }
 
