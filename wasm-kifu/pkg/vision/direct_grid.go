@@ -38,11 +38,11 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 	cx := (rawOuter[0].X + rawOuter[1].X + rawOuter[2].X + rawOuter[3].X) / 4.0
 	cy := (rawOuter[0].Y + rawOuter[1].Y + rawOuter[2].Y + rawOuter[3].Y) / 4.0
 
-	// 盤面幅と高さから1マスの推定ピッチを計算
-	boardW := math.Hypot(rawOuter[1].X-rawOuter[0].X, rawOuter[1].Y-rawOuter[0].Y)
-	boardH := math.Hypot(rawOuter[3].X-rawOuter[0].X, rawOuter[3].Y-rawOuter[0].Y)
-	pitchW := boardW / 18.0
-	pitchH := boardH / 18.0
+	// 各辺の長さから透視投影に応じた1マスの推定ピッチを個別に計算
+	pitchTop := math.Hypot(rawOuter[1].X-rawOuter[0].X, rawOuter[1].Y-rawOuter[0].Y) / 18.0
+	pitchBot := math.Hypot(rawOuter[2].X-rawOuter[3].X, rawOuter[2].Y-rawOuter[3].Y) / 18.0
+	pitchLeft := math.Hypot(rawOuter[3].X-rawOuter[0].X, rawOuter[3].Y-rawOuter[0].Y) / 18.0
+	pitchRight := math.Hypot(rawOuter[2].X-rawOuter[1].X, rawOuter[2].Y-rawOuter[1].Y) / 18.0
 
 	// 各辺の木枠境界から内側への法線ベクトル
 	getNormalTowardsCenter := func(p1, p2 Point) (float64, float64) {
@@ -75,24 +75,40 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 		var pts []Point
 		numSamples := 35
 
-		maxScanIn := math.Max(60.0, math.Min(220.0, pitch*2.5))
-		startScan := 18.0
-		minDrop := 16.0
-		maxVal := 105.0
+		minScanIn := math.Max(16.0, pitch*0.35)
+		maxScanIn := math.Max(50.0, pitch*1.15)
+		minDrop := 7.0
+		minSideDrop := 2.0
+		maxVal := 120.0
 
 		switch edgeType {
 		case "top":
-			startScan = math.Max(70.0, pitch*0.9)
-			maxScanIn = math.Max(90.0, pitch*1.6)
-			minDrop = 8.0
+			minScanIn = math.Max(24.0, pitch*0.48)
+			maxScanIn = math.Max(50.0, pitch*1.15)
+			minDrop = 5.5
+			minSideDrop = 1.5
+			maxVal = 125.0
 		case "left":
-			startScan = 15.0
-			maxVal = 95.0 // 木目シミや節の除外
+			minScanIn = math.Max(16.0, pitch*0.35)
+			maxScanIn = math.Max(50.0, pitch*1.15)
+			minDrop = 7.0
+			minSideDrop = 2.0
+			maxVal = 110.0 // 木目シミや節の除外
 		case "bot":
-			startScan = 12.0
+			minScanIn = math.Max(16.0, pitch*0.25)
+			maxScanIn = math.Max(65.0, pitch*1.15)
+			minDrop = 7.0
+			minSideDrop = 2.0
+			maxVal = 125.0
 		case "right":
-			startScan = 18.0
+			minScanIn = math.Max(22.0, pitch*0.45)
+			maxScanIn = math.Max(55.0, pitch*1.15)
+			minDrop = 7.0
+			minSideDrop = 2.5
+			maxVal = 120.0
 		}
+
+		step := math.Max(5.0, math.Min(12.0, pitch*0.14))
 
 		startOffset := -math.Max(15.0, pitch*0.45)
 		endOffset := maxScanIn
@@ -124,7 +140,7 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 			// 2. 木枠エッジから内側へ最初に出現する漆黒線 (first significant dark valley) を探索
 			bestDist := -1.0
-			for d := edgeDist + startScan; d <= edgeDist+maxScanIn; d += 1.0 {
+			for d := edgeDist + minScanIn; d <= edgeDist+maxScanIn; d += 1.0 {
 				px := int(baseX + nx*d)
 				py := int(baseY + ny*d)
 				val := getGray(px, py)
@@ -132,11 +148,12 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 					continue
 				}
 
-				bgL := getGray(int(baseX+nx*(d-6)), int(baseY+ny*(d-6)))
-				bgR := getGray(int(baseX+nx*(d+6)), int(baseY+ny*(d+6)))
+				bgL := getGray(int(baseX+nx*(d-step)), int(baseY+ny*(d-step)))
+				bgR := getGray(int(baseX+nx*(d+step)), int(baseY+ny*(d+step)))
 				base := (bgL + bgR) / 2.0
 				drop := base - val
-				if drop >= minDrop {
+				// 真の谷判定: 片側だけの段差（影や面取り）を排除し、両側ともに暗い溝（格子線）のみを検出
+				if drop >= minDrop && bgL-val >= minSideDrop && bgR-val >= minSideDrop {
 					// 局所最小点（谷の底）までアライメント
 					for dNext := d + 1.0; dNext <= d+6.0; dNext += 1.0 {
 						valNext := getGray(int(baseX+nx*dNext), int(baseY+ny*dNext))
@@ -261,10 +278,10 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 	}
 
 	// 1. 各辺の1線点群をサンプリング
-	ptsTop := sample1LinePoints(rawOuter[0], rawOuter[1], "top", pitchH)
-	ptsRight := sample1LinePoints(rawOuter[1], rawOuter[2], "right", pitchW)
-	ptsBot := sample1LinePoints(rawOuter[3], rawOuter[2], "bot", pitchH)
-	ptsLeft := sample1LinePoints(rawOuter[0], rawOuter[3], "left", pitchW)
+	ptsTop := sample1LinePoints(rawOuter[0], rawOuter[1], "top", pitchTop)
+	ptsRight := sample1LinePoints(rawOuter[1], rawOuter[2], "right", pitchRight)
+	ptsBot := sample1LinePoints(rawOuter[3], rawOuter[2], "bot", pitchBot)
+	ptsLeft := sample1LinePoints(rawOuter[0], rawOuter[3], "left", pitchLeft)
 
 	// 2. 4直線の方程式をフィッティング
 	// まず手前で鮮明な底辺直線 (cBot, dBot) をフィッティング
@@ -273,7 +290,7 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 	aLeft, bLeft, okLeft := fitVertLineRANSAC(ptsLeft)
 
 	// 上辺直線 (cTop, dTop): 奥の上辺は透視投影の消失点に向かって水平に収束するため、
-	// 手前底辺 cBot と同符号で、かつより水平に近い傾き (0 <= cTop/cBot <= 0.85) を厳密に拘束
+	// 手前底辺 cBot と同符号で、かつより水平に近い傾きを緩やかに拘束
 	fitTopLineRANSAC := func(pts []Point, cBotRef float64, okBotRef bool) (float64, float64, bool) {
 		n := len(pts)
 		if n < 5 {
@@ -289,9 +306,9 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 			if math.Abs(cBotRef) < 0.03 {
 				return math.Abs(c) <= 0.06
 			} else if cBotRef > 0 {
-				return c >= cBotRef*0.05 && c <= cBotRef*0.60 && math.Abs(c) <= 0.13
+				return c >= -0.03 && c <= cBotRef*0.80 && math.Abs(c) <= 0.15
 			} else {
-				return c <= cBotRef*0.05 && c >= cBotRef*0.60 && math.Abs(c) <= 0.13
+				return c <= 0.03 && c >= cBotRef*0.80 && math.Abs(c) <= 0.15
 			}
 		}
 
