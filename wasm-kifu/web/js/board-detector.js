@@ -1211,14 +1211,22 @@ class BoardDetector {
         }
     }
 
+    get corners() {
+        return this.cornerPoints;
+    }
+
     /**
      * 射影変換で碁盤を正面から見た画像に補正
      * @param {cv.Mat} srcMat - 入力画像
+     * @param {Array<{x: number, y: number}>|null} [corners=null] - 任意の4隅座標
      * @returns {cv.Mat} 射影変換済み画像
      * @private
      */
-    _perspectiveTransform(srcMat) {
-        const p = this.corners;
+    _perspectiveTransform(srcMat, corners = null) {
+        const p = corners || this.cornerPoints;
+        if (!p || p.length < 4) {
+            throw new Error('Perspective transform failed: 4 corner points are required.');
+        }
         // 日本・韓国規格の碁盤縦横比（約 1.077: 42.4cm x 45.5cm）
         // 四隅の形状から縦長か横長かを判定
         const dxTop = Math.abs(p[1].x - p[0].x);
