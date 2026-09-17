@@ -254,24 +254,7 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		return bestC, bestD
 	}
 
-	cB, dB := fitHorizLine(botPts)
-
-	minX, maxX := 1e18, -1e18
-	for _, p := range botPts {
-		if p.X < minX {
-			minX = p.X
-		}
-		if p.X > maxX {
-			maxX = p.X
-		}
-	}
-	wBot := maxX - minX
-
-	// シャドウライン自己修復
-	cB, dB = refineBottomLineWithShadow(img, cB, dB, minX, maxX, wBot)
-	botY := cB*((minX+maxX)/2.0) + dB
-
-	// 天板上端の追跡 (中央連続追跡により奥の机への飛び移りを遮断)
+	// 1. 天板上端の追跡 (中央連続追跡により奥の机への飛び移りを遮断)
 	centerGY := int(float64(h) * 0.50 / blob.ScaleY)
 	var topPts []Point
 	var centerTopYs []float64
@@ -292,32 +275,61 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		}
 	}
 
-	bestTopY := botY - 0.75*wBot
-	if len(centerTopYs) >= 5 {
-		sort.Float64s(centerTopYs)
-		medBlobTopY := centerTopYs[len(centerTopYs)/2]
-		bestTopY = medBlobTopY - 25.0
+	cT, dT := 0.0, 0.0
+	okTop := false
+	if len(topPts) >= 8 {
+		cT, dT = fitHorizLine(topPts)
+		dT -= 25.0
+		okTop = true
 	}
 
-	// 透視投影による上辺傾きの収束拘束
-	perspectiveSlopeRatio := 0.35
-	cT := cB * perspectiveSlopeRatio
-	dT := bestTopY - cT*float64(w)*0.5
+	cB, dB := fitHorizLine(botPts)
 
-	if len(topPts) >= 10 {
-		fittedC, fittedD := fitHorizLine(topPts)
-		isConsistent := false
-		if math.Abs(cB) < 0.03 {
-			isConsistent = math.Abs(fittedC) <= 0.08
-		} else if cB > 0 {
-			isConsistent = fittedC >= -0.02 && fittedC <= cB*1.1
-		} else {
-			isConsistent = fittedC <= 0.02 && fittedC >= cB*1.1
+	// 物理的幾何整合性ルール:
+	// 上辺がほぼ水平 (|cT| <= 0.08: 正面俯角撮影) であるにもかかわらず、
+	// 底辺だけが異常に急傾斜 (|cB| > 0.14) している場合は、手前側（左下等）の石密集や遮蔽による段差誤認と判定
+	if okTop && math.Abs(cT) <= 0.08 && math.Abs(cB) > 0.14 {
+		cB = cT * 1.15
+		if math.Abs(cT) < 0.02 {
+			cB = cT
 		}
-		if isConsistent {
-			cT = fittedC
-			dT = fittedD - 25.0
+		var ds []float64
+		for _, p := range botPts {
+			ds = append(ds, p.Y-cB*p.X)
 		}
+		sort.Float64s(ds)
+		idx := int(float64(len(ds)) * 0.85)
+		if idx >= len(ds) {
+			idx = len(ds) - 1
+		}
+		dB = ds[idx]
+	}
+
+	minX, maxX := 1e18, -1e18
+	for _, p := range botPts {
+		if p.X < minX {
+			minX = p.X
+		}
+		if p.X > maxX {
+			maxX = p.X
+		}
+	}
+	wBot := maxX - minX
+
+	// シャドウライン自己修復
+	cB, dB = refineBottomLineWithShadow(img, cB, dB, minX, maxX, wBot)
+	botY := cB*((minX+maxX)/2.0) + dB
+
+	if !okTop {
+		bestTopY := botY - 0.75*wBot
+		if len(centerTopYs) >= 5 {
+			sort.Float64s(centerTopYs)
+			medBlobTopY := centerTopYs[len(centerTopYs)/2]
+			bestTopY = medBlobTopY - 25.0
+		}
+		perspectiveSlopeRatio := 0.35
+		cT = cB * perspectiveSlopeRatio
+		dT = bestTopY - cT*float64(w)*0.5
 	}
 
 	detTL := IntersectSlopeLines(cT, dT, aL, bL)

@@ -96,8 +96,8 @@ func TestDetectBoardCorners_SyntheticBoard(t *testing.T) {
 		{X: 100, Y: 500},
 	}
 
-	iou := CalculateQuadIoU(res.Corners, gtCorners, w, h)
-	mae := CalculateCornerError(res.Corners, gtCorners)
+	iou := CalculateQuadIoU(res.RawOuter, gtCorners, w, h)
+	mae := CalculateCornerError(res.RawOuter, gtCorners)
 
 	if iou < 85.0 {
 		t.Errorf("expected IoU >= 85.0%%, got %.2f%%", iou)

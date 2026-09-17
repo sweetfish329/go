@@ -86,7 +86,7 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 			maxScanIn = math.Max(90.0, pitch*1.6)
 			minDrop = 8.0
 		case "left":
-			startScan = math.Max(35.0, pitch*0.5)
+			startScan = 15.0
 			maxVal = 95.0 // 木目シミや節の除外
 		case "bot":
 			startScan = 12.0

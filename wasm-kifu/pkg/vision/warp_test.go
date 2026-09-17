@@ -23,12 +23,12 @@ func TestWarpSize(t *testing.T) {
 		t.Errorf("expected margin 40.0, got %.1f", margin)
 	}
 
-	// 横長アスペクト (avgW > avgH)
+	// 横長アスペクト (横からの撮影: 上下辺が主に垂直 dy > dx, 左右辺が主に水平 dx > dy)
 	landscapeCorners := [4]Point{
 		{X: 100, Y: 100},
-		{X: 400, Y: 100},
-		{X: 400, Y: 250},
-		{X: 100, Y: 250},
+		{X: 100, Y: 400},
+		{X: 250, Y: 400},
+		{X: 250, Y: 100},
 	}
 	dstW, dstH, _ = WarpSize(landscapeCorners)
 	if dstW != 732 || dstH != 680 {
