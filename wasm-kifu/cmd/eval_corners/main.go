@@ -102,6 +102,12 @@ func main() {
 		res, err := vision.DetectBoardCorners(img)
 		duration := time.Since(start)
 
+		if res.Method == "DirectGrid" {
+			fmt.Printf("  [Method: DirectGrid (1線直接交点確定)]\n")
+		} else {
+			fmt.Printf("  [Method: %s (マージン逆算フォールバック)]\n", res.Method)
+		}
+
 		starRefiner := vision.NewStarHomographyRefiner()
 		stars := starRefiner.DetectStarPoints(img, res.Corners)
 		fmt.Printf("  [Stars detected: %d]\n", len(stars))
@@ -126,8 +132,8 @@ func main() {
 			allPassed = false
 		}
 
-		fmt.Printf("  %s | IoU: %5.2f%% (基準 >=%4.1f%%) | 頂点誤差(MAE): %5.1fpx (基準 <=%4.1fpx) | %v\n",
-			mark, iou, tc.MinIoU, mae, tc.MaxError, duration.Round(time.Millisecond))
+		fmt.Printf("  %s [%s] | IoU: %5.2f%% (基準 >=%4.1f%%) | 頂点誤差(MAE): %5.1fpx (基準 <=%4.1fpx) | %v\n",
+			mark, res.Method, iou, tc.MinIoU, mae, tc.MaxError, duration.Round(time.Millisecond))
 
 		cornerNames := []string{"左上(TL)", "右上(TR)", "右下(BR)", "左下(BL)"}
 		for c := 0; c < 4; c++ {

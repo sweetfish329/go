@@ -9,17 +9,21 @@ import (
 type FörstnerRefineParams struct {
 	WindowRadius int     // 探索ウィンドウ半径 (例: 5 => 11x11)
 	MaxShift     float64 // 許容最大シフト量 (ピクセル, 例: 5.0)
-	MinCornerDet float64 // 構造テンソル最小行列式閾値
-	MinStrength  float64 // 最小エッジ強度
+	MinCornerDet       float64 // 構造テンソル最小行列式閾値
+	MinStrength        float64 // 最小エッジ強度
+	MinRoundness       float64 // 最小丸み度 q = 4*det/(trace^2) (直線エッジ棄却, 例: 0.30)
+	MinMinorEigenvalue float64 // 構造テンソル最小第2固有値 λ2 (直交エッジ強度, 例: 3.0)
 }
 
 // DefaultFörstnerParams は標準パラメータを返す
 func DefaultFörstnerParams() FörstnerRefineParams {
 	return FörstnerRefineParams{
-		WindowRadius: 6,
-		MaxShift:     5.0,
-		MinCornerDet: 100.0,
-		MinStrength:  5.0,
+		WindowRadius:       6,
+		MaxShift:           5.0,
+		MinCornerDet:       100.0,
+		MinStrength:        5.0,
+		MinRoundness:       0.28,
+		MinMinorEigenvalue: 3.0,
 	}
 }
 
@@ -90,6 +94,25 @@ func RefineCornerSubPixFörstner(img image.Image, initPt Point, params Förstner
 		cornerStrength := det / trace
 		if cornerStrength < params.MinStrength {
 			break
+		}
+
+		// 丸み度 q = 4*det / (trace^2)
+		// 単一の直線・円弧エッジ（碁石の縁など）では q -> 0、直交十字交点では q -> 1
+		if params.MinRoundness > 0 {
+			roundness := (4.0 * det) / (trace * trace)
+			if roundness < params.MinRoundness {
+				break
+			}
+		}
+
+		// 構造テンソルの第2固有値 λ2 (λ1 >= λ2 >= 0)
+		// λ2 が十分大きくなければ、単一方向エッジ（碁石輪郭）によるドリフトが発生する
+		if params.MinMinorEigenvalue > 0 {
+			discrim := math.Max(0, trace*trace-4.0*det)
+			lambda2 := (trace - math.Sqrt(discrim)) * 0.5
+			if lambda2 < params.MinMinorEigenvalue {
+				break
+			}
 		}
 
 		nextX := (m11*b0 - m01*b1) / det

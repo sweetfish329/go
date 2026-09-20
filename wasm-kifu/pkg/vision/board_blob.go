@@ -33,7 +33,44 @@ func DetectBoardBlob(img image.Image) (*BoardBlobResult, error) {
 		return nil, fmt.Errorf("image too small: %dx%d", w, h)
 	}
 
-	// 1. 画像中心領域 (40%〜60%) から碁盤天板の木目色 (榧・ヒバ) を自動サンプリング
+	// 1. 画像中心領域から碁盤天板の均一な木目色 (榧・ヒバ) を自動サンプリング
+	// 局所 5x5 の輝度標準偏差を計算し、碁石の急峻な輪郭エッジを除外
+	calcLocalStdDev := func(cx, cy int) float64 {
+		var grays []float64
+		for dy := -2; dy <= 2; dy += 2 {
+			py := cy + dy
+			if py < 0 || py >= h {
+				continue
+			}
+			for dx := -2; dx <= 2; dx += 2 {
+				px := cx + dx
+				if px < 0 || px >= w {
+					continue
+				}
+				r32, g32, b32, _ := img.At(px, py).RGBA()
+				r := float64(r32 >> 8)
+				g := float64(g32 >> 8)
+				b := float64(b32 >> 8)
+				gray := 0.299*r + 0.587*g + 0.114*b
+				grays = append(grays, gray)
+			}
+		}
+		if len(grays) < 5 {
+			return 999.0
+		}
+		n := float64(len(grays))
+		meanGray := 0.0
+		for _, g := range grays {
+			meanGray += g
+		}
+		meanGray /= n
+		var sumSqDiff float64
+		for _, g := range grays {
+			sumSqDiff += (g - meanGray) * (g - meanGray)
+		}
+		return math.Sqrt(sumSqDiff / n)
+	}
+
 	var centerWoodR, centerWoodG, centerWoodB []float64
 	for y := int(float64(h) * 0.40); y <= int(float64(h) * 0.60); y += 20 {
 		for x := int(float64(w) * 0.40); x <= int(float64(w) * 0.60); x += 20 {
@@ -43,9 +80,12 @@ func DetectBoardBlob(img image.Image) (*BoardBlobResult, error) {
 			b := float64(b32 >> 8)
 			// 白石・黒石を除外し、木目（茶褐色〜黄褐色）を抽出
 			if r-b >= 20 && r >= 60 && !(r > 200 && g > 200 && b > 200) && !(r < 60 && g < 60 && b < 60) {
-				centerWoodR = append(centerWoodR, r)
-				centerWoodG = append(centerWoodG, g)
-				centerWoodB = append(centerWoodB, b)
+				stdDev := calcLocalStdDev(x, y)
+				if stdDev <= 35.0 {
+					centerWoodR = append(centerWoodR, r)
+					centerWoodG = append(centerWoodG, g)
+					centerWoodB = append(centerWoodB, b)
+				}
 			}
 		}
 	}

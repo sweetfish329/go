@@ -165,6 +165,9 @@ declare module "@wasm-kifu/web/js/board-detector.js" {
       source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement | any,
       corners?: Point2D[] | null,
     ): Point2D[];
+    recalibrateCornersMicro(
+      source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement | any,
+    ): Point2D[] | null;
     hasCornersSet(): boolean;
     resetCorners(): void;
     setThresholds(thresholds: Partial<DetectorThresholds>): void;

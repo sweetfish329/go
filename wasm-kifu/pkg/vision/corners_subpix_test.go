@@ -85,3 +85,38 @@ func TestRefineCornersSubPix_SyntheticBoard(t *testing.T) {
 		}
 	}
 }
+
+// 碁石の輪郭（単一方向の強い円弧エッジ）によるサブピクセルドリフトが棄却されることを検証
+func TestRefineCornerSubPixFörstner_StoneEdgeRejection(t *testing.T) {
+	w, h := 100, 100
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+
+	// 木目背景 (200, 160, 100)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			img.Set(x, y, color.RGBA{R: 200, G: 160, B: 100, A: 255})
+		}
+	}
+
+	// (50, 50) を中心とする半径 15px の黒石を描画 (強い円弧エッジ)
+	for y := 30; y <= 70; y++ {
+		for x := 30; x <= 70; x++ {
+			d := math.Hypot(float64(x-50), float64(y-50))
+			if d <= 15.0 {
+				img.Set(x, y, color.RGBA{R: 20, G: 20, B: 20, A: 255})
+			}
+		}
+	}
+
+	// 石の輪郭付近 (65.0, 50.0) を初期点とする。直交格子線は存在しない
+	stoneEdgePt := Point{X: 65.0, Y: 50.0}
+	params := DefaultFörstnerParams()
+	refined := RefineCornerSubPixFörstner(img, stoneEdgePt, params)
+
+	// 単一エッジのため丸み度 q または λ2 判定で更新が棄却され、初期点から動かないこと
+	shift := math.Hypot(refined.X-stoneEdgePt.X, refined.Y-stoneEdgePt.Y)
+	if shift > 0.05 {
+		t.Errorf("Förstner should reject single-edge stone boundary drift, but shifted by %.3f px to (%.2f, %.2f)",
+			shift, refined.X, refined.Y)
+	}
+}

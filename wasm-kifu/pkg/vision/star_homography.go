@@ -165,6 +165,101 @@ func FindHomographyLeastSquares(points []StarPoint) ([9]float64, error) {
 	}, nil
 }
 
+// RefineHomographyLM は Levenberg-Marquardt (LM) 法を用いて、
+// 検出された星点群に対するホモグラフィ行列 H の非線形再射影誤差を最小化する。
+func RefineHomographyLM(initH [9]float64, points []StarPoint) [9]float64 {
+	if len(points) < 4 {
+		return initH
+	}
+
+	curH := initH
+	lambda := 1e-3
+
+	calcResiduals := func(h [9]float64) (float64, []float64) {
+		totalSq := 0.0
+		var r []float64
+		for _, pt := range points {
+			p := ProjectPoint(h, pt.NormX, pt.NormY)
+			rx := p.X - pt.ImgX
+			ry := p.Y - pt.ImgY
+			totalSq += rx*rx + ry*ry
+			r = append(r, rx, ry)
+		}
+		return totalSq, r
+	}
+
+	bestCost, _ := calcResiduals(curH)
+
+	for iter := 0; iter < 10; iter++ {
+		var jtJ [8][8]float64
+		var jtr [8]float64
+
+		for _, pt := range points {
+			u, v := pt.NormX, pt.NormY
+			w := curH[6]*u + curH[7]*v + 1.0
+			if math.Abs(w) < 1e-9 {
+				w = 1e-9
+			}
+			invW := 1.0 / w
+			xHat := (curH[0]*u + curH[1]*v + curH[2]) * invW
+			yHat := (curH[3]*u + curH[4]*v + curH[5]) * invW
+
+			rx := xHat - pt.ImgX
+			ry := yHat - pt.ImgY
+
+			// ヤコビアン偏微分行 (8要素)
+			jx := [8]float64{u * invW, v * invW, invW, 0, 0, 0, -u * xHat * invW, -v * xHat * invW}
+			jy := [8]float64{0, 0, 0, u * invW, v * invW, invW, -u * yHat * invW, -v * yHat * invW}
+
+			for r0 := 0; r0 < 8; r0++ {
+				for c0 := 0; c0 < 8; c0++ {
+					jtJ[r0][c0] += jx[r0]*jx[c0] + jy[r0]*jy[c0]
+				}
+				jtr[r0] += jx[r0]*rx + jy[r0]*ry
+			}
+		}
+
+		// (J^T J + lambda * diag) * delta = -jtr
+		var a [8][8]float64
+		var b [8]float64
+		for r0 := 0; r0 < 8; r0++ {
+			for c0 := 0; c0 < 8; c0++ {
+				a[r0][c0] = jtJ[r0][c0]
+			}
+			a[r0][r0] += lambda * (math.Abs(jtJ[r0][r0]) + 1.0)
+			b[r0] = -jtr[r0]
+		}
+
+		delta := solveLinearSystem8x8(a, b)
+
+		candH := [9]float64{
+			curH[0] + delta[0],
+			curH[1] + delta[1],
+			curH[2] + delta[2],
+			curH[3] + delta[3],
+			curH[4] + delta[4],
+			curH[5] + delta[5],
+			curH[6] + delta[6],
+			curH[7] + delta[7],
+			1.0,
+		}
+
+		candCost, _ := calcResiduals(candH)
+		if candCost < bestCost {
+			bestCost = candCost
+			curH = candH
+			lambda *= 0.3
+			if math.Abs(bestCost-candCost) < 1e-4 {
+				break
+			}
+		} else {
+			lambda *= 5.0
+		}
+	}
+
+	return curH
+}
+
 // DetectStarPoints は画像および粗い4隅から盤面の「星」を探索・検出する
 func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners [4]Point) []StarPoint {
 	bounds := img.Bounds()
@@ -348,7 +443,10 @@ func FindHomographyRANSAC(stars []StarPoint, maxReprojErr float64) ([9]float64, 
 	if err != nil {
 		return bestH, bestInliers, nil
 	}
-	return hRefined, bestInliers, nil
+
+	// Levenberg-Marquardt (LM) 法により非線形再射影誤差を大域的極小値へ精密収束
+	hOpt := RefineHomographyLM(hRefined, bestInliers)
+	return hOpt, bestInliers, nil
 }
 
 // RefineCornersWithStarPoints は検出された星（花点）を用いてホモグラフィを再推定し、真の4隅を精密化する。

@@ -1,6 +1,7 @@
 package vision
 
 import (
+	"fmt"
 	"image"
 	"math"
 	"sort"
@@ -8,12 +9,18 @@ import (
 
 // DirectGrid1LineResult は1線直接検出の結果
 type DirectGrid1LineResult struct {
-	Corners   [4]Point // [TL, TR, BR, BL]
-	LineTop   LineHV
-	LineRight LineHV
-	LineBot   LineHV
-	LineLeft  LineHV
-	Success   bool
+	Corners      [4]Point // [TL, TR, BR, BL]
+	LineTop      LineHV
+	LineRight    LineHV
+	LineBot      LineHV
+	LineLeft     LineHV
+	OkTop        bool
+	OkRight      bool
+	OkBot        bool
+	OkLeft       bool
+	NumLines     int
+	RejectReason string
+	Success      bool
 }
 
 // Detect1LinesDirectly は天板ブロブ内側から最外周格子線（1線: 上下左右4本）を直接検出し、
@@ -154,6 +161,12 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 				drop := base - val
 				// 真の谷判定: 片側だけの段差（影や面取り）を排除し、両側ともに暗い溝（格子線）のみを検出
 				if drop >= minDrop && bgL-val >= minSideDrop && bgR-val >= minSideDrop {
+					// 幅広の暗部（黒石）判定: 格子線の幅は通常 1〜3px なので、離れた位置も暗い場合は黒石としてスキップ
+					valFar := getGray(int(baseX+nx*(d+step*1.5)), int(baseY+ny*(d+step*1.5)))
+					if valFar < val+8.0 && val < 60.0 {
+						continue
+					}
+
 					// 局所最小点（谷の底）までアライメント
 					for dNext := d + 1.0; dNext <= d+6.0; dNext += 1.0 {
 						valNext := getGray(int(baseX+nx*dNext), int(baseY+ny*dNext))
@@ -378,6 +391,109 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 	cTop, dTop, okTop := fitTopLineRANSAC(ptsTop, cBot, okBot)
 
+	// 3線確定時の幾何補完 (Tri-Line Geometric Completion):
+	// 4辺のうち3辺が高精度に検出され、1辺のみが碁石密集や影で欠損した場合、
+	// 消失点 (Vanishing Point) と対向辺・木枠境界から欠損した1直線を数学的に厳密外挿復元する。
+	numSuccess := 0
+	if okTop {
+		numSuccess++
+	}
+	if okRight {
+		numSuccess++
+	}
+	if okBot {
+		numSuccess++
+	}
+	if okLeft {
+		numSuccess++
+	}
+
+	if numSuccess == 3 {
+		// ケース1: 上辺のみ欠損 (!okTop && okBot && okLeft && okRight)
+		if !okTop && okBot && okLeft && okRight {
+			denomV := aLeft - aRight
+			if math.Abs(denomV) > 1e-4 {
+				yV := (bRight - bLeft) / denomV
+				yRawBot := (rawOuter[3].Y + rawOuter[2].Y) * 0.5
+				yRawTop := (rawOuter[0].Y + rawOuter[1].Y) * 0.5
+				y1LineBot := cBot*cx + dBot
+				deltaBot := math.Abs(yRawBot - y1LineBot)
+
+				distBotV := math.Abs(yRawBot - yV)
+				distTopV := math.Abs(yRawTop - yV)
+				if distBotV > 10.0 {
+					scale := distTopV / distBotV
+					deltaTop := math.Max(8.0, deltaBot*scale)
+					cTop = cBot * scale
+					dTop = (yRawTop + deltaTop) - cTop*cx
+					okTop = true
+				}
+			}
+		} else if !okBot && okTop && okLeft && okRight {
+			// ケース2: 底辺のみ欠損 (!okBot && okTop && okLeft && okRight)
+			denomV := aLeft - aRight
+			if math.Abs(denomV) > 1e-4 {
+				yV := (bRight - bLeft) / denomV
+				yRawBot := (rawOuter[3].Y + rawOuter[2].Y) * 0.5
+				yRawTop := (rawOuter[0].Y + rawOuter[1].Y) * 0.5
+				y1LineTop := cTop*cx + dTop
+				deltaTop := math.Abs(y1LineTop - yRawTop)
+
+				distBotV := math.Abs(yRawBot - yV)
+				distTopV := math.Abs(yRawTop - yV)
+				if distTopV > 10.0 {
+					scale := distBotV / distTopV
+					deltaBot := math.Max(8.0, deltaTop*scale)
+					cBot = cTop * scale
+					dBot = (yRawBot - deltaBot) - cBot*cx
+					okBot = true
+				}
+			}
+		} else if !okRight && okLeft && okTop && okBot {
+			// ケース3: 右辺のみ欠損 (!okRight && okLeft && okTop && okBot)
+			denomH := cTop - cBot
+			if math.Abs(denomH) > 1e-4 {
+				xH := (dBot - dTop) / denomH
+				xRawLeft := (rawOuter[0].X + rawOuter[3].X) * 0.5
+				xRawRight := (rawOuter[1].X + rawOuter[2].X) * 0.5
+				x1LineLeft := aLeft*cy + bLeft
+				deltaLeft := math.Abs(x1LineLeft - xRawLeft)
+
+				distLeftH := math.Abs(xRawLeft - xH)
+				distRightH := math.Abs(xRawRight - xH)
+				if distLeftH > 10.0 {
+					scale := distRightH / distLeftH
+					deltaRight := math.Max(8.0, deltaLeft*scale)
+					aRight = aLeft * scale
+					bRight = (xRawRight - deltaRight) - aRight*cy
+					okRight = true
+				}
+			}
+		} else if !okLeft && okRight && okTop && okBot {
+			// ケース4: 左辺のみ欠損 (!okLeft && okRight && okTop && okBot)
+			denomH := cTop - cBot
+			if math.Abs(denomH) > 1e-4 {
+				xH := (dBot - dTop) / denomH
+				xRawLeft := (rawOuter[0].X + rawOuter[3].X) * 0.5
+				xRawRight := (rawOuter[1].X + rawOuter[2].X) * 0.5
+				x1LineRight := aRight*cy + bRight
+				deltaRight := math.Abs(xRawRight - x1LineRight)
+
+				distLeftH := math.Abs(xRawLeft - xH)
+				distRightH := math.Abs(xRawRight - xH)
+				if distRightH > 10.0 {
+					scale := distLeftH / distRightH
+					deltaLeft := math.Max(8.0, deltaRight*scale)
+					aLeft = aRight * scale
+					bLeft = (xRawLeft + deltaLeft) - aLeft*cy
+					okLeft = true
+				}
+			}
+		}
+	}
+
+	rejectReason := ""
+
 	// すべての辺で直接フィッティングが成功した場合、4直線の交点から四隅を決定
 	if okTop && okRight && okBot && okLeft {
 		tl := IntersectSlopeLines(cTop, dTop, aLeft, bLeft)
@@ -391,23 +507,31 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 		// 1線領域は木枠外形より必ず内側にあり、面積比は 80% 〜 98.5% の範囲に収まる
 		// (木枠エッジそのものを拾ってしまった場合や過大発散した場合は安全にフォールバック)
-		if areaRaw > 100 && area1Line > 100 {
+		if areaRaw <= 100 || area1Line <= 100 {
+			rejectReason = fmt.Sprintf("area too small: raw=%.1f, 1line=%.1f", areaRaw, area1Line)
+		} else {
 			ratio := area1Line / areaRaw
-			if ratio >= 0.70 && ratio <= 0.985 {
-				// 各頂点が画像内かつ木枠外形の内側（中心側）に収まっているか検証
+			if ratio < 0.70 || ratio > 0.985 {
+				rejectReason = fmt.Sprintf("ratio out of range: %.3f", ratio)
+			} else {
+				// 各頂点が画像境界付近に収まっているか検証 (画面端ギリギリでの撮影を許容)
 				valid := true
-				for _, c := range corners {
-					if c.X < 5 || c.X > float64(w-5) || c.Y < 5 || c.Y > float64(h-5) {
+				for idx, c := range corners {
+					if c.X < -25 || c.X > float64(w+25) || c.Y < -25 || c.Y > float64(h+25) {
 						valid = false
+						rejectReason = fmt.Sprintf("corner %d out of bounds: (%.1f, %.1f)", idx, c.X, c.Y)
 						break
 					}
 				}
-				for i := 0; i < 4; i++ {
-					distRaw := math.Hypot(rawOuter[i].X-cx, rawOuter[i].Y-cy)
-					distDG := math.Hypot(corners[i].X-cx, corners[i].Y-cy)
-					if distDG > distRaw+5.0 {
-						valid = false
-						break
+				if valid {
+					for i := 0; i < 4; i++ {
+						distRaw := math.Hypot(rawOuter[i].X-cx, rawOuter[i].Y-cy)
+						distDG := math.Hypot(corners[i].X-cx, corners[i].Y-cy)
+						if distDG > distRaw+10.0 {
+							valid = false
+							rejectReason = fmt.Sprintf("corner %d distDG (%.1f) > distRaw (%.1f)", i, distDG, distRaw)
+							break
+						}
 					}
 				}
 				if valid {
@@ -417,6 +541,11 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 						LineRight: LineHV{Slope: aRight, Intercept: bRight, IsHorizontal: false},
 						LineBot:   LineHV{Slope: cBot, Intercept: dBot, IsHorizontal: true},
 						LineLeft:  LineHV{Slope: aLeft, Intercept: bLeft, IsHorizontal: false},
+						OkTop:     okTop,
+						OkRight:   okRight,
+						OkBot:     okBot,
+						OkLeft:    okLeft,
+						NumLines:  numSuccess,
 						Success:   true,
 					}, nil
 				}
@@ -426,6 +555,12 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 	// 一部の辺でサンプル不足の場合はフォールバックフラグを返す
 	return &DirectGrid1LineResult{
-		Success: false,
+		OkTop:        okTop,
+		OkRight:      okRight,
+		OkBot:        okBot,
+		OkLeft:       okLeft,
+		NumLines:     numSuccess,
+		RejectReason: rejectReason,
+		Success:      false,
 	}, nil
 }
