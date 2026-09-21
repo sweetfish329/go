@@ -360,6 +360,7 @@ document.getElementById('btn-camera').addEventListener('click', async () => {
             cameraStream = await detector.startCamera(video);
             cornerPoints = [];
             updateCornerDots();
+            resetAllDebugStages();
         } catch (err) {
             showToast(`📷 カメラエラー: ${err.message}`);
             cameraMode = false;
@@ -380,6 +381,7 @@ function closeCameraMode() {
     stopStreamTracking();
     cameraMode = false;
     imageMode = false;
+    resetAllDebugStages();
     document.getElementById('camera-section').classList.add('hidden');
     document.getElementById('btn-auto-detect').classList.add('hidden');
     document.getElementById('btn-stream-mode').classList.add('hidden');
@@ -424,6 +426,7 @@ function loadImageSource(src) {
         cameraStream = null;
     }
     stopStreamTracking();
+    resetAllDebugStages();
 
     cameraMode = true;
     imageMode = true;
@@ -593,6 +596,9 @@ function handleCornerClick(e, elem, naturalWidth, naturalHeight) {
         y: (e.clientY - rect.top) * scaleY,
     };
     cornerPoints.push(point);
+    if (cornerPoints.length === 1) {
+        resetStage3And4();
+    }
     updateCornerDots();
     drawCornerMarkers();
 
@@ -699,6 +705,7 @@ document.getElementById('btn-reset-corners').addEventListener('click', () => {
     cornerPoints = [];
     detector.resetCorners();
     updateCornerDots();
+    resetAllDebugStages();
     // オーバーレイクリア
     const overlay = document.getElementById('corner-overlay-canvas');
     const ctx = overlay.getContext('2d');
@@ -869,19 +876,9 @@ document.getElementById('btn-capture').addEventListener('click', () => {
                 const conf = fullBoard.confidence ? Math.round(fullBoard.confidence * 100) : 100;
                 showToast(`✅ 全盤面を認識しました！ (黒: ${bCount}個, 白: ${wCount}個 / 信頼度: ${conf}%)`);
 
-                // デバッグ用: 歪み補正正面画像と全361交点判定オーバーレイを更新
+                // デバッグ用: 確定四隅による歪み補正正面画像と全361交点判定オーバーレイを更新
                 try {
-                    const natW = source.naturalWidth || source.videoWidth || source.width;
-                    const natH = source.naturalHeight || source.videoHeight || source.height;
-                    const warpCanvas = document.createElement('canvas');
-                    warpCanvas.width = natW;
-                    warpCanvas.height = natH;
-                    warpCanvas.getContext('2d').drawImage(source, 0, 0, natW, natH);
-                    const imgData = warpCanvas.getContext('2d').getImageData(0, 0, natW, natH);
-                    const warpRes = kifu.detectAndWarp(imgData.data, natW, natH);
-                    if (warpRes && warpRes.warpedRgbaBase64) {
-                        updateDebugWarpAndClassification(warpRes, fullBoard.grid);
-                    }
+                    updateDebugWarpAndClassificationFromSource(source, fullBoard.grid);
                 } catch (e) {
                     console.warn('Debug warp update notice:', e);
                 }
@@ -902,9 +899,9 @@ document.getElementById('btn-capture').addEventListener('click', () => {
                     }
                     showToast(`✅ 盤面を認識しました！ (黒: ${b}個, 白: ${w}個)`);
 
-                    // デバッグ用: OpenCV.js 補正画像と判定オーバーレイを更新
+                    // デバッグ用: 確定四隅による補正画像と判定オーバーレイを更新
                     try {
-                        updateDebugClassificationOpenCV(source, classified);
+                        updateDebugWarpAndClassificationFromSource(source, classified);
                     } catch (e) {
                         console.warn('Debug opencv update notice:', e);
                     }
@@ -916,6 +913,14 @@ document.getElementById('btn-capture').addEventListener('click', () => {
 
         // カメラ動画モード: 直前手からの1手差分着手を判定
         processDetectedFeatures(features, false);
+        try {
+            const currentGrid = kifu.getBoardState();
+            if (currentGrid && currentGrid.length === 361) {
+                updateDebugWarpAndClassificationFromSource(source, currentGrid);
+            }
+        } catch (e) {
+            console.warn('Camera debug warp update notice:', e);
+        }
     } catch (err) {
         showToast(`❌ 認識エラー: ${err.message}`);
         console.error('Detection error:', err);
@@ -954,6 +959,86 @@ btnDebugToggle.addEventListener('click', () => {
         debugSection.classList.add('hidden');
     }
 });
+
+// Stage 3 & 4 のデバッグ表示および保持ステートのリセット
+function resetStage3And4() {
+    debugState.warpedRes = null;
+    debugState.classifiedGrid = null;
+
+    const canvasWarped = document.getElementById('debug-canvas-warped');
+    const metaWarped = document.getElementById('debug-warped-meta');
+    const placeholderWarped = document.getElementById('debug-warped-placeholder');
+    if (canvasWarped) {
+        const ctx = canvasWarped.getContext('2d');
+        ctx.clearRect(0, 0, canvasWarped.width, canvasWarped.height);
+        canvasWarped.width = 0;
+        canvasWarped.height = 0;
+    }
+    if (metaWarped) metaWarped.textContent = '-';
+    if (placeholderWarped) placeholderWarped.style.display = 'block';
+
+    const canvasClassified = document.getElementById('debug-canvas-classified');
+    const metaClassified = document.getElementById('debug-classified-meta');
+    const placeholderClassified = document.getElementById('debug-classified-placeholder');
+    if (canvasClassified) {
+        const ctx = canvasClassified.getContext('2d');
+        ctx.clearRect(0, 0, canvasClassified.width, canvasClassified.height);
+        canvasClassified.width = 0;
+        canvasClassified.height = 0;
+    }
+    if (metaClassified) metaClassified.textContent = '-';
+    if (placeholderClassified) placeholderClassified.style.display = 'block';
+}
+
+// 全ステージのデバッグリセット (画像切り替え時や4隅リセット時)
+function resetAllDebugStages() {
+    debugState.sourceCanvas = null;
+    debugState.cornerRes = null;
+    resetStage3And4();
+
+    const canvasBlob = document.getElementById('debug-canvas-blob');
+    const metaBlob = document.getElementById('debug-blob-meta');
+    const placeholderBlob = document.getElementById('debug-blob-placeholder');
+    if (canvasBlob) {
+        const ctx = canvasBlob.getContext('2d');
+        ctx.clearRect(0, 0, canvasBlob.width, canvasBlob.height);
+        canvasBlob.width = 0;
+        canvasBlob.height = 0;
+    }
+    if (metaBlob) metaBlob.textContent = '-';
+    if (placeholderBlob) placeholderBlob.style.display = 'block';
+
+    const canvasCorners = document.getElementById('debug-canvas-corners');
+    const metaCorners = document.getElementById('debug-corners-meta');
+    const placeholderCorners = document.getElementById('debug-corners-placeholder');
+    if (canvasCorners) {
+        const ctx = canvasCorners.getContext('2d');
+        ctx.clearRect(0, 0, canvasCorners.width, canvasCorners.height);
+        canvasCorners.width = 0;
+        canvasCorners.height = 0;
+    }
+    if (metaCorners) metaCorners.textContent = '-';
+    if (placeholderCorners) placeholderCorners.style.display = 'block';
+
+    const methodBadge = document.getElementById('debug-method-badge');
+    if (methodBadge) methodBadge.textContent = '手法: 未実行';
+    const starsBadge = document.getElementById('debug-stars-badge');
+    if (starsBadge) starsBadge.textContent = '星(花点): 0個';
+    const confBadge = document.getElementById('debug-conf-badge');
+    if (confBadge) confBadge.textContent = '信頼度: -';
+}
+
+// RGBA 配列から安全に Base64 文字列を生成するヘルパー（スタックオーバーフロー防止）
+function rgbaDataToBase64(uint8Data) {
+    let binary = '';
+    const len = uint8Data.byteLength || uint8Data.length;
+    const chunkSize = 16384;
+    for (let i = 0; i < len; i += chunkSize) {
+        const chunk = uint8Data.subarray ? uint8Data.subarray(i, Math.min(i + chunkSize, len)) : uint8Data.slice(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+}
 
 // RGBA Base64 文字列を Canvas に描画する汎用ヘルパー
 function drawRgbaBase64ToCanvas(base64Data, width, height, canvas) {
@@ -1160,20 +1245,10 @@ function updateDebugCorners(sourceCanvas, res) {
     }
 }
 
-// デバッグ状態の更新ハンドラー (歪み補正 ＆ 盤面分類時)
-function updateDebugWarpAndClassification(warpRes, grid) {
-    debugState.warpedRes = warpRes;
+// 現在の入力画像と確定四隅から射影変換（正面碁盤）を生成し、Stage 3 と Stage 4 を確実に同期描画
+function updateDebugWarpAndClassificationFromSource(source, grid) {
     debugState.classifiedGrid = grid;
-    if (debugMode) {
-        renderStage3Warped(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight);
-        renderStage4Classified(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight, grid, warpRes.margin || 20);
-    }
-}
-
-// OpenCV.js フォールバック時の分類結果描画
-function updateDebugClassificationOpenCV(source, grid) {
-    debugState.classifiedGrid = grid;
-    if (!debugMode || !detector.isReady()) return;
+    if (!detector.isReady() || !detector.hasCornersSet()) return;
 
     try {
         const srcMat = detector._readSourceMat(source);
@@ -1182,19 +1257,43 @@ function updateDebugClassificationOpenCV(source, grid) {
         cv.imshow(warpedCanvas, warpedMat);
         const ctx = warpedCanvas.getContext('2d');
         const imgData = ctx.getImageData(0, 0, warpedCanvas.width, warpedCanvas.height);
-        
-        // Base64 エンコード
-        const binary = String.fromCharCode.apply(null, imgData.data);
-        const base64 = btoa(binary);
 
-        renderStage3Warped(base64, warpedCanvas.width, warpedCanvas.height);
-        renderStage4Classified(base64, warpedCanvas.width, warpedCanvas.height, grid, 20);
+        // 安全なチャンクBase64エンコード
+        const base64 = rgbaDataToBase64(imgData.data);
+
+        const warpRes = {
+            warpedRgbaBase64: base64,
+            warpedWidth: warpedCanvas.width,
+            warpedHeight: warpedCanvas.height,
+            margin: 20,
+        };
+        debugState.warpedRes = warpRes;
+
+        if (debugMode) {
+            renderStage3Warped(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight);
+            renderStage4Classified(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight, grid, warpRes.margin);
+        }
 
         warpedMat.delete();
         srcMat.delete();
     } catch (e) {
-        console.warn('OpenCV debug render notice:', e);
+        console.warn('Warp & classification debug render notice:', e);
     }
+}
+
+// デバッグ状態の更新ハンドラー (互換性維持用)
+function updateDebugWarpAndClassification(warpRes, grid) {
+    debugState.warpedRes = warpRes;
+    debugState.classifiedGrid = grid;
+    if (debugMode && warpRes) {
+        renderStage3Warped(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight);
+        renderStage4Classified(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight, grid, warpRes.margin || 20);
+    }
+}
+
+// OpenCV.js フォールバック時の分類結果描画 (新共通関数へ委譲)
+function updateDebugClassificationOpenCV(source, grid) {
+    updateDebugWarpAndClassificationFromSource(source, grid);
 }
 
 // 全デバッグステージの再描画
