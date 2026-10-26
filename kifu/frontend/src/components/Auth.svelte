@@ -326,7 +326,7 @@
           囲碁の対局記録と分析管理
         </p>
         <p style="font-family: 'DM Sans', sans-serif; font-size: 0.85rem; line-height: 1.6; color: var(--wc-text-muted); margin: 0; margin-bottom: 24px;">
-          Kifu Storeは、対局データ（SGF形式）の保存、再生、AIによる形勢分析、およびWeb上での公開・共有管理を行うための専用ツールです。
+          Kifu Storeは、囲碁の対局データ（SGF）の保存・再生、AI形勢分析、棋譜の公開や共有を行える棋譜管理ツールです。
         </p>
         <div class="font-sans" style="font-size: 0.8rem; font-weight: 700; color: var(--wc-accent); display: flex; align-items: center; gap: 8px;">
           <span>下へスクロールして機能説明を表示</span>
@@ -491,7 +491,7 @@
           <span class="scrolly-tag font-mono">01 / REPLAY</span>
           <h3 class="scrolly-title font-mincho">対局の再生と検討</h3>
           <p class="scrolly-text font-sans">
-            SGFファイルを読み込んで対局の流れを一手ずつ順方向に、または逆方向に再生できます。盤面上の任意の局面をいつでも確認可能です。
+            SGFファイルを読み込み、対局を一手ずつ進めたり戻したりして再生。気になる局面をスムーズに検討できます。
           </p>
         </div>
       </div>
@@ -501,7 +501,7 @@
           <span class="scrolly-tag font-mono">02 / AI GRAPH</span>
           <h3 class="scrolly-title font-mincho">形勢グラフとAI分析</h3>
           <p class="scrolly-text font-sans">
-            対局全体の勝率推移をグラフで視覚化します。AIの判定に基づき、各手における形勢の変化を確認できます。
+            対局全体の勝率推移をグラフで可視化。一手ごとの形勢の揺らぎを一目で把握できます。
           </p>
         </div>
       </div>
@@ -511,7 +511,7 @@
           <span class="scrolly-tag font-mono">03 / INSTANT SHARE</span>
           <h3 class="scrolly-title font-mincho">公開範囲の設定と共有</h3>
           <p class="scrolly-text font-sans">
-            登録した棋譜の公開・非公開を設定できます。共有用のURLを発行することで、他のユーザーや外部SNSへ対局を共有できます。
+            棋譜ごとに公開・非公開を柔軟に設定。専用URLを発行して、SNSや対局相手へ手軽にシェアできます。
           </p>
         </div>
       </div>
@@ -521,7 +521,7 @@
           <span class="scrolly-tag font-mono">04 / COLLABORATIVE REVIEWS</span>
           <h3 class="scrolly-title font-mincho">変化図の追加とコメント</h3>
           <p class="scrolly-text font-sans">
-            盤上の特定の局面に対して、テキストコメントや分岐する手順（変化図）を追加して記録・保存できます。
+            気になる局面に解説コメントや分岐手順（変化図）を追加し、研究内容を詳細に残せます。
           </p>
         </div>
       </div>

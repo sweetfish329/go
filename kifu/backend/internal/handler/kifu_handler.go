@@ -671,9 +671,9 @@ func BuildKifuOgpMeta(kifu *model.Kifu, userId string, kifuId string, scheme str
 	if kifu.Result != "" {
 		description += fmt.Sprintf(" (結果: %s)", escapedResult)
 	}
-	description += "。モダンな囲碁棋譜管理・添削ツール kifu_store で記録された棋譜です。"
+	description += "。囲碁の棋譜記録・添削ツール kifu_store で記録された棋譜です。"
 
-	keywords := fmt.Sprintf("囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, %s, %s", escapedBlack, escapedWhite)
+	keywords := fmt.Sprintf("囲碁, 棋譜, 棋譜記録, 囲碁棋譜, 棋譜管理, %s, %s", escapedBlack, escapedWhite)
 
 	robotsTag := ""
 	if kifu.IsPrivate {
@@ -749,8 +749,8 @@ func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, 
 }
 
 func BuildUserListOgpMeta(escapedTabName string, ogUrl string) string {
-	description := "公開棋譜一覧ページです。モダンなUIで棋譜の管理、記録、そしてAIや指導者による添削を行える囲碁棋譜ストアです。"
-	keywords := "囲碁, 棋譜, 棋譜記録, モダン, 囲碁棋譜, 棋譜管理, 公開棋譜"
+	description := "公開棋譜の一覧です。棋譜の管理や記録、対局の再生・検討や添削を行えます。"
+	keywords := "囲碁, 棋譜, 棋譜記録, 囲碁棋譜, 棋譜管理, 公開棋譜"
 	return fmt.Sprintf(`
 	<meta name="robots" content="index, follow" />
 	<meta name="description" content="%s" />
@@ -768,7 +768,7 @@ func BuildUserListOgpMeta(escapedTabName string, ogUrl string) string {
 }
 
 func BuildDefaultOgpMeta(escapedTabName string, ogUrl string) string {
-	description := "「碁盤・棋譜ストア」は、ブラウザで手軽に囲碁の対局を再生・検討できるWebツールです。SGFファイルの読み込み・作成・ダウンロードに対応し、限定公開や一般公開でのURL共有やSNS向けのOGP画像自動生成機能で対局をスマートに共有できます。"
+	description := "「碁盤・棋譜ストア」は、ブラウザで囲碁の対局を再生・検討できるWebツールです。SGFの作成・ダウンロード、URL共有やSNS向け盤面画像の自動生成に対応しています。"
 	keywords := "囲碁,棋譜,碁盤,SGF,SGFダウンロード,棋譜共有,棋譜保存,対局検討,AI分析,kifu_store"
 	return fmt.Sprintf(`
 	<meta name="robots" content="index, follow" />

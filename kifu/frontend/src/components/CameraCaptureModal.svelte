@@ -649,7 +649,7 @@
         <div class="header-title-row">
           <i class="material-icons header-icon">camera_enhance</i>
           <h5 id="camera-modal-title" class="font-mincho header-title">
-            盤面写真・画像からAI自動取り込み
+            写真・画像から盤面を取り込み
           </h5>
         </div>
         <button
@@ -1063,10 +1063,10 @@
           >
             {#if isAnalyzing}
               <div class="spinner-small"></div>
-              <span>AI解析中...</span>
+              <span>盤面を解析中...</span>
             {:else}
               <i class="material-icons">bolt</i>
-              <span>盤面をAI解析</span>
+              <span>盤面を解析</span>
             {/if}
           </button>
         {:else}

@@ -469,7 +469,7 @@
         <!-- Action Buttons -->
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <button type="button" class="nm-btn" style="width: 100%; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface-alt) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important; font-weight: bold;" onclick={() => showCameraModal = true} disabled={saving}>
-            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">camera_enhance</i>盤面写真からAI自動取り込み
+            <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">camera_enhance</i>写真から盤面を取り込み
           </button>
           <button type="button" class="nm-btn em-pulse-button" style="width: 100%; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important; font-weight: bold;" onclick={handlePass} disabled={saving}>
             <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; vertical-align: middle; margin-right: 4px;">redo</i>パスする (Pass)

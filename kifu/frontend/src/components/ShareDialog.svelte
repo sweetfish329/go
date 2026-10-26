@@ -830,7 +830,7 @@
         棋譜を共有する
       </span>
       <p id="share-modal-desc" class="share-modal-subtitle">
-        添削の依頼や閲覧用のリンクとQRコードです。
+        対局の閲覧や添削依頼に使える共有リンクとQRコードです。
       </p>
     </div>
 
@@ -897,7 +897,7 @@
           </div>
           <div class="instagram-guide-content font-sans">
             <p class="guide-desc">
-              画像をダウンロードしました！以下の手順でInstagramのストーリーに投稿できます。
+              画像を保存しました。以下の手順でInstagramのストーリーに投稿できます。
             </p>
             <ol class="guide-steps">
               <li>Instagramアプリを開き、ストーリー新規作成へ進みます。</li>
@@ -910,7 +910,7 @@
                   </button>
                 </div>
               </li>
-              <li>お好みで文字やスタンプを装飾して投稿してください！</li>
+              <li>お好みで文字やスタンプを添えて投稿してください。</li>
             </ol>
           </div>
         </div>
@@ -944,7 +944,7 @@
         <!-- OGP Customization Section -->
         <div class="ogp-custom-section animate-fade-in">
           <p class="ogp-section-desc">
-            SNS等でシェアした際に表示される対局の局面（手数）をカスタマイズできます。
+            SNS等でシェアした際に表示される対局の局面（手数）を指定できます。
           </p>
 
           <!-- Preview Board Container -->
@@ -998,7 +998,7 @@
           {#if ogpMoveNumber !== maxOgpIndex}
             <div class="ogp-apply-tip font-sans">
               <i class="material-icons" style="font-size: 0.9rem; vertical-align: middle; margin-right: 4px;">info_outline</i>
-              「OGP画像を更新」ボタンを押すと変更が適用されます。
+              「この局面でOGP画像を更新」を押すと変更が反映されます。
             </div>
           {/if}
         </div>

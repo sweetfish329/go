@@ -382,7 +382,7 @@
         <i class="material-icons" style="font-size: 3.6rem; color: var(--wc-text); opacity: 0.35; margin-bottom: 12px;">layers_clear</i>
         <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text); margin-bottom: 8px;">登録されている棋譜がありません</h5>
         {#if !publicMode}
-          <p class="text-muted" style="font-size: 0.82rem; max-width: 320px; margin: 0 auto;">「自分で棋譜を作成」または「SGFファイルアップロード」から登録を行ってください。</p>
+          <p class="text-muted" style="font-size: 0.82rem; max-width: 320px; margin: 0 auto;">「自分で棋譜を作成」または「SGFファイルをアップロード」から登録してください。</p>
         {:else}
           <p class="text-muted" style="font-size: 0.82rem; max-width: 320px; margin: 0 auto;">このユーザーが一般公開している棋譜はまだありません。</p>
         {/if}

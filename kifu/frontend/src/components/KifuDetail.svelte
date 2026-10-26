@@ -1266,7 +1266,7 @@
               onkeydown={handleGraphKeyDown}
               tabindex="0"
               role="application"
-              aria-label="勝率と目数差の推移グラフ。左右の矢印キーで手数を進退できます。"
+              aria-label="勝率と目数差の推移グラフ。左右の矢印キーで手数を移動できます。"
             >
               <!-- Render SVG Graph -->
               <svg 
@@ -1420,9 +1420,9 @@
                 </div>
                 <div style="font-size: 0.65rem; color: var(--wc-text-muted); margin-top: 6px; text-align: right;">
                   {#if isMobileDevice}
-                    ※候補手をタップすると変化図をプレビュー、もう一度タップすると変化図へ遷移
+                    ※候補手をタップすると変化図をプレビュー、もう一度タップすると変化図を表示
                   {:else}
-                    ※候補手をホバーすると変化図をプレビュー、クリックすると変化図へ遷移
+                    ※候補手をホバーすると変化図をプレビュー、クリックすると変化図を表示
                   {/if}
                 </div>
               </div>
@@ -1525,7 +1525,7 @@
             <div class="review-edit-panel animate-fade-in" style="margin-top: 12px; border-top: 1.5px dashed var(--wc-text); padding-top: 16px;">
               <p style="font-size: 0.78rem; margin: 0 0 16px 0; color: var(--wc-text-muted); display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', 'Noto Sans JP', sans-serif; line-height: 1.45;">
                 <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm);">info_outline</i>
-                盤面をクリックして石を置くと変化図を作成できます。解説コメントを入力してください。
+                盤面をクリックして着手し、解説コメントを入力してください。
               </p>
               
               <div class="row" style="margin-bottom: 0; display: flex; flex-direction: column; gap: 12px;">
