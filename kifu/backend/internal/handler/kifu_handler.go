@@ -135,7 +135,7 @@ func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string, isAdmin 
 		uploadedBy = &userID
 	}
 
-	return &model.Kifu{
+	kifu := &model.Kifu{
 		Title:       title,
 		BlackPlayer: meta.BlackPlayer,
 		BlackRank:   meta.BlackRank,
@@ -148,7 +148,24 @@ func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string, isAdmin 
 		SgfData:     sgfData,
 		UploadedBy:  uploadedBy,
 		IsPrivate:   true,
-	}, nil
+	}
+
+	// Automatically generate WebP OGP image (1200x630) and square thumbnail (600x600) from final board state
+	lastNode := rootNode.GetEnd()
+	board := lastNode.Board()
+
+	ogpImg := sgf.GenerateBoardImage(board, rootNode, meta.Size)
+	if ogpBytes, err := imgutil.EncodeToWebP(ogpImg); err == nil {
+		kifu.OgpImage = ogpBytes
+		kifu.HasOgp = true
+	}
+
+	thumbImg := sgf.GenerateSquareThumbnail(board, rootNode, meta.Size)
+	if thumbBytes, err := imgutil.EncodeToWebP(thumbImg); err == nil {
+		kifu.ThumbnailImage = thumbBytes
+	}
+
+	return kifu, nil
 }
 
 func (h *KifuHandler) Upload(w http.ResponseWriter, r *http.Request) {
@@ -509,20 +526,22 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusBadRequest, "Invalid JPEG image data: "+err.Error())
 			return
 		}
+	} else if contentType == "image/webp" {
+		// WebP is valid
 	} else {
-		respondWithError(w, http.StatusBadRequest, "Invalid image format. Only PNG and JPEG are allowed.")
+		respondWithError(w, http.StatusBadRequest, "Invalid image format. Only PNG, JPEG, and WebP are allowed.")
 		return
 	}
 
-	// Optimize OGP image (max 1200px width, quality 85)
-	optimizedOgpData, err := imgutil.CompressToJPEG(imgData, 1200, 85)
+	// Optimize OGP image (max 1200px width, lossless WebP)
+	optimizedOgpData, err := imgutil.CompressToWebP(imgData, 1200)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to optimize OGP image: "+err.Error())
 		return
 	}
 
-	// Generate compressed thumbnail (400px width, quality 75)
-	thumbData, err := imgutil.ResizeAndCompressToJPEG(imgData, 400, 75)
+	// Generate compressed thumbnail (600px width, lossless WebP)
+	thumbData, err := imgutil.CompressToWebP(imgData, 600)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate thumbnail: "+err.Error())
 		return
@@ -623,16 +642,16 @@ func (h *KifuHandler) serveGeneratedOgImage(w http.ResponseWriter, kifu *model.K
 
 	img := sgf.GenerateBoardImage(board, rootNode, meta.Size)
 
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to encode PNG: "+err.Error())
+	webpData, err := imgutil.EncodeToWebP(img)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to encode WebP: "+err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
+	w.Header().Set("Content-Type", "image/webp")
+	w.Header().Set("Content-Length", strconv.Itoa(len(webpData)))
 	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
-	_, _ = w.Write(buf.Bytes())
+	_, _ = w.Write(webpData)
 }
 
 func resolveSchemeAndHost(r *http.Request) (string, string) {
@@ -980,7 +999,7 @@ func (h *KifuHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fallback to auto generation
-	h.serveGeneratedOgImage(w, kifu)
+	h.serveGeneratedThumbnail(w, kifu)
 }
 
 // GetSharedThumbnail retrieves and returns thumbnail image for shared kifu
@@ -1014,7 +1033,7 @@ func (h *KifuHandler) GetSharedThumbnail(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Fallback to auto generation
-	h.serveGeneratedOgImage(w, kifu)
+	h.serveGeneratedThumbnail(w, kifu)
 }
 
 // GetPublicKifuThumbnail retrieves and returns thumbnail image for public kifu
@@ -1044,5 +1063,30 @@ func (h *KifuHandler) GetPublicKifuThumbnail(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Fallback to auto generation
-	h.serveGeneratedOgImage(w, kifu)
+	h.serveGeneratedThumbnail(w, kifu)
+}
+
+func (h *KifuHandler) serveGeneratedThumbnail(w http.ResponseWriter, kifu *model.Kifu) {
+	rootNode, err := sgf.Parse(kifu.SgfData)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to parse SGF: "+err.Error())
+		return
+	}
+
+	meta := sgf.ExtractMetadata(rootNode)
+	lastNode := rootNode.GetEnd()
+	board := lastNode.Board()
+
+	img := sgf.GenerateSquareThumbnail(board, rootNode, meta.Size)
+
+	webpData, err := imgutil.EncodeToWebP(img)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to encode WebP: "+err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/webp")
+	w.Header().Set("Content-Length", strconv.Itoa(len(webpData)))
+	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
+	_, _ = w.Write(webpData)
 }

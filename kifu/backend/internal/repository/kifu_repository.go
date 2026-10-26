@@ -28,13 +28,23 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 	query := `
 	INSERT INTO kifus (
 		id, title, black_player, black_rank, white_player, white_rank,
-		game_date, result, komi, handicap, sgf_data, uploaded_by, is_private
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		game_date, result, komi, handicap, sgf_data, uploaded_by, is_private,
+		ogp_image, thumbnail_image
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	RETURNING created_at, updated_at`
 
 	compressedSgf, err := sgfcompress.Compress(kifu.SgfData)
 	if err != nil {
 		return fmt.Errorf("failed to compress SGF data: %w", err)
+	}
+
+	var ogpData interface{} = kifu.OgpImage
+	if len(kifu.OgpImage) == 0 {
+		ogpData = nil
+	}
+	var thumbData interface{} = kifu.ThumbnailImage
+	if len(kifu.ThumbnailImage) == 0 {
+		thumbData = nil
 	}
 
 	err = r.db.QueryRow(
@@ -52,10 +62,16 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 		compressedSgf,
 		kifu.UploadedBy,
 		kifu.IsPrivate,
+		ogpData,
+		thumbData,
 	).Scan(&kifu.CreatedAt, &kifu.UpdatedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to save kifu: %w", err)
+	}
+
+	if ogpData != nil {
+		kifu.HasOgp = true
 	}
 
 	return nil

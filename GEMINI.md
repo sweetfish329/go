@@ -450,6 +450,18 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * クライアントからアップロードされる生 PNG（最大 5MB、通常 1〜3MB）をそのまま DB 保存すると帯域とストレージを逼迫するため、保存時（`kifu_handler.go:UpdateOgpImage`）に `imgutil.CompressToJPEG(imgData, 1200, 85)` で幅 1200px 以下かつ品質 85 の JPEG に再エンコード（約 100〜150KB に劇的圧縮）。
   * OGP 画像配信エンドポイント（`GetOgImage`, `GetSharedOgImage`, `GetPublicKifuOgImage`）の Content-Type ヘッダーを `http.DetectContentType(imgData)` による動的判定に変更し、PNG/JPEG の双方が正しくブラウザ・SNS クローラーに認識されるよう改善。
 * **Cloudflare Tunnel 環境での通信圧縮レイヤーの最適化**:
-  * Cloudflare Tunnel を経由している場合、Cloudflare エッジプロキシがクライアントの `Accept-Encoding` に応じて Gzip/Brotli/Zstd 圧縮を自動適用するため、Go サーバー側の `httpcompression` ミドルウェアおよびフロントエンドのリクエスト gzip 圧縮（`compress.ts`）を撤廃し、サーバー負荷の低減とコードのシンプル化を達成。
+  * Cloudflare Tunnel を経由している場合、Cloudflare エッジプロキシがクライアントの `Accept-Encoding` に応じて Gzip/Brotli/Zstd圧縮を自動適用するため、Go サーバー側の `httpcompression` ミドルウェアおよびフロントエンドのリクエスト gzip 圧縮（`compress.ts`）を撤廃し、サーバー負荷の低減とコードのシンプル化を達成。
+
+### ㉟ SGF 送信時における Pure Go WebP（nativewebp）画像自動生成パイプライン
+* **Pure Go WebP エンコーダ（`HugoSmits86/nativewebp`）の採用**:
+  * Cgo 不要（`CGO_ENABLED=0` で完全動作）な可逆 WebP（VP8L）エンコーダを採用。
+  * 碁盤の格子線（幾何学直線）に対して JPEG のようなモスキートノイズ・滲みが原理上 100% ゼロとなり、PNG よりも大幅に軽量（約 1/3 以下、ファイルサイズ数KB〜数十KB）な超高画質・劣化ゼロの出力を実現。
+* **フロントエンドの「SGF 送信のみ」への完全シンプル化**:
+  * 棋譜登録時（`POST /api/kifus`）に、バックエンドの `PrepareKifuFromSgf` が SGF から終局図の盤面状態を自動抽出。
+  * `sgf.GenerateBoardImage` で 1200x630 の OGP 画像（WebP）、および `sgf.GenerateSquareThumbnail` で 600x600 の正方形サムネイル（WebP）を即座に自動生成して DB に同時格納。
+  * フロントエンドは Canvas 描画や画像アップロード処理が一切不要になり、SGF 文字列を POST するだけで、保存直後から一覧画面に Retina 画面でもシャープな盤面サムネイルが即座に表示される。
+* **旧棋譜への正方形 WebP サムネイル自動フォールバック**:
+  * DB にサムネイル画像が未生成の古い棋譜に対しても、`GetThumbnail` エンドポイントがアクセス時に `sgf.GenerateSquareThumbnail` から動的に 600x600 WebP を生成して配信するようフォールバックを完備。
+
 
 

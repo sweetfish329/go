@@ -31,6 +31,12 @@ func TestPrepareKifuFromSgf(t *testing.T) {
 	if !kifu.IsPrivate {
 		t.Error("Expected default is_private to be true")
 	}
+	if !kifu.HasOgp || len(kifu.OgpImage) == 0 {
+		t.Error("Expected OgpImage to be auto-generated and HasOgp true")
+	}
+	if len(kifu.ThumbnailImage) == 0 {
+		t.Error("Expected ThumbnailImage to be auto-generated")
+	}
 }
 
 func TestPrepareKifuFromSgf_AutoTitle(t *testing.T) {

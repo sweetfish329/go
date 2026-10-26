@@ -149,3 +149,25 @@ func TestGenerateBoardImage(t *testing.T) {
 		t.Errorf("Expected 1200x630 image dimensions, got %dx%d", bounds.Dx(), bounds.Dy())
 	}
 }
+
+func TestGenerateSquareThumbnail(t *testing.T) {
+	sgfStr := `(;GM[1]FF[4]SZ[19]KM[6.5]PB[Honinbo Shusaku]PW[Honinbo Shuwa];B[qd];W[dc];B[pq];W[cp])`
+	root, err := Parse(sgfStr)
+	if err != nil {
+		t.Fatalf("Failed to parse SGF: %v", err)
+	}
+
+	meta := ExtractMetadata(root)
+	lastNode := root.GetEnd()
+	board := lastNode.Board()
+
+	img := GenerateSquareThumbnail(board, root, meta.Size)
+	if img == nil {
+		t.Fatal("GenerateSquareThumbnail returned nil")
+	}
+
+	bounds := img.Bounds()
+	if bounds.Dx() != 600 || bounds.Dy() != 600 {
+		t.Errorf("Expected 600x600 image dimensions, got %dx%d", bounds.Dx(), bounds.Dy())
+	}
+}

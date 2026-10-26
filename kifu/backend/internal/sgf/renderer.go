@@ -267,7 +267,6 @@ func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.
 	draw.Draw(img, img.Bounds(), &image.Uniform{bgCol}, image.Point{}, draw.Src)
 
 	// 2. Draw go board container
-	// Center the board. Size of board is 580x580.
 	boardSize := 580
 	boardX := (width - boardSize) / 2
 	boardY := (height - boardSize) / 2
@@ -275,6 +274,29 @@ func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.
 	boardCol := color.RGBA{243, 213, 159, 255} // Light wood color
 	draw.Draw(img, boardRect, &image.Uniform{boardCol}, image.Point{}, draw.Src)
 
+	// 3. Render board contents
+	renderBoard(img, boardX, boardY, boardSize, board, root, size)
+
+	return img
+}
+
+// GenerateSquareThumbnail creates a 600x600 square thumbnail of the board state with move numbers,
+// perfectly tailored for 1:1 aspect-ratio card tiles in the kifu list.
+func GenerateSquareThumbnail(board *libsgf.Board, root *libsgf.Node, size int) image.Image {
+	imgSize := 600
+	img := image.NewRGBA(image.Rect(0, 0, imgSize, imgSize))
+
+	// 1. Draw overall wood background
+	boardCol := color.RGBA{243, 213, 159, 255} // Light wood color
+	draw.Draw(img, img.Bounds(), &image.Uniform{boardCol}, image.Point{}, draw.Src)
+
+	// 2. Render board contents on the square
+	renderBoard(img, 0, 0, imgSize, board, root, size)
+
+	return img
+}
+
+func renderBoard(img *image.RGBA, boardX, boardY, boardSize int, board *libsgf.Board, root *libsgf.Node, size int) {
 	// Draw dark border around the board
 	borderColor := color.RGBA{40, 30, 20, 255}
 	drawLine(img, boardX, boardY, boardX+boardSize, boardY, 3, borderColor)                     // Top
@@ -282,8 +304,8 @@ func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.
 	drawLine(img, boardX, boardY, boardX, boardY+boardSize, 3, borderColor)                     // Left
 	drawLine(img, boardX+boardSize, boardY, boardX+boardSize, boardY+boardSize, 3, borderColor) // Right
 
-	// 3. Draw grid lines
-	margin := 25
+	// Draw grid lines
+	margin := int(math.Round(float64(boardSize) * 0.043)) // ~25px for 580px, ~26px for 600px
 	playableSize := boardSize - margin*2
 	step := float64(playableSize) / float64(size-1)
 
@@ -305,16 +327,19 @@ func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.
 		drawLine(img, x1, y, x2, y, 1, lineColor)
 	}
 
-	// 4. Draw star points (Hoshi)
+	// Draw star points (Hoshi)
 	starPoints := getStarPoints(size)
+	starRadius := int(math.Round(step * 0.13))
+	if starRadius < 3 {
+		starRadius = 3
+	}
 	for _, pt := range starPoints {
 		cx := boardX + margin + int(math.Round(float64(pt.x)*step))
 		cy := boardY + margin + int(math.Round(float64(pt.y)*step))
-		drawCircle(img, cx, cy, 4, lineColor)
+		drawCircle(img, cx, cy, starRadius, lineColor)
 	}
 
-	// 5. Draw stones
-	// Radius should scale based on step size
+	// Draw stones
 	stoneRadius := int(math.Round(step * 0.48))
 	if stoneRadius < 4 {
 		stoneRadius = 4
@@ -372,6 +397,4 @@ func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.
 			}
 		}
 	}
-
-	return img
 }
