@@ -11,13 +11,13 @@
 - SGF parser/stringifier: `@sabaki/sgf` (along with `@types/sabaki__sgf` for type safety)
 
 ## Backend (`kifu/backend/`)
-- Language: Go 1.26+
+- Language: Go 1.27+
 - Routing: net/http (Standard Library)
 - Database: PostgreSQL 15
 - SGF Operations: `github.com/rooklift/sgf` (standardized for SGF parsing & board rendering)
 
 ## WASM (`wasm-kifu/`)
-- Logic: Go WASM (compiled using Go 1.26+)
+- Logic: Go WASM (compiled using Go 1.27+)
 - Image processing: OpenCV.js (custom board corner detection and color classification)
 - Integration: Integrated into `kifu/frontend` via relative imports and Vite ambient declarations (`vite-env.d.ts`).
 

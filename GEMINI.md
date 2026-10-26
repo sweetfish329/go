@@ -26,7 +26,7 @@
 ├── .serena/               # Serena (長期記憶システム) の設定・メモリ
 │   └── memories/          # プロジェクトに関する知見の記録
 ├── kifu/                  # オンライン棋譜ストア & 添削ツール (第一弾ツール)
-│   ├── backend/           # Go 1.26+ バックエンド
+│   ├── backend/           # Go 1.27+ バックエンド
 │   ├── frontend/          # Svelte + Materialize フロントエンド
 │   └── docker-compose.yaml# Podman Compose コンテナ定義
 ├── wasm-kifu/             # Go WASM 棋譜記録・画像認識ライブラリ (新規作成)

@@ -14,7 +14,7 @@ Go WASM による棋譜記録ライブラリ。スマホブラウザ (Android Ch
 
 | レイヤー | 技術 | 役割 |
 |----------|------|------|
-| ゲームロジック | Go 1.26+ → WASM | 着手・合法性判定・SGF 生成 |
+| ゲームロジック | Go 1.27+ → WASM | 着手・合法性判定・SGF 生成 |
 | SGF 処理 | [rooklift/sgf](https://github.com/rooklift/sgf) | SGF パース / シリアライズ |
 | 画像認識 | [OpenCV.js](https://docs.opencv.org/4.x/opencv.js) | 碁盤検出・石分類 |
 | JS ブリッジ | `go:wasmexport` + ES Modules | Go ↔ JS 連携 |
@@ -49,7 +49,7 @@ wasm-kifu/
 
 ### 前提条件
 
-- Go 1.26+
+- Go 1.27+
 - Python 3 (開発用サーバー)
 
 ### ビルド

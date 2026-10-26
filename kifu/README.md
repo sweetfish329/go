@@ -17,7 +17,7 @@
 
 ```
 kifu/
-├── backend/            # Go 1.26+ バックエンド
+├── backend/            # Go 1.27+ バックエンド
 │   ├── cmd/server      # エントリーポイント (main.go)
 │   ├── internal/       # コアロジック (SGFパース、DB、ハンドラー、モデル、リポジトリ)
 │   └── Containerfile   # バックエンド用コンテナ定義

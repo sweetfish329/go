@@ -16,7 +16,7 @@ Go バックエンドと Svelte フロントエンドで構築された、対話
   - クライアントサイドの簡易囲碁エンジンによる、呼吸点計算・死石除去・自殺手禁止機能。
   - 添削モードによる、本手順から分岐した「変化図」の入力・再生と、指導コメントの紐づけ保存。
   - スマホやタブレットからの閲覧・操作に対応したレスポンシブデザイン。
-- **技術**: Go 1.26+, Svelte (v4), Vite, Materialize CSS, PostgreSQL 15, Podman (Podman Compose)
+- **技術**: Go 1.27+, Svelte (v4), Vite, Materialize CSS, PostgreSQL 15, Podman (Podman Compose)
 
 ---
 

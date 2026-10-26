@@ -3,7 +3,7 @@
 ## Project Layout
 
 - `kifu/` — Online Go Kifu Store & Editing Tool
-  - `backend/` — Go 1.26+ REST API
+  - `backend/` — Go 1.27+ REST API
   - `frontend/` — Svelte 5 + Vite + Materialize CSS (Bun package manager)
 - `wasm-kifu/` — Go WASM Kifu Recording & Vision Library (OpenCV.js board detection)
   - Directly imported by `kifu/frontend` via Vite relative path configuration.
