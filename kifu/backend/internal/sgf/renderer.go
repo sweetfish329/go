@@ -11,9 +11,9 @@ import (
 
 var (
 	colCanvasBg = color.RGBA{R: 220, G: 223, B: 220, A: 255} // #dcdfdc (Washi Sage Gray)
-	colCardBg   = color.RGBA{R: 244, G: 246, B: 245, A: 255} // #f4f6f5 (Card Surface)
-	colBoardBg  = color.RGBA{R: 235, G: 218, B: 192, A: 255} // #ebdac0 (Milk Tea Beige)
+	colBoardBg  = color.RGBA{R: 235, G: 218, B: 192, A: 255} // #ebdac0 (Ash Wood / Milk Tea Beige)
 	colDark     = color.RGBA{R: 37, G: 53, B: 48, A: 255}    // #253530 (Dark Sage / Charcoal)
+	colLine     = color.RGBA{R: 37, G: 53, B: 48, A: 215}    // #253530 (Grid lines with 0.85 opacity)
 	colWhite    = color.RGBA{R: 255, G: 255, B: 255, A: 255} // #ffffff (Pure White)
 	colRing     = color.RGBA{R: 37, G: 53, B: 48, A: 20}     // rgba(37, 53, 48, 0.08) for aesthetic concentric circles
 )
@@ -65,38 +65,25 @@ func blendPixel(img *image.RGBA, x, y int, src color.RGBA) {
 	img.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
 }
 
-func fillRect(img *image.RGBA, x, y, w, h int, col color.Color) {
-	rect := image.Rect(x, y, x+w, y+h)
-	draw.Draw(img, rect, &image.Uniform{col}, image.Point{}, draw.Src)
-}
+func drawDisk(img *image.RGBA, cx, cy int, radius float64, col color.RGBA) {
+	minX := int(math.Floor(float64(cx) - radius - 1.0))
+	maxX := int(math.Ceil(float64(cx) + radius + 1.0))
+	minY := int(math.Floor(float64(cy) - radius - 1.0))
+	maxY := int(math.Ceil(float64(cy) + radius + 1.0))
 
-func strokeRect(img *image.RGBA, x, y, w, h int, thickness int, col color.Color) {
-	// Top
-	fillRect(img, x, y, w, thickness, col)
-	// Bottom
-	fillRect(img, x, y+h-thickness, w, thickness, col)
-	// Left
-	fillRect(img, x, y, thickness, h, col)
-	// Right
-	fillRect(img, x+w-thickness, y, thickness, h, col)
-}
-
-func drawLine(img *image.RGBA, x1, y1, x2, y2 int, thickness int, col color.Color) {
-	if x1 == x2 {
-		startX := x1 - thickness/2
-		for x := startX; x < startX+thickness; x++ {
-			for y := y1; y <= y2; y++ {
-				if x >= 0 && x < img.Bounds().Dx() && y >= 0 && y < img.Bounds().Dy() {
-					img.Set(x, y, col)
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			d := math.Hypot(float64(x-cx), float64(y-cy))
+			if d <= radius+0.5 {
+				var alphaFactor float64
+				if d <= radius-0.5 {
+					alphaFactor = 1.0
+				} else {
+					alphaFactor = (radius + 0.5) - d
 				}
-			}
-		}
-	} else if y1 == y2 {
-		startY := y1 - thickness/2
-		for y := startY; y < startY+thickness; y++ {
-			for x := x1; x <= x2; x++ {
-				if x >= 0 && x < img.Bounds().Dx() && y >= 0 && y < img.Bounds().Dy() {
-					img.Set(x, y, col)
+				if alphaFactor > 0 {
+					a := uint8(float64(col.A) * alphaFactor)
+					blendPixel(img, x, y, color.RGBA{R: col.R, G: col.G, B: col.B, A: a})
 				}
 			}
 		}
@@ -134,78 +121,66 @@ func drawCircleRing(img *image.RGBA, cx, cy int, radius float64, thickness float
 	}
 }
 
-func drawDisk(img *image.RGBA, cx, cy int, radius float64, col color.RGBA) {
-	minX := int(math.Floor(float64(cx) - radius - 1.0))
-	maxX := int(math.Ceil(float64(cx) + radius + 1.0))
-	minY := int(math.Floor(float64(cy) - radius - 1.0))
-	maxY := int(math.Ceil(float64(cy) + radius + 1.0))
-
-	for y := minY; y <= maxY; y++ {
-		for x := minX; x <= maxX; x++ {
-			dx := float64(x - cx)
-			dy := float64(y - cy)
-			d := math.Hypot(dx, dy)
-			if d <= radius+0.5 {
-				var alphaFactor float64
-				if d <= radius-0.5 {
-					alphaFactor = 1.0
-				} else {
-					alphaFactor = (radius + 0.5) - d
+func drawLine(img *image.RGBA, x1, y1, x2, y2 int, thickness int, col color.Color) {
+	if x1 == x2 {
+		startX := x1 - thickness/2
+		for x := startX; x < startX+thickness; x++ {
+			for y := y1; y <= y2; y++ {
+				if x >= 0 && x < img.Bounds().Dx() && y >= 0 && y < img.Bounds().Dy() {
+					img.Set(x, y, col)
 				}
-				if alphaFactor > 0 {
-					a := uint8(float64(col.A) * alphaFactor)
-					blendPixel(img, x, y, color.RGBA{R: col.R, G: col.G, B: col.B, A: a})
+			}
+		}
+	} else if y1 == y2 {
+		startY := y1 - thickness/2
+		for y := startY; y < startY+thickness; y++ {
+			for x := x1; x <= x2; x++ {
+				if x >= 0 && x < img.Bounds().Dx() && y >= 0 && y < img.Bounds().Dy() {
+					img.Set(x, y, col)
 				}
 			}
 		}
 	}
 }
 
-func drawStone(img *image.RGBA, cx, cy int, radius float64, isBlack bool) {
-	if isBlack {
-		drawDisk(img, cx, cy, radius, colDark)
-	} else {
-		// White stone: solid white disk with dark sage outline
-		drawDisk(img, cx, cy, radius, colDark)
-		drawDisk(img, cx, cy, radius-1.2, colWhite)
-	}
-}
+// renderBoardGridAndStones draws a pure flat go board with balanced padding, delicate grid lines, and crisp stones.
+func renderBoardGridAndStones(img *image.RGBA, originX, originY, boardSize int, board *libsgf.Board, size int, padRatio float64) {
+	// 1. Fill board surface
+	rect := image.Rect(originX, originY, originX+boardSize, originY+boardSize)
+	draw.Draw(img, rect, &image.Uniform{colBoardBg}, image.Point{}, draw.Src)
 
-func renderBoardContent(img *image.RGBA, boardX, boardY, boardSize int, board *libsgf.Board, size int) {
-	// 1. Fill board wood background
-	fillRect(img, boardX, boardY, boardSize, boardSize, colBoardBg)
+	// 2. Clean flat border around the board
+	borderWidth := 2
+	drawLine(img, originX, originY, originX+boardSize, originY, borderWidth*2, colDark)
+	drawLine(img, originX, originY+boardSize-borderWidth, originX+boardSize, originY+boardSize-borderWidth, borderWidth*2, colDark)
+	drawLine(img, originX, originY, originX, originY+boardSize, borderWidth*2, colDark)
+	drawLine(img, originX+boardSize-borderWidth, originY, originX+boardSize-borderWidth, originY+boardSize, borderWidth*2, colDark)
 
-	// 2. Grid lines
-	margin := int(math.Round(float64(boardSize) * 0.048))
-	playableSize := boardSize - margin*2
-	step := float64(playableSize) / float64(size-1)
+	// 3. Grid lines & Golden ratio padding calculation
+	step := float64(boardSize) / (float64(size-1) + 2.0*padRatio)
+	padding := step * padRatio
 
-	// Vertical lines
 	for i := 0; i < size; i++ {
-		x := boardX + margin + int(math.Round(float64(i)*step))
-		y1 := boardY + margin
-		y2 := boardY + boardSize - margin
-		drawLine(img, x, y1, x, y2, 1, colDark)
+		pos := float64(originX) + padding + float64(i)*step
+		pYStart := int(math.Round(float64(originY) + padding))
+		pYEnd := int(math.Round(float64(originY) + padding + float64(size-1)*step))
+		drawLine(img, int(math.Round(pos)), pYStart, int(math.Round(pos)), pYEnd, 1, colLine)
+
+		pYPos := float64(originY) + padding + float64(i)*step
+		pXStart := int(math.Round(float64(originX) + padding))
+		pXEnd := int(math.Round(float64(originX) + padding + float64(size-1)*step))
+		drawLine(img, pXStart, int(math.Round(pYPos)), pXEnd, int(math.Round(pYPos)), 1, colLine)
 	}
 
-	// Horizontal lines
-	for i := 0; i < size; i++ {
-		y := boardY + margin + int(math.Round(float64(i)*step))
-		x1 := boardX + margin
-		x2 := boardX + boardSize - margin
-		drawLine(img, x1, y, x2, y, 1, colDark)
-	}
-
-	// 3. Star points (Hoshi)
-	starPoints := getStarPoints(size)
+	// 4. Star points (Hoshi)
 	starRadius := math.Max(2.5, step*0.11)
-	for _, pt := range starPoints {
-		cx := boardX + margin + int(math.Round(float64(pt.x)*step))
-		cy := boardY + margin + int(math.Round(float64(pt.y)*step))
+	for _, pt := range getStarPoints(size) {
+		cx := int(math.Round(float64(originX) + padding + float64(pt.x)*step))
+		cy := int(math.Round(float64(originY) + padding + float64(pt.y)*step))
 		drawDisk(img, cx, cy, starRadius, colDark)
 	}
 
-	// 4. Stones
+	// 5. Stones (Pure flat minimalism, no move numbers or sequence clutter)
 	stoneRadius := step * 0.47
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
@@ -213,22 +188,27 @@ func renderBoardContent(img *image.RGBA, boardX, boardY, boardSize int, board *l
 			if stoneVal == libsgf.EMPTY {
 				continue
 			}
-			cx := boardX + margin + int(math.Round(float64(x)*step))
-			cy := boardY + margin + int(math.Round(float64(y)*step))
-			drawStone(img, cx, cy, stoneRadius, stoneVal == libsgf.BLACK)
+			cx := int(math.Round(float64(originX) + padding + float64(x)*step))
+			cy := int(math.Round(float64(originY) + padding + float64(y)*step))
+			if stoneVal == libsgf.BLACK {
+				drawDisk(img, cx, cy, stoneRadius, colDark)
+			} else {
+				drawDisk(img, cx, cy, stoneRadius, colDark)
+				drawDisk(img, cx, cy, stoneRadius-1.1, colWhite)
+			}
 		}
 	}
 }
 
-// GenerateBoardImage creates a 1200x630 OGP image of the final board state in modern Washi Clay style.
+// GenerateBoardImage creates a 1200x630 OGP image of the final board state in a clean, minimalist flat style.
 func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.Image {
 	width, height := 1200, 630
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	// 1. Overall Washi Sage Gray background
-	fillRect(img, 0, 0, width, height, colCanvasBg)
+	draw.Draw(img, img.Bounds(), &image.Uniform{colCanvasBg}, image.Point{}, draw.Src)
 
-	// 2. Aesthetic concentric circles
+	// 2. Aesthetic concentric circles (subtle editorial design)
 	drawCircleRing(img, 100, 315, 100, 1.5, colRing)
 	drawCircleRing(img, 100, 315, 180, 1.5, colRing)
 	drawCircleRing(img, 100, 315, 260, 1.5, colRing)
@@ -237,52 +217,23 @@ func GenerateBoardImage(board *libsgf.Board, root *libsgf.Node, size int) image.
 	drawCircleRing(img, 1100, 315, 160, 1.5, colRing)
 	drawCircleRing(img, 1100, 315, 220, 1.5, colRing)
 
-	// 3. Central solid shadow card
-	cardSize := 590
-	cardX := (width - cardSize) / 2
-	cardY := (height - cardSize) / 2
-
-	// Solid offset shadow (+10px, +10px)
-	fillRect(img, cardX+10, cardY+10, cardSize, cardSize, colDark)
-
-	// Solid white/cream surface card
-	fillRect(img, cardX, cardY, cardSize, cardSize, colCardBg)
-	strokeRect(img, cardX, cardY, cardSize, cardSize, 3, colDark)
-
-	// 4. Board inside the card (6px margin)
-	boardMargin := 6
-	innerSize := cardSize - boardMargin*2
-	renderBoardContent(img, cardX+boardMargin, cardY+boardMargin, innerSize, board, size)
+	// 3. Central pure flat board (580x580)
+	boardSize := 580
+	boardX := (width - boardSize) / 2
+	boardY := (height - boardSize) / 2
+	renderBoardGridAndStones(img, boardX, boardY, boardSize, board, size, 0.8)
 
 	return img
 }
 
-// GenerateSquareThumbnail creates a 600x600 square thumbnail of the board state in modern Washi Clay style,
-// perfectly tailored for 1:1 aspect-ratio card tiles in the kifu list.
+// GenerateSquareThumbnail creates a 600x600 square thumbnail of the board state in a pure flat style,
+// filling the entire tile card cleanly without superfluous shadows, nested borders, or clutter.
 func GenerateSquareThumbnail(board *libsgf.Board, root *libsgf.Node, size int) image.Image {
 	imgSize := 600
 	img := image.NewRGBA(image.Rect(0, 0, imgSize, imgSize))
 
-	// 1. Overall Washi Sage Gray background
-	fillRect(img, 0, 0, imgSize, imgSize, colCanvasBg)
-
-	// 2. Solid shadow card in center
-	cardSize := 550
-	cardX := (imgSize - cardSize) / 2 // 25
-	cardY := (imgSize - cardSize) / 2 // 25
-	shadowOffset := 8
-
-	// Solid offset shadow
-	fillRect(img, cardX+shadowOffset, cardY+shadowOffset, cardSize, cardSize, colDark)
-
-	// Solid white/cream surface card
-	fillRect(img, cardX, cardY, cardSize, cardSize, colCardBg)
-	strokeRect(img, cardX, cardY, cardSize, cardSize, 3, colDark)
-
-	// 3. Board inside card (6px margin)
-	boardMargin := 6
-	innerSize := cardSize - boardMargin*2
-	renderBoardContent(img, cardX+boardMargin, cardY+boardMargin, innerSize, board, size)
+	// Render flat go board filling the entire 600x600 canvas with balanced 0.8 padding
+	renderBoardGridAndStones(img, 0, 0, imgSize, board, size, 0.8)
 
 	return img
 }
