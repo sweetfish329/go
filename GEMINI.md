@@ -452,16 +452,24 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
 * **Cloudflare Tunnel 環境での通信圧縮レイヤーの最適化**:
   * Cloudflare Tunnel を経由している場合、Cloudflare エッジプロキシがクライアントの `Accept-Encoding` に応じて Gzip/Brotli/Zstd圧縮を自動適用するため、Go サーバー側の `httpcompression` ミドルウェアおよびフロントエンドのリクエスト gzip 圧縮（`compress.ts`）を撤廃し、サーバー負荷の低減とコードのシンプル化を達成。
 
-### ㉟ SGF 送信時における Pure Go WebP（nativewebp）画像自動生成パイプライン
+### ㉟ SGF 送信時における Pure Go WebP / PNG 自動生成パイプライン
 * **Pure Go WebP エンコーダ（`HugoSmits86/nativewebp`）の採用**:
   * Cgo 不要（`CGO_ENABLED=0` で完全動作）な可逆 WebP（VP8L）エンコーダを採用。
   * 碁盤の格子線（幾何学直線）に対して JPEG のようなモスキートノイズ・滲みが原理上 100% ゼロとなり、PNG よりも大幅に軽量（約 1/3 以下、ファイルサイズ数KB〜数十KB）な超高画質・劣化ゼロの出力を実現。
 * **フロントエンドの「SGF 送信のみ」への完全シンプル化**:
   * 棋譜登録時（`POST /api/kifus`）に、バックエンドの `PrepareKifuFromSgf` が SGF から終局図の盤面状態を自動抽出。
-  * `sgf.GenerateBoardImage` で 1200x630 の OGP 画像（WebP）、および `sgf.GenerateSquareThumbnail` で 600x600 の正方形サムネイル（WebP）を即座に自動生成して DB に同時格納。
+  * `sgf.GenerateBoardImage` で 1200x630 の OGP 画像（PNG）、および `sgf.GenerateSquareThumbnail` で 600x600 の正方形サムネイル（WebP）を即座に自動生成して DB に同時格納。
   * フロントエンドは Canvas 描画や画像アップロード処理が一切不要になり、SGF 文字列を POST するだけで、保存直後から一覧画面に Retina 画面でもシャープな盤面サムネイルが即座に表示される。
 * **旧棋譜への正方形 WebP サムネイル自動フォールバック**:
   * DB にサムネイル画像が未生成の古い棋譜に対しても、`GetThumbnail` エンドポイントがアクセス時に `sgf.GenerateSquareThumbnail` から動的に 600x600 WebP を生成して配信するようフォールバックを完備。
 
-
-
+### ㊱ OGP画像（SNS向け1200x630 PNG）とサイト内サムネイル（600x600 WebP）の役割分離設計
+* **SNSクローラー（Twitter/X, LINE, Discord）の WebP OGP 互換性問題**:
+  * Twitter (X) や LINE、Facebook、Discord などの外部 SNS クローラーは、WebP 形式の OGP 画像（`og:image` / `twitter:image`）を正しく展開できないケースやプレビューが壊れる不具合が多発する。
+  * このため、**外部SNS向け OGP 画像（`ogp_image`）は 100% 確実に表示される PNG（またはJPEG）を維持する**設計とした。
+* **サイト内カードタイル向けサムネイル（`thumbnail_image`）の WebP 特化**:
+  * 一方、自社サイト内の一覧カード（`KifuList.svelte`）はモダンブラウザ専用であるため、WebP（600x600, Lossless VP8L）を全面採用。
+  * 幾何学的な碁盤と石の輪郭において JPEG 圧縮時のモスキートノイズが完全ゼロとなり、数KB〜数十KBの極小サイズで Retina 画面（高DPI）でもピンボケせずシャープに高速表示。
+* **バックエンド自動生成とフロントエンド・リッチOGPの役割分担**:
+  * **棋譜登録時 (`POST /api/kifus`)**: SGF 送信のみで、バックエンドが 1200x630 PNG OGP と 600x600 WebP サムネイルを即時自動生成。
+  * **SNSシェア時 (`PUT /api/kifus/{id}/ogp`)**: フロントエンド（`ShareDialog.svelte`）が Canvas で描画した「Washi Clay和風背景・明朝体対局者名・段位・結果・AI勝率グラフ・美麗碁盤」を含む超高品質リッチ PNG をアップロードし、`ogp_image` を上書き。同時にバックエンドがそれを 600px WebP に変換して `thumbnail_image` に反映する。

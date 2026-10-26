@@ -150,13 +150,14 @@ func PrepareKifuFromSgf(sgfData string, reqTitle string, userID string, isAdmin 
 		IsPrivate:   true,
 	}
 
-	// Automatically generate WebP OGP image (1200x630) and square thumbnail (600x600) from final board state
+	// Automatically generate PNG OGP image (1200x630) for SNS crawlers and WebP square thumbnail (600x600) for site cards
 	lastNode := rootNode.GetEnd()
 	board := lastNode.Board()
 
 	ogpImg := sgf.GenerateBoardImage(board, rootNode, meta.Size)
-	if ogpBytes, err := imgutil.EncodeToWebP(ogpImg); err == nil {
-		kifu.OgpImage = ogpBytes
+	var ogpBuf bytes.Buffer
+	if err := png.Encode(&ogpBuf, ogpImg); err == nil {
+		kifu.OgpImage = ogpBuf.Bytes()
 		kifu.HasOgp = true
 	}
 
@@ -533,21 +534,16 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Optimize OGP image (max 1200px width, lossless WebP)
-	optimizedOgpData, err := imgutil.CompressToWebP(imgData, 1200)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to optimize OGP image: "+err.Error())
-		return
-	}
-
-	// Generate compressed thumbnail (600px width, lossless WebP)
+	// Client sends high-res PNG (or JPEG) OGP image (1200x630)
+	// We preserve client's image as OGP image for Twitter/SNS crawler compatibility.
+	// Generate compressed thumbnail (600px width, lossless WebP) for responsive in-app cards.
 	thumbData, err := imgutil.CompressToWebP(imgData, 600)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate thumbnail: "+err.Error())
 		return
 	}
 
-	err = h.repo.UpdateOgpImage(id, optimizedOgpData, thumbData)
+	err = h.repo.UpdateOgpImage(id, imgData, thumbData)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP and thumbnail image: "+err.Error())
 		return
@@ -642,16 +638,17 @@ func (h *KifuHandler) serveGeneratedOgImage(w http.ResponseWriter, kifu *model.K
 
 	img := sgf.GenerateBoardImage(board, rootNode, meta.Size)
 
-	webpData, err := imgutil.EncodeToWebP(img)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to encode WebP: "+err.Error())
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to encode PNG: "+err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/webp")
-	w.Header().Set("Content-Length", strconv.Itoa(len(webpData)))
+	pngData := buf.Bytes()
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Length", strconv.Itoa(len(pngData)))
 	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
-	_, _ = w.Write(webpData)
+	_, _ = w.Write(pngData)
 }
 
 func resolveSchemeAndHost(r *http.Request) (string, string) {

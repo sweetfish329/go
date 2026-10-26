@@ -512,7 +512,7 @@
             // 3. Draw Go Board SVG onto the card with very small margin (6px instead of 12px)
             ctx.drawImage(image, boardX + 6, boardY + 6, boardSize - 12, boardSize - 12);
 
-            // Convert to blob (lossless/high-quality WebP)
+            // Convert to blob (PNG for 100% Twitter/SNS OGP compatibility)
             canvas.toBlob((blob) => {
               URL.revokeObjectURL(blobURL);
               if (blob) {
@@ -520,7 +520,7 @@
               } else {
                 reject(new Error("Canvas toBlob yielded null"));
               }
-            }, 'image/webp', 0.9);
+            }, 'image/png');
           } catch (e: any) {
             console.error("Error drawing OGP canvas:", e);
             URL.revokeObjectURL(blobURL);
@@ -549,7 +549,7 @@
     // Extract csrf_token cookie value
     const headers: Record<string, string> = {
       'Authorization': auth.getHeaders()['Authorization'] || '',
-      'Content-Type': 'image/webp'
+      'Content-Type': 'image/png'
     };
     if (typeof document !== "undefined") {
       const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);

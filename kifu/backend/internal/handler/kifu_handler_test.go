@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -34,8 +35,16 @@ func TestPrepareKifuFromSgf(t *testing.T) {
 	if !kifu.HasOgp || len(kifu.OgpImage) == 0 {
 		t.Error("Expected OgpImage to be auto-generated and HasOgp true")
 	}
+	// Verify OgpImage is valid PNG (starts with \x89PNG\r\n\x1a\n)
+	if len(kifu.OgpImage) < 8 || !bytes.Equal(kifu.OgpImage[:8], []byte("\x89PNG\r\n\x1a\n")) {
+		t.Error("Expected OgpImage to be in PNG format")
+	}
 	if len(kifu.ThumbnailImage) == 0 {
 		t.Error("Expected ThumbnailImage to be auto-generated")
+	}
+	// Verify ThumbnailImage is valid WebP (starts with RIFF....WEBP)
+	if len(kifu.ThumbnailImage) < 12 || !bytes.Equal(kifu.ThumbnailImage[:4], []byte("RIFF")) || !bytes.Equal(kifu.ThumbnailImage[8:12], []byte("WEBP")) {
+		t.Error("Expected ThumbnailImage to be in WebP format")
 	}
 }
 
