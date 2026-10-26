@@ -75,3 +75,43 @@ func TestResizeAndCompressToJPEG_Invalid(t *testing.T) {
 		t.Error("Expected error for invalid image data, got nil")
 	}
 }
+
+func TestCompressToJPEG(t *testing.T) {
+	// Image larger than maxWidth (1600 > 1200) -> downscale to 1200
+	srcImgLarge := createTestImage(1600, 800)
+	var bufLarge bytes.Buffer
+	if err := png.Encode(&bufLarge, srcImgLarge); err != nil {
+		t.Fatalf("Failed to encode large PNG: %v", err)
+	}
+
+	compressedLarge, err := CompressToJPEG(bufLarge.Bytes(), 1200, 85)
+	if err != nil {
+		t.Fatalf("CompressToJPEG failed for large image: %v", err)
+	}
+	decodedLarge, err := jpeg.Decode(bytes.NewReader(compressedLarge))
+	if err != nil {
+		t.Fatalf("Failed to decode compressed large image: %v", err)
+	}
+	if decodedLarge.Bounds().Dx() != 1200 || decodedLarge.Bounds().Dy() != 600 {
+		t.Errorf("Expected 1200x600, got %dx%d", decodedLarge.Bounds().Dx(), decodedLarge.Bounds().Dy())
+	}
+
+	// Image smaller than maxWidth (800 < 1200) -> keep original size 800x400
+	srcImgSmall := createTestImage(800, 400)
+	var bufSmall bytes.Buffer
+	if err := png.Encode(&bufSmall, srcImgSmall); err != nil {
+		t.Fatalf("Failed to encode small PNG: %v", err)
+	}
+
+	compressedSmall, err := CompressToJPEG(bufSmall.Bytes(), 1200, 85)
+	if err != nil {
+		t.Fatalf("CompressToJPEG failed for small image: %v", err)
+	}
+	decodedSmall, err := jpeg.Decode(bytes.NewReader(compressedSmall))
+	if err != nil {
+		t.Fatalf("Failed to decode compressed small image: %v", err)
+	}
+	if decodedSmall.Bounds().Dx() != 800 || decodedSmall.Bounds().Dy() != 400 {
+		t.Errorf("Expected 800x400, got %dx%d", decodedSmall.Bounds().Dx(), decodedSmall.Bounds().Dy())
+	}
+}

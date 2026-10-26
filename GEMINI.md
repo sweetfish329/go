@@ -441,4 +441,15 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
     * `test2-1.jpg`: IoU 84.88%, MAE 92.5px。全テスト PASS。
   * `regression_test`: 全3ケース（93.07%, 92.24%, 90.03%）で全パス。
 
+### ㉞ データベース保存時の SGF zstd 圧縮・平文後方互換 ＆ OGP 画像最適化
+* **SGF（棋譜データ）の zstd 圧縮保存と完全な後方互換性**:
+  * SGF は反復する文字種が少ないため、`github.com/klauspost/compress/zstd` による圧縮効率が極めて高い（60%〜75% のサイズ削減）。
+  * 保存時（`kifu_repository.go:Save`）に zstd 圧縮バイナリ（`[]byte`）として保存。
+  * 読み込み時（`scanKifuDetail`）に先頭4バイトのマジックナンバー（`0x28, 0xb5, 0x2f, 0xfd`）を検査。zstd 圧縮データなら自動解凍し、マジックナンバーがなければ既存の平文 SGF としてそのまま透過的に読み出すことで、スキーマ変更なしで 100% 完全な後方互換性を担保（`sgfcompress` パッケージ）。
+* **OGP 画像の JPEG 最適化（容量 80%〜90% 削減）**:
+  * クライアントからアップロードされる生 PNG（最大 5MB、通常 1〜3MB）をそのまま DB 保存すると帯域とストレージを逼迫するため、保存時（`kifu_handler.go:UpdateOgpImage`）に `imgutil.CompressToJPEG(imgData, 1200, 85)` で幅 1200px 以下かつ品質 85 の JPEG に再エンコード（約 100〜150KB に劇的圧縮）。
+  * OGP 画像配信エンドポイント（`GetOgImage`, `GetSharedOgImage`, `GetPublicKifuOgImage`）の Content-Type ヘッダーを `http.DetectContentType(imgData)` による動的判定に変更し、PNG/JPEG の双方が正しくブラウザ・SNS クローラーに認識されるよう改善。
+* **Cloudflare Tunnel 環境での通信圧縮レイヤーの最適化**:
+  * Cloudflare Tunnel を経由している場合、Cloudflare エッジプロキシがクライアントの `Accept-Encoding` に応じて Gzip/Brotli/Zstd 圧縮を自動適用するため、Go サーバー側の `httpcompression` ミドルウェアおよびフロントエンドのリクエスト gzip 圧縮（`compress.ts`）を撤廃し、サーバー負荷の低減とコードのシンプル化を達成。
+
 

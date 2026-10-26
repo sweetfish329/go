@@ -442,7 +442,7 @@ func (h *KifuHandler) GetSharedOgImage(w http.ResponseWriter, r *http.Request) {
 	// Try getting from DB first
 	imgData, err := h.repo.GetOgpImageByShareToken(token)
 	if err == nil && len(imgData) > 0 {
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", http.DetectContentType(imgData))
 		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
 		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
 		_, _ = w.Write(imgData)
@@ -514,6 +514,13 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Optimize OGP image (max 1200px width, quality 85)
+	optimizedOgpData, err := imgutil.CompressToJPEG(imgData, 1200, 85)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to optimize OGP image: "+err.Error())
+		return
+	}
+
 	// Generate compressed thumbnail (400px width, quality 75)
 	thumbData, err := imgutil.ResizeAndCompressToJPEG(imgData, 400, 75)
 	if err != nil {
@@ -521,7 +528,7 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.repo.UpdateOgpImage(id, imgData, thumbData)
+	err = h.repo.UpdateOgpImage(id, optimizedOgpData, thumbData)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP and thumbnail image: "+err.Error())
 		return
@@ -563,7 +570,7 @@ func (h *KifuHandler) GetOgImage(w http.ResponseWriter, r *http.Request) {
 	// Try getting from DB first
 	imgData, err := h.repo.GetOgpImage(id)
 	if err == nil && len(imgData) > 0 {
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", http.DetectContentType(imgData))
 		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
 		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
 		_, _ = w.Write(imgData)
@@ -592,7 +599,7 @@ func (h *KifuHandler) GetPublicKifuOgImage(w http.ResponseWriter, r *http.Reques
 	// Try getting from DB first
 	imgData, err := h.repo.GetOgpImage(kifuId)
 	if err == nil && len(imgData) > 0 {
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", http.DetectContentType(imgData))
 		w.Header().Set("Content-Length", strconv.Itoa(len(imgData)))
 		w.Header().Set("Cache-Control", "public, max-age=86400") // Cache for 1 day
 		_, _ = w.Write(imgData)

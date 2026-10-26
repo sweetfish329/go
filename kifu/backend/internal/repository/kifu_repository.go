@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sweetfish329/go/kifu/backend/internal/model"
+	"github.com/sweetfish329/go/kifu/backend/internal/sgfcompress"
 )
 
 type KifuRepository struct {
@@ -31,6 +32,11 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	RETURNING created_at, updated_at`
 
+	compressedSgf, err := sgfcompress.Compress(kifu.SgfData)
+	if err != nil {
+		return fmt.Errorf("failed to compress SGF data: %w", err)
+	}
+
 	err = r.db.QueryRow(
 		query,
 		kifu.ID,
@@ -43,7 +49,7 @@ func (r *KifuRepository) Save(kifu *model.Kifu) error {
 		kifu.Result,
 		kifu.Komi,
 		kifu.Handicap,
-		kifu.SgfData,
+		compressedSgf,
 		kifu.UploadedBy,
 		kifu.IsPrivate,
 	).Scan(&kifu.CreatedAt, &kifu.UpdatedAt)
@@ -77,13 +83,20 @@ func scanKifuSummary(s rowScanner) (*model.Kifu, error) {
 func scanKifuDetail(s rowScanner) (*model.Kifu, error) {
 	k := &model.Kifu{}
 	var gameDate string
+	var rawSgf []byte
 	err := s.Scan(
 		&k.ID, &k.Title, &k.BlackPlayer, &k.BlackRank, &k.WhitePlayer, &k.WhiteRank,
-		&gameDate, &k.Result, &k.Komi, &k.Handicap, &k.SgfData, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
+		&gameDate, &k.Result, &k.Komi, &k.Handicap, &rawSgf, &k.UploadedBy, &k.ShareToken, &k.ShareExpiresAt, &k.IsPrivate, &k.CreatedAt, &k.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	sgfStr, err := sgfcompress.Decompress(rawSgf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress SGF: %w", err)
+	}
+	k.SgfData = sgfStr
+
 	if len(gameDate) >= 10 {
 		k.GameDate = gameDate[:10]
 	} else {

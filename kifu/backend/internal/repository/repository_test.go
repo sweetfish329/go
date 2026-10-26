@@ -183,6 +183,27 @@ func TestKifuRepository(t *testing.T) {
 	if found.Title != "Test Match" {
 		t.Errorf("Expected title 'Test Match', got %q", found.Title)
 	}
+	if found.SgfData != "(;GM[1])" {
+		t.Errorf("Expected SgfData '(;GM[1])', got %q", found.SgfData)
+	}
+
+	// Legacy plain text compatibility test
+	_, err = db.Exec(`
+		INSERT INTO kifus (
+			id, title, black_player, black_rank, white_player, white_rank,
+			game_date, result, komi, handicap, sgf_data, uploaded_by, is_private
+		) VALUES ('legacy-id', 'Legacy Match', 'P1', '1d', 'P2', '2d', '2026-01-01', 'B+R', 6.5, 0, '(;GM[1]SZ[19])', $1, true)
+	`, user.ID)
+	if err != nil {
+		t.Fatalf("Failed to insert legacy plain text kifu: %v", err)
+	}
+	legacyFound, err := repo.FindByID("legacy-id")
+	if err != nil || legacyFound == nil {
+		t.Fatalf("Failed to find legacy kifu: %v", err)
+	}
+	if legacyFound.SgfData != "(;GM[1]SZ[19])" {
+		t.Errorf("Expected legacy SgfData '(;GM[1]SZ[19])', got %q", legacyFound.SgfData)
+	}
 
 	// UpdateShare & FindByShareToken
 	token := "share-token-xyz"
