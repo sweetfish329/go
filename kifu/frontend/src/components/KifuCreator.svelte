@@ -5,7 +5,6 @@
   import { auth } from '../lib/auth.svelte';
   import { stringifySgf, SgfPlayer } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
-  import { compressRequestBody } from '../lib/compress';
 
   let { onSaveSuccess, onCancel } = $props<{
     onSaveSuccess: () => void;
@@ -309,15 +308,14 @@
         title: titleVal,
         sgf_data: sgfStr
       };
-      const compressed = await compressRequestBody(payload);
 
       const res = await fetch('/api/kifus', {
         method: 'POST',
         headers: {
-          ...auth.getHeaders(),
-          ...compressed.headers
+          'Content-Type': 'application/json',
+          ...auth.getHeaders()
         },
-        body: compressed.body
+        body: JSON.stringify(payload)
       });
 
       if (!res.ok) {

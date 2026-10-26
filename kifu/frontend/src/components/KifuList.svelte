@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from 'svelte';
   import { auth } from '../lib/auth.svelte';
-  import { compressRequestBody } from '../lib/compress';
 
   interface KifuItem {
     id: string;
@@ -106,15 +105,14 @@
         title: title.trim() || undefined,
         sgf_data: sgfData.trim()
       };
-      const compressed = await compressRequestBody(payload);
 
       const res = await fetch('/api/kifus', {
         method: 'POST',
         headers: {
-          ...auth.getHeaders(),
-          ...compressed.headers
+          'Content-Type': 'application/json',
+          ...auth.getHeaders()
         },
-        body: compressed.body
+        body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
