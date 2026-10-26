@@ -113,6 +113,8 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   `.wasm` ファイルは、コード側で `import kifuWasmUrl from "@wasm-kifu/web/wasm/kifu.wasm?url"` のように `?url` アセットインポートを使用して読み込み、Vite がビルド時に自動で静的ディレクトリに配置・解決する設計を採用した。
 * **TypeScript 型定義の解決 (`vite-env.d.ts`)**:
   `vite-env.d.ts` 内に `@wasm-kifu/web/js/wasm-bridge.js` および `board-detector.js` の型定義モジュール (`declare module`) をアンビエント宣言し、ファイルのコピーなしでも TypeScript 側で 100% 安全な自動補完と型検証が効くように構成した。
+* **Docker/Podman ビルド時のコンテキストとパス解決**:
+  フロントエンドが `../../wasm-kifu` を相対参照するため、Docker ビルドコンテキストは `kifu/` ではなくリポジトリルート（`context: .`）とする必要がある。`Containerfile` 内で `COPY wasm-kifu/ /app/wasm-kifu/` および `WORKDIR /app/kifu/frontend` とすることで、コンテナ内の Vite ビルド時もローカル環境と完全に同一の相対パス構造で解決される設計とした。
 
 ### ⑩ 棋譜一覧のタイルグリッド（カード）化と OGP の扱い
 * **OGP画像の有無フラグ (`has_ogp`)**:

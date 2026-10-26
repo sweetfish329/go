@@ -3,8 +3,8 @@ version: '3.8'
 services:
   backend:
     build:
-      context: .
-      dockerfile: backend/Containerfile
+      context: ..
+      dockerfile: kifu/backend/Containerfile
     container_name: kifu-backend
     ports:
       - "8822:8080"
