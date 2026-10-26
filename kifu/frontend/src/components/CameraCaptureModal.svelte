@@ -1024,7 +1024,7 @@
             <!-- Mini SVG preview of detected state -->
             <div class="mini-board-preview">
               <svg viewBox="0 0 190 190" class="mini-board-svg">
-                <rect width="190" height="190" fill="var(--wc-board, #dbb268)" />
+                <rect width="190" height="190" fill="var(--wc-board-bg, var(--wc-board, #ebdac0))" />
                 {#each Array(19) as _, i}
                   <line x1="5" y1={5 + i * 10} x2="185" y2={5 + i * 10} stroke="#2a2018" stroke-width="0.6" />
                   <line x1={5 + i * 10} y1="5" x2={5 + i * 10} y2="185" stroke="#2a2018" stroke-width="0.6" />

@@ -172,6 +172,12 @@
           const val = el.getAttribute(attrName);
           if (!val) return;
           let newVal = val;
+          newVal = newVal.replace(/var\(--wc-board-bg[^)]*\)/g, wcBoardValue);
+          newVal = newVal.replace(/var\(--wc-board-border[^)]*\)/g, wcTextValue);
+          newVal = newVal.replace(/var\(--wc-board-line[^)]*\)/g, wcTextValue);
+          newVal = newVal.replace(/var\(--wc-board-star[^)]*\)/g, wcTextValue);
+          newVal = newVal.replace(/var\(--wc-go-black-stroke[^)]*\)/g, wcTextValue);
+          newVal = newVal.replace(/var\(--wc-go-white-stroke[^)]*\)/g, 'rgba(37, 53, 48, 0.45)');
           newVal = newVal.replace(/var\(--wc-board\)/g, wcBoardValue);
           newVal = newVal.replace(/var\(--wc-text\)/g, wcTextValue);
           newVal = newVal.replace(/var\(--wc-border\)/g, wcTextValue);

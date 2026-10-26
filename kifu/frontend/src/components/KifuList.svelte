@@ -414,12 +414,36 @@
                   />
                 {:else}
                   <div class="kifu-tile-placeholder-wrap">
-                    <svg viewBox="0 0 100 100" class="kifu-tile-placeholder">
-                      <line x1="20" y1="50" x2="80" y2="50" stroke="var(--wc-text)" stroke-width="0.7" opacity="0.15" />
-                      <line x1="50" y1="20" x2="50" y2="80" stroke="var(--wc-text)" stroke-width="0.7" opacity="0.15" />
-                      <circle cx="50" cy="50" r="2.5" fill="var(--wc-text)" opacity="0.3" />
-                      <circle cx="44" cy="44" r="10" fill="var(--wc-text)" opacity="0.15" />
-                      <circle cx="56" cy="56" r="10" fill="var(--wc-surface)" stroke="var(--wc-text)" stroke-width="1" opacity="0.8" />
+                    <svg viewBox="0 0 100 100" class="kifu-tile-placeholder" aria-label="碁盤サムネイル">
+                      <!-- 碁盤の地 (Ash Wood / Milk Tea Beige) -->
+                      <rect width="100" height="100" fill="var(--wc-board-bg, #ebdac0)" />
+                      <!-- 盤外枠線 -->
+                      <rect x="8" y="8" width="84" height="84" fill="none" stroke="var(--wc-board-border, #253530)" stroke-width="1.2" />
+                      
+                      <!-- 格子線 (横線) -->
+                      {#each [8, 22, 36, 50, 64, 78, 92] as pos}
+                        <line x1="8" y1={pos} x2="92" y2={pos} stroke="var(--wc-board-line, #253530)" stroke-width="0.6" opacity="0.8" />
+                        <line x1={pos} y1="8" x2={pos} y2="92" stroke="var(--wc-board-line, #253530)" stroke-width="0.6" opacity="0.8" />
+                      {/each}
+
+                      <!-- 星 (4隅 + 天元) -->
+                      <circle cx="22" cy="22" r="1.5" fill="var(--wc-board-star, #253530)" />
+                      <circle cx="78" cy="22" r="1.5" fill="var(--wc-board-star, #253530)" />
+                      <circle cx="22" cy="78" r="1.5" fill="var(--wc-board-star, #253530)" />
+                      <circle cx="78" cy="78" r="1.5" fill="var(--wc-board-star, #253530)" />
+                      <circle cx="50" cy="50" r="1.5" fill="var(--wc-board-star, #253530)" />
+
+                      <!-- ミニ碁石 (布石イメージ) -->
+                      <!-- 黒石 -->
+                      <circle cx="22" cy="22" r="5.2" fill="var(--wc-go-black, #141a18)" />
+                      <circle cx="78" cy="78" r="5.2" fill="var(--wc-go-black, #141a18)" />
+                      <circle cx="36" cy="64" r="5.2" fill="var(--wc-go-black, #141a18)" />
+                      <circle cx="64" cy="36" r="5.2" fill="var(--wc-go-black, #141a18)" />
+
+                      <!-- 白石 -->
+                      <circle cx="78" cy="22" r="5.2" fill="var(--wc-go-white, #fcfdfe)" stroke="var(--wc-board-line, #253530)" stroke-width="0.6" />
+                      <circle cx="22" cy="78" r="5.2" fill="var(--wc-go-white, #fcfdfe)" stroke="var(--wc-board-line, #253530)" stroke-width="0.6" />
+                      <circle cx="50" cy="36" r="5.2" fill="var(--wc-go-white, #fcfdfe)" stroke="var(--wc-board-line, #253530)" stroke-width="0.6" />
                     </svg>
                   </div>
                 {/if}
@@ -799,15 +823,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle, var(--wc-surface-alt) 60%, var(--wc-bg) 100%);
-    padding: 20%;
+    background: var(--wc-board-bg, #ebdac0);
+    padding: 0;
     box-sizing: border-box;
+    transition: transform 0.4s ease;
+    will-change: transform;
+  }
+
+  .kifu-tile-card:hover .kifu-tile-placeholder-wrap {
+    transform: scale(1.03);
   }
 
   .kifu-tile-placeholder {
     width: 100%;
     height: 100%;
-    opacity: 0.85;
+    display: block;
   }
 
   /* Overlay Badge */

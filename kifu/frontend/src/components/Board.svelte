@@ -182,9 +182,9 @@
     class="go-board"
     aria-hidden="true"
   >
-    <!-- Board background (Nordic pastel flat style) -->
-    <rect width={boardSize} height={boardSize} fill="var(--wc-board)" />
-    <rect width={boardSize} height={boardSize} fill="none" stroke="var(--wc-text)" stroke-width="3" />
+    <!-- Board background (Nordic pastel / Ash Wood style) -->
+    <rect width={boardSize} height={boardSize} fill="var(--wc-board-bg, var(--wc-board))" rx="2" />
+    <rect width={boardSize} height={boardSize} fill="none" stroke="var(--wc-board-border, var(--wc-text))" stroke-width="3" rx="2" />
 
     <!-- Grid lines -->
     <!-- Horizontal lines -->
@@ -194,7 +194,7 @@
         y1={getPos(i)}
         x2={boardSize - padding}
         y2={getPos(i)}
-        stroke="var(--wc-text)"
+        stroke="var(--wc-board-line, var(--wc-text))"
         stroke-width="1"
         opacity="0.85"
       />
@@ -206,7 +206,7 @@
         y1={padding}
         x2={getPos(i)}
         y2={boardSize - padding}
-        stroke="var(--wc-text)"
+        stroke="var(--wc-board-line, var(--wc-text))"
         stroke-width="1"
         opacity="0.85"
       />
@@ -218,7 +218,7 @@
         cx={getPos(pt.x)}
         cy={getPos(pt.y)}
         r="3.5"
-        fill="var(--wc-text)"
+        fill="var(--wc-board-star, var(--wc-text))"
       />
     {/each}
 
@@ -267,7 +267,7 @@
               cy={getPos(y)}
               r={step * 0.46}
               fill="url(#blackStoneGrad)"
-              stroke="var(--wc-border)"
+              stroke="var(--wc-go-black-stroke, var(--wc-border))"
               stroke-width="0.5"
               filter="url(#shadow)"
             />
@@ -302,7 +302,7 @@
               cy={getPos(y)}
               r={step * 0.46}
               fill="url(#whiteStoneGrad)"
-              stroke="var(--wc-border)"
+              stroke="var(--wc-go-white-stroke, var(--wc-border))"
               stroke-width="0.5"
               filter="url(#shadow)"
             />
@@ -430,23 +430,23 @@
 
     <!-- SVG Definitions (gradients, filters) -->
     <defs>
-      <!-- Black stone gradient (Matte dark pastel) -->
+      <!-- Black stone gradient (Matte dark pastel / Lacquered Kuroishi) -->
       <radialGradient id="blackStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="var(--wc-text-light)" />
-        <stop offset="35%" stop-color="var(--wc-go-black)" />
-        <stop offset="100%" stop-color="var(--wc-shadow-dark)" />
+        <stop offset="0%" stop-color="var(--wc-go-black-grad-0, var(--wc-text-light))" />
+        <stop offset="35%" stop-color="var(--wc-go-black-grad-35, var(--wc-go-black))" />
+        <stop offset="100%" stop-color="var(--wc-go-black-grad-100, var(--wc-shadow-dark))" />
       </radialGradient>
 
-      <!-- White stone gradient (Matte pastel white) -->
+      <!-- White stone gradient (Matte pastel white / Smooth Shiroishi) -->
       <radialGradient id="whiteStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#ffffff" />
-        <stop offset="75%" stop-color="var(--wc-go-white)" />
-        <stop offset="100%" stop-color="var(--wc-border)" />
+        <stop offset="0%" stop-color="var(--wc-go-white-grad-0, #ffffff)" />
+        <stop offset="75%" stop-color="var(--wc-go-white-grad-75, var(--wc-go-white))" />
+        <stop offset="100%" stop-color="var(--wc-go-white-grad-100, var(--wc-border))" />
       </radialGradient>
 
-      <!-- Stone shadow drop (solid crisp look) -->
-      <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-        <feDropShadow dx="1.5" dy="2.5" stdDeviation="0.5" flood-color="var(--wc-text)" flood-opacity="0.25" />
+      <!-- Stone shadow drop (solid crisp look, never glow white in dark mode) -->
+      <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
+        <feDropShadow dx="1.2" dy="2.0" stdDeviation="0.6" flood-color="var(--wc-board-shadow, #000000)" flood-opacity="0.35" />
       </filter>
     </defs>
   </svg>
@@ -478,6 +478,34 @@
       padding: 6px;
       box-shadow: 4px 4px 0px var(--wc-text) !important;
       max-width: 100%;
+    }
+  }
+
+  /* ダークモード時の和モダン額縁スタイル */
+  :global(:root.dark) .board-container {
+    background-color: var(--wc-surface);
+    border: 2px solid var(--wc-border) !important;
+    box-shadow: 6px 6px 0px var(--wc-shadow-dark) !important;
+  }
+
+  :global(:root.dark) .board-container:hover {
+    box-shadow: 7px 7px 0px var(--wc-shadow-dark) !important;
+  }
+
+  @media only screen and (max-width: 600px) {
+    :global(:root.dark) .board-container {
+      box-shadow: 4px 4px 0px var(--wc-shadow-dark) !important;
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not(.light)) .board-container {
+      background-color: var(--wc-surface);
+      border: 2px solid var(--wc-border) !important;
+      box-shadow: 6px 6px 0px var(--wc-shadow-dark) !important;
+    }
+    :global(:root:not(.light)) .board-container:hover {
+      box-shadow: 7px 7px 0px var(--wc-shadow-dark) !important;
     }
   }
 

@@ -49,6 +49,19 @@
   --wc-go-black:     #1a2622;   /* 碁石・黒（ダークセージ） */
   --wc-go-white:     #ffffff;   /* 碁石・白（純白） */
   --wc-board:        #b8c6c0;   /* 碁盤色（つぶれない明るい中間セージグリーン） */
+  --wc-board-bg:     var(--wc-board);
+  --wc-board-line:   var(--wc-text);
+  --wc-board-border: var(--wc-text);
+  --wc-board-star:   var(--wc-text);
+  --wc-board-shadow: #1a2622;
+  --wc-go-black-grad-0:   var(--wc-text-light);
+  --wc-go-black-grad-35:  var(--wc-go-black);
+  --wc-go-black-grad-100: var(--wc-shadow-dark);
+  --wc-go-black-stroke:   var(--wc-border);
+  --wc-go-white-grad-0:   #ffffff;
+  --wc-go-white-grad-75:  var(--wc-go-white);
+  --wc-go-white-grad-100: var(--wc-border);
+  --wc-go-white-stroke:   var(--wc-border);
 
   /* ================================================================
      Neumorphism 2.0 Shadows — 暖色土系 / 統一光源: 左上
@@ -153,9 +166,25 @@
   --wc-glass-bg:     rgba(53, 46, 53, 0.85);
   --wc-glass-border: rgba(232, 153, 196, 0.15);
 
-  --wc-board:        #504150;   /* 明るさを引き上げたパステルモーブ碁盤色 */
-  --wc-go-black:     #1c171c;
-  --wc-go-white:     #ece5ec;
+  /* --- Go Stone & Board Colors (Dark Mode: Ash Wood 銘木スタイル) --- */
+  --wc-board:        #504150;   /* レガシー互換 */
+  --wc-board-bg:     #ebdac0;   /* サムネイル画像と同様の視認性に優れた Ash Wood / Milk Tea Beige */
+  --wc-board-line:   #253530;   /* 引き締まった木炭墨色 (白線にせず抜群の視認性を確保) */
+  --wc-board-border: #253530;   /* 碁盤外枠線 */
+  --wc-board-star:   #253530;   /* 星 */
+  --wc-board-shadow: rgba(0, 0, 0, 0.45); /* 自然な黒い立体ドロップシャドウ (白光り防止) */
+
+  --wc-go-black:     #141a18;   /* 漆黒の那智黒石 */
+  --wc-go-black-grad-0:   #4a5c55; /* 上品な艶ハイライト */
+  --wc-go-black-grad-35:  #18221e; /* 漆黒石本体 */
+  --wc-go-black-grad-100: #0a0f0d; /* 最深部陰影 */
+  --wc-go-black-stroke:   #101614;
+
+  --wc-go-white:     #fcfdfe;   /* 蛤白石のマットホワイト */
+  --wc-go-white-grad-0:   #ffffff; /* 純白ハイライト */
+  --wc-go-white-grad-75:  #f8faf9; /* 滑らかな白 */
+  --wc-go-white-grad-100: #c8d2cd; /* 縁の立体陰影 */
+  --wc-go-white-stroke:   rgba(37, 53, 48, 0.4); /* 繊細な輪郭線 */
 
   --nm-bg:           var(--wc-bg);
   --nm-bg-element:   var(--wc-surface);
@@ -195,9 +224,25 @@
     --wc-glass-bg:     rgba(20, 28, 25, 0.85);
     --wc-glass-border: rgba(244, 178, 213, 0.15);
 
+    /* --- Go Stone & Board Colors (Dark Mode: Ash Wood 銘木スタイル) --- */
     --wc-board:        #23302c;
-    --wc-go-black:     #080d0b;
-    --wc-go-white:     #e2ede9;
+    --wc-board-bg:     #ebdac0;
+    --wc-board-line:   #253530;
+    --wc-board-border: #253530;
+    --wc-board-star:   #253530;
+    --wc-board-shadow: rgba(0, 0, 0, 0.45);
+
+    --wc-go-black:     #141a18;
+    --wc-go-black-grad-0:   #4a5c55;
+    --wc-go-black-grad-35:  #18221e;
+    --wc-go-black-grad-100: #0a0f0d;
+    --wc-go-black-stroke:   #101614;
+
+    --wc-go-white:     #fcfdfe;
+    --wc-go-white-grad-0:   #ffffff;
+    --wc-go-white-grad-75:  #f8faf9;
+    --wc-go-white-grad-100: #c8d2cd;
+    --wc-go-white-stroke:   rgba(37, 53, 48, 0.4);
 
     --nm-bg:           var(--wc-bg);
     --nm-bg-element:   var(--wc-surface);
