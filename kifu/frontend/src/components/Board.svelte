@@ -182,8 +182,10 @@
     class="go-board"
     aria-hidden="true"
   >
-    <!-- Board background (Nordic pastel / Ash Wood style) -->
-    <rect width={boardSize} height={boardSize} fill="var(--wc-board-bg, var(--wc-board))" rx="2" />
+    <!-- Board background (Ash Wood / Kaya surface with subtle natural lighting gradient) -->
+    <rect width={boardSize} height={boardSize} fill="url(#boardSurfaceGrad)" rx="2" />
+    <!-- Subtle inner bevel highlight line for craftsmanship wood depth -->
+    <rect x="1.5" y="1.5" width={boardSize - 3} height={boardSize - 3} fill="none" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1" rx="1.5" />
     <rect width={boardSize} height={boardSize} fill="none" stroke="var(--wc-board-border, var(--wc-text))" stroke-width="3" rx="2" />
 
     <!-- Grid lines -->
@@ -430,23 +432,29 @@
 
     <!-- SVG Definitions (gradients, filters) -->
     <defs>
+      <!-- Board wood grain subtle gradient -->
+      <linearGradient id="boardSurfaceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="var(--wc-board-bg-top, #f2e5d2)" />
+        <stop offset="100%" stop-color="var(--wc-board-bg-bottom, #e6d3b7)" />
+      </linearGradient>
+
       <!-- Black stone gradient (Matte dark pastel / Lacquered Kuroishi) -->
       <radialGradient id="blackStoneGrad" cx="30%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="var(--wc-go-black-grad-0, var(--wc-text-light))" />
-        <stop offset="35%" stop-color="var(--wc-go-black-grad-35, var(--wc-go-black))" />
-        <stop offset="100%" stop-color="var(--wc-go-black-grad-100, var(--wc-shadow-dark))" />
+        <stop offset="0%" stop-color="var(--wc-go-black-grad-0, #4a5c55)" />
+        <stop offset="35%" stop-color="var(--wc-go-black-grad-35, #18221e)" />
+        <stop offset="100%" stop-color="var(--wc-go-black-grad-100, #0a0f0d)" />
       </radialGradient>
 
       <!-- White stone gradient (Matte pastel white / Smooth Shiroishi) -->
       <radialGradient id="whiteStoneGrad" cx="30%" cy="30%" r="70%">
         <stop offset="0%" stop-color="var(--wc-go-white-grad-0, #ffffff)" />
-        <stop offset="75%" stop-color="var(--wc-go-white-grad-75, var(--wc-go-white))" />
-        <stop offset="100%" stop-color="var(--wc-go-white-grad-100, var(--wc-border))" />
+        <stop offset="75%" stop-color="var(--wc-go-white-grad-75, #f8faf9)" />
+        <stop offset="100%" stop-color="var(--wc-go-white-grad-100, #c8d2cd)" />
       </radialGradient>
 
       <!-- Stone shadow drop (solid crisp look, never glow white in dark mode) -->
       <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
-        <feDropShadow dx="1.2" dy="2.0" stdDeviation="0.6" flood-color="var(--wc-board-shadow, #000000)" flood-opacity="0.35" />
+        <feDropShadow dx="1.2" dy="2.0" stdDeviation="0.7" flood-color="var(--wc-board-shadow, rgba(0, 0, 0, 0.4))" flood-opacity="0.38" />
       </filter>
     </defs>
   </svg>

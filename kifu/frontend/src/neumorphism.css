@@ -45,25 +45,29 @@
   --wc-accent-warm-hover: #d2aa2c; /* ゴールド・深 — ホバー時 */
   --wc-accent-soft:  rgba(229, 123, 169, 0.1); /* ホットピンク・極淡 */
 
-  /* --- Go Stone & Board Colors --- */
-  --wc-go-black:     #1a2622;   /* 碁石・黒（ダークセージ） */
-  --wc-go-white:     #ffffff;   /* 碁石・白（純白） */
-  --wc-board:        #b8c6c0;   /* 碁盤色（つぶれない明るい中間セージグリーン） */
-  --wc-board-bg:     var(--wc-board);
-  --wc-board-line:   var(--wc-text);
-  --wc-board-border: var(--wc-text);
-  --wc-board-star:   var(--wc-text);
-  --wc-board-shadow: #1a2622;
+  /* --- Go Stone & Board Colors (High-Texture Ash Wood / Kaya & Realistic Stones) --- */
+  --wc-board:        #ebdac0;   /* 銘木 Ash Wood / 本榧木肌色 (温かみと高い視認性) */
+  --wc-board-bg:     #ebdac0;
+  --wc-board-bg-top:    #f2e5d2; /* 盤面上部への自然な採光ハイライト */
+  --wc-board-bg-bottom: #e6d3b7; /* 盤面下部の自然な陰影 */
+  --wc-board-line:   #253530;   /* 引き締まった木炭墨色 (端正で精緻な格子線) */
+  --wc-board-border: #253530;   /* 碁盤外枠線 */
+  --wc-board-star:   #253530;   /* 星 */
+  --wc-board-shadow: rgba(0, 0, 0, 0.38); /* 自然な立体ドロップシャドウ */
   --wc-shadow-solid: var(--wc-text); /* ライトテーマは既存のテキスト同色ソリッド影を完全維持 */
   --wc-border-solid: var(--wc-text); /* ライトテーマは既存のテキスト同色境界線を完全維持 */
-  --wc-go-black-grad-0:   var(--wc-text-light);
-  --wc-go-black-grad-35:  var(--wc-go-black);
-  --wc-go-black-grad-100: var(--wc-shadow-dark);
-  --wc-go-black-stroke:   var(--wc-border);
-  --wc-go-white-grad-0:   #ffffff;
-  --wc-go-white-grad-75:  var(--wc-go-white);
-  --wc-go-white-grad-100: var(--wc-border);
-  --wc-go-white-stroke:   var(--wc-border);
+
+  --wc-go-black:     #141a18;   /* 漆黒の那智黒石 */
+  --wc-go-black-grad-0:   #4a5c55; /* 上品な艶ハイライト */
+  --wc-go-black-grad-35:  #18221e; /* 漆黒石本体 */
+  --wc-go-black-grad-100: #0a0f0d; /* 最深部陰影 */
+  --wc-go-black-stroke:   #101614;
+
+  --wc-go-white:     #fcfdfe;   /* 蛤白石のマットホワイト */
+  --wc-go-white-grad-0:   #ffffff; /* 純白ハイライト */
+  --wc-go-white-grad-75:  #f8faf9; /* 滑らかな白 */
+  --wc-go-white-grad-100: #c8d2cd; /* 縁の立体陰影 (黒ずみ解消) */
+  --wc-go-white-stroke:   rgba(37, 53, 48, 0.4); /* 繊細な輪郭線 */
 
   /* ================================================================
      Neumorphism 2.0 Shadows — 暖色土系 / 統一光源: 左上
@@ -173,6 +177,8 @@
   /* --- Go Stone & Board Colors (Dark Mode: Ash Wood 銘木スタイル) --- */
   --wc-board:        #504150;   /* レガシー互換 */
   --wc-board-bg:     #ebdac0;   /* サムネイル画像と同様の視認性に優れた Ash Wood / Milk Tea Beige */
+  --wc-board-bg-top:    #efe1cb; /* 盤面上部への自然な採光ハイライト */
+  --wc-board-bg-bottom: #e4d1b5; /* 盤面下部の自然な陰影 */
   --wc-board-line:   #253530;   /* 引き締まった木炭墨色 (白線にせず抜群の視認性を確保) */
   --wc-board-border: #253530;   /* 碁盤外枠線 */
   --wc-board-star:   #253530;   /* 星 */
@@ -233,6 +239,8 @@
     /* --- Go Stone & Board Colors (Dark Mode: Ash Wood 銘木スタイル) --- */
     --wc-board:        #23302c;
     --wc-board-bg:     #ebdac0;
+    --wc-board-bg-top:    #efe1cb;
+    --wc-board-bg-bottom: #e4d1b5;
     --wc-board-line:   #253530;
     --wc-board-border: #253530;
     --wc-board-star:   #253530;
