@@ -671,8 +671,8 @@
           onclick={() => handleTabChange("stream")}
           disabled={!isCvReady}
         >
-          <i class="material-icons tab-icon">play_circle_filled</i>
-          ⚡ 三脚自動記録
+          <i class="material-icons tab-icon">videocam</i>
+          三脚自動記録
         </button>
         <button
           type="button"
@@ -682,7 +682,7 @@
           disabled={!isCvReady}
         >
           <i class="material-icons tab-icon">photo_camera</i>
-          📷 静止画撮影
+          静止画撮影
         </button>
         <button
           type="button"
@@ -690,8 +690,8 @@
           class:active={activeTab === "file"}
           onclick={() => handleTabChange("file")}
         >
-          <i class="material-icons tab-icon">image</i>
-          📁 ファイル選択
+          <i class="material-icons tab-icon">folder_open</i>
+          ファイル選択
         </button>
       </div>
 
@@ -805,7 +805,7 @@
                   disabled={cornerPoints.length < 4}
                 >
                   <i class="material-icons">fiber_manual_record</i>
-                  ⚡ 自動記録を開始
+                  自動記録を開始
                 </button>
               {:else}
                 <button

@@ -260,11 +260,10 @@
   <!-- Actions (Newspaper Buttons) -->
   {#if !publicMode}
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 24px;">
-      <button class="nm-btn-primary" onclick={() => { dispatch('createKifu'); isDrawerOpen = false; }} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;">
-        <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
+      <button class="nm-btn-primary" onclick={() => { dispatch('createKifu'); isDrawerOpen = false; }} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; font-weight: bold; letter-spacing: 0.04em;">
+        自分で棋譜を作成
       </button>
-      <button class="nm-btn" onclick={() => { showUploadForm = true; isDrawerOpen = false; setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50); }} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; color: var(--wc-text) !important;">
-        <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">cloud_upload</i>
+      <button class="nm-btn" onclick={() => { showUploadForm = true; isDrawerOpen = false; setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50); }} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; color: var(--wc-text) !important; font-weight: bold; letter-spacing: 0.04em;">
         SGFファイルをアップロード
       </button>
     </div>
@@ -347,11 +346,11 @@
             </div>
             <div class="card-action right-align" style="border-top: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 16px 0 0 0; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; background: transparent;">
               <button class="nm-btn-flat" style="font-weight: bold;" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
-              <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; font-weight: bold;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
+              <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; font-weight: bold; letter-spacing: 0.04em;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
                 {#if uploading}
                   保存中...
                 {:else}
-                  <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 4px;">check</i>登録する
+                  登録する
                 {/if}
               </button>
             </div>
@@ -375,11 +374,11 @@
 
       {#if !publicMode}
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="border-radius: 0 !important; padding: 6px 14px; font-size: 0.78rem; font-weight: bold; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
-            <i class="material-icons" style="font-size: 0.95rem;">edit</i>棋譜作成
+          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="border-radius: 0 !important; padding: 7px 16px; font-size: 0.8rem; font-weight: bold; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2.5px 2.5px 0 var(--wc-shadow-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; cursor: pointer; letter-spacing: 0.04em;">
+            棋譜作成
           </button>
-          <button class="nm-btn" onclick={() => { showUploadForm = !showUploadForm; if (showUploadForm) setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50); }} style="border-radius: 0 !important; padding: 6px 14px; font-size: 0.78rem; font-weight: bold; background: var(--wc-surface) !important; color: var(--wc-text) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
-            <i class="material-icons" style="font-size: 0.95rem;">{showUploadForm ? 'close' : 'cloud_upload'}</i>{showUploadForm ? 'フォームを閉じる' : 'SGFアップロード'}
+          <button class="nm-btn" onclick={() => { showUploadForm = !showUploadForm; if (showUploadForm) setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50); }} style="border-radius: 0 !important; padding: 7px 16px; font-size: 0.8rem; font-weight: bold; background: var(--wc-surface) !important; color: var(--wc-text) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2.5px 2.5px 0 var(--wc-shadow-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; cursor: pointer; letter-spacing: 0.04em;">
+            {showUploadForm ? 'フォームを閉じる' : 'SGFアップロード'}
           </button>
         </div>
       {/if}
