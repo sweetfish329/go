@@ -218,7 +218,7 @@
 <button 
   onclick={() => isDrawerOpen = !isDrawerOpen} 
   class="em-vogue-drawer-toggle em-float-badge"
-  style="position: fixed; left: 0; top: 25%; z-index: 1000; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; border-left: none !important; box-shadow: 3px 3px 0px var(--wc-text); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important; padding: 12px 6px; writing-mode: vertical-rl; text-orientation: mixed; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.15em; cursor: pointer; text-transform: uppercase;"
+  style="position: fixed; left: 0; top: 25%; z-index: 1000; border-radius: 0px !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-left: none !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important; padding: 12px 6px; writing-mode: vertical-rl; text-orientation: mixed; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.15em; cursor: pointer; text-transform: uppercase;"
 >
   [ VIEW FILTERS & OVERVIEW ]
 </button>
@@ -236,12 +236,12 @@
 <!-- Vogue Editorial Drawer Panel -->
 <div 
   class="em-vogue-drawer {isDrawerOpen ? 'open' : ''}"
-  style="position: fixed; top: 0; left: 0; height: 100vh; background: var(--wc-surface); border-right: 2px solid var(--wc-text); z-index: 999; transform: translateX({isDrawerOpen ? '0' : '-100%'}); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); padding: 40px 24px; overflow-y: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.15); text-align: left;"
+  style="position: fixed; top: 0; left: 0; height: 100vh; background: var(--wc-surface); border-right: 2px solid var(--wc-border-solid, var(--wc-text)); z-index: 999; transform: translateX({isDrawerOpen ? '0' : '-100%'}); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); padding: 40px 24px; overflow-y: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.15); text-align: left;"
   role="dialog"
   aria-modal="true"
   aria-label="フィルターと概要"
 >
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 12px;">
     <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 800; margin: 0; color: var(--wc-text); text-transform: uppercase; letter-spacing: 0.08em;">
       the chronicle.
     </h2>
@@ -257,11 +257,11 @@
 
   <!-- Actions (Newspaper Buttons) -->
   {#if !publicMode}
-    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px;">
-      <button class="nm-btn-primary" onclick={() => { dispatch('createKifu'); isDrawerOpen = false; }} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important;">
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; border-bottom: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 24px;">
+      <button class="nm-btn-primary" onclick={() => { dispatch('createKifu'); isDrawerOpen = false; }} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;">
         <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
       </button>
-      <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; color: var(--wc-text) !important;">
+      <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; color: var(--wc-text) !important;">
         <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
         {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
       </button>
@@ -270,24 +270,24 @@
 
   <!-- Filtering Panel -->
   {#if kifus.length > 0}
-    <div style="border-bottom: 1.5px solid var(--wc-text); padding-bottom: 24px; margin-bottom: 24px;">
-      <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0; color: var(--wc-text); border-bottom: 1px solid var(--wc-text); padding-bottom: 4px; display: inline-block;">Filter Records</h3>
+    <div style="border-bottom: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 24px; margin-bottom: 24px;">
+      <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0; color: var(--wc-text); border-bottom: 1px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 4px; display: inline-block;">Filter Records</h3>
       
       <div style="display: flex; flex-direction: column; gap: 14px;">
         <div class="input-field" style="margin: 0; position: relative;">
-          <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+          <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
           <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">キーワード</label>
         </div>
         <div class="input-field" style="margin: 0; position: relative;">
-          <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+          <input id="start-date" type="date" class="nm-input" bind:value={startDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
           <label for="start-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">開始日</label>
         </div>
         <div class="input-field" style="margin: 0; position: relative;">
-          <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+          <input id="end-date" type="date" class="nm-input" bind:value={endDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
           <label for="end-date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">終了日</label>
         </div>
         {#if searchQuery || startDate || endDate}
-          <button type="button" class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-text); color: var(--wc-text); cursor: pointer; border-radius: 0;">
+          <button type="button" class="clear-filter-btn" onclick={() => { searchQuery = ""; startDate = ""; endDate = ""; }} style="align-self: flex-end; padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface); box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); color: var(--wc-text); cursor: pointer; border-radius: 0;">
             <i class="material-icons" aria-hidden="true" style="font-size: 0.85rem;">clear_all</i>条件クリア
           </button>
         {/if}
@@ -297,7 +297,7 @@
 
   <!-- Vertical Japanese Column -->
   <div style="display: flex; justify-content: flex-end; padding-top: 10px; height: 160px;">
-    <div class="em-newspaper-vertical-col" style="opacity: 0.8; height: 140px; border-left-color: var(--wc-text);">
+    <div class="em-newspaper-vertical-col" style="opacity: 0.8; height: 140px; border-left-color: var(--wc-border-solid, var(--wc-text));">
       一打一打に宿る思考を印刷インクの温もりとともに残す。静かなる黒と白の調和。
     </div>
   </div>
@@ -310,38 +310,38 @@
     {#if showUploadForm}
       <div class="row" style="margin-bottom: 2rem;">
         <div class="col s12">
-          <div class="em-portfolio-section" style="border-color: var(--wc-text) !important; padding: 28px 24px 20px 24px !important; background: var(--wc-surface) !important; box-shadow: 6px 6px 0px var(--wc-text) !important;">
+          <div class="em-portfolio-section" style="border-color: var(--wc-border-solid, var(--wc-text)) !important; padding: 28px 24px 20px 24px !important; background: var(--wc-surface) !important; box-shadow: 6px 6px 0px var(--wc-shadow-solid, var(--wc-text)) !important;">
             <!-- Overlap Badge -->
-            <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -14px; left: 16px; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text);">
+            <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -14px; left: 16px; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text));">
               UPLOADER STUDIO
             </span>
 
             <div class="card-content" style="padding: 12px 0 0 0;">
               <div class="row" style="margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 14px 0;">
                 <div class="file-field input-field col s12 m6" style="margin-top: 0; margin-bottom: 0; display: flex; gap: 10px; align-items: center;">
-                  <div class="nm-btn" style="position: relative; overflow: hidden; white-space: nowrap; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2.5px 2.5px 0px var(--wc-text); font-weight: bold; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+                  <div class="nm-btn" style="position: relative; overflow: hidden; white-space: nowrap; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2.5px 2.5px 0px var(--wc-shadow-solid, var(--wc-text)); font-weight: bold; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
                     <span>SGFファイル選択</span>
                     <input type="file" accept=".sgf" onchange={handleFileChange} />
                   </div>
                   <div class="file-path-wrapper" style="flex-grow: 1; padding-left: 0;">
-                    <input class="file-path validate nm-input" type="text" placeholder="または以下に直接貼り付け" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                    <input class="file-path validate nm-input" type="text" placeholder="または以下に直接貼り付け" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
                   </div>
                 </div>
 
                 <div class="input-field col s12 m6" style="margin-top: 0; margin-bottom: 0;">
-                  <input id="kifu_title" type="text" class="nm-input" bind:value={title} placeholder="対局名など (省略時は自動設定)" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                  <input id="kifu_title" type="text" class="nm-input" bind:value={title} placeholder="対局名など (省略時は自動設定)" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
                   <label for="kifu_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">タイトル</label>
                 </div>
 
                 <div class="input-field col s12" style="margin-top: 14px; margin-bottom: 0;">
-                  <textarea id="sgf_data" class="materialize-textarea nm-textarea nm-input" style="font-family: monospace; min-height: 120px; margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" bind:value={sgfData} placeholder="(;GM[1]FF[4]...)"></textarea>
+                  <textarea id="sgf_data" class="materialize-textarea nm-textarea nm-input" style="font-family: monospace; min-height: 120px; margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" bind:value={sgfData} placeholder="(;GM[1]FF[4]...)"></textarea>
                   <label for="sgf_data" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">SGFデータ (必須)</label>
                 </div>
               </div>
             </div>
-            <div class="card-action right-align" style="border-top: 1.5px solid var(--wc-text); padding: 16px 0 0 0; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; background: transparent;">
+            <div class="card-action right-align" style="border-top: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 16px 0 0 0; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; background: transparent;">
               <button class="nm-btn-flat" style="font-weight: bold;" onclick={() => { showUploadForm = false; title = ""; sgfData = ""; }}>キャンセル</button>
-              <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 3px 3px 0px var(--wc-text) !important; font-weight: bold;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
+              <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; font-weight: bold;" disabled={!sgfData.trim() || uploading} onclick={handleUpload}>
                 {#if uploading}
                   保存中...
                 {:else}
@@ -355,7 +355,7 @@
     {/if}
     
     <!-- Title wrapper inside main column -->
-    <div style="border-bottom: 2.5px solid var(--wc-text); padding-bottom: 12px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; position: relative;">
+    <div style="border-bottom: 2.5px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 12px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; position: relative;">
       <span style="font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 800; font-style: italic; color: var(--wc-text); line-height: 1; letter-spacing: -0.01em;">
         {#if publicMode}
           {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
@@ -363,22 +363,22 @@
           Personal Library
         {/if}
       </span>
-      <span class="em-collage-tag-pastel" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text); font-weight: bold; letter-spacing: 0.05em; border: 1.5px solid var(--wc-text); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-text); background: var(--wc-surface-alt);">{filteredKifus.length} RECORDS FOUND</span>
+      <span class="em-collage-tag-pastel" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text); font-weight: bold; letter-spacing: 0.05em; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-surface-alt);">{filteredKifus.length} RECORDS FOUND</span>
     </div>
     
     <!-- Archive Column Grid (Magazine View Spread) -->
     {#if loading}
       <div class="center-align" style="margin-top: 5rem;">
-        <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto; border-top-color: var(--wc-text);"></div>
+        <div class="nm-spinner" style="width: 48px; height: 48px; margin: 0 auto; border-top-color: var(--wc-border-solid, var(--wc-text));"></div>
         <p class="text-muted" style="margin-top: 16px; font-size: 0.88rem; font-family: 'JetBrains Mono', monospace;">LOADING ARCHIVES...</p>
       </div>
     {:else if error}
-      <div class="card-panel red lighten-4 red-text text-darken-4" style="border: 2px solid var(--wc-text); border-radius: 0; box-shadow: 4px 4px 0px var(--wc-text);">
+      <div class="card-panel red lighten-4 red-text text-darken-4" style="border: 2px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text));">
         <i class="material-icons left">error</i>
         エラーが発生しました: {error}
       </div>
     {:else if kifus.length === 0}
-      <div class="center-align" style="padding: 4rem 2rem; border: 2px dashed var(--wc-text); background: var(--wc-surface-alt); box-shadow: 5px 5px 0px rgba(0,0,0,0.05);">
+      <div class="center-align" style="padding: 4rem 2rem; border: 2px dashed var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface-alt); box-shadow: 5px 5px 0px rgba(0,0,0,0.05);">
         <i class="material-icons" style="font-size: 3.6rem; color: var(--wc-text); opacity: 0.35; margin-bottom: 12px;">layers_clear</i>
         <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text); margin-bottom: 8px;">登録されている棋譜がありません</h5>
         {#if !publicMode}
@@ -388,7 +388,7 @@
         {/if}
       </div>
     {:else if filteredKifus.length === 0}
-      <div class="center-align" style="padding: 4rem 2rem; border: 2px dashed var(--wc-text); background: var(--wc-surface-alt);">
+      <div class="center-align" style="padding: 4rem 2rem; border: 2px dashed var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface-alt);">
         <i class="material-icons" style="font-size: 3.6rem; color: var(--wc-text); opacity: 0.35; margin-bottom: 12px;">search_off</i>
         <h5 style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: var(--wc-text); margin-bottom: 8px;">条件に一致する棋譜が見つかりません</h5>
         <p class="text-muted" style="font-size: 0.82rem;">検索キーワードや日付の範囲を変更してお試しください。</p>
@@ -765,9 +765,9 @@
 
   .kifu-tile-card {
     position: relative;
-    border: 1.5px solid var(--wc-text);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
     background: var(--wc-surface);
-    box-shadow: 4px 4px 0px var(--wc-text);
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-shadow-solid, var(--wc-text)));
     transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     display: flex;
     flex-direction: column;
@@ -777,7 +777,7 @@
 
   .kifu-tile-card:hover {
     transform: translate(-3px, -3px);
-    box-shadow: 7px 7px 0px var(--wc-text);
+    box-shadow: 7px 7px 0px var(--wc-shadow-solid, var(--wc-shadow-solid, var(--wc-text)));
   }
 
   .kifu-tile-click-area {
@@ -801,7 +801,7 @@
     aspect-ratio: 1 / 1;
     overflow: hidden;
     background: var(--wc-surface-alt);
-    border-bottom: 1.5px solid var(--wc-text);
+    border-bottom: 1.5px solid var(--wc-border-solid, var(--wc-text));
   }
 
   .kifu-tile-image {
@@ -847,8 +847,8 @@
     right: 12px;
     background: var(--wc-accent-warm);
     color: var(--wc-text);
-    border: 1px solid var(--wc-text);
-    box-shadow: 2px 2px 0px var(--wc-text);
+    border: 1px solid var(--wc-border-solid, var(--wc-text));
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-shadow-solid, var(--wc-text)));
     font-size: 0.65rem;
     font-weight: bold;
     padding: 3px 8px;
@@ -909,7 +909,7 @@
     font-weight: bold;
     font-family: 'JetBrains Mono', monospace;
     background: var(--wc-surface-alt);
-    border: 1px solid var(--wc-text);
+    border: 1px solid var(--wc-border-solid, var(--wc-text));
     padding: 1px 5px;
     color: var(--wc-text-muted);
   }
@@ -932,13 +932,13 @@
     align-items: center;
     justify-content: center;
     background: var(--wc-surface);
-    border: 1px solid var(--wc-text);
+    border: 1px solid var(--wc-border-solid, var(--wc-text));
     color: var(--wc-text);
     cursor: pointer;
     opacity: 0;
     transform: translateY(5px);
     transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-    box-shadow: 1.5px 1.5px 0 var(--wc-text);
+    box-shadow: 1.5px 1.5px 0 var(--wc-shadow-solid, var(--wc-shadow-solid, var(--wc-text)));
     z-index: 10;
   }
 

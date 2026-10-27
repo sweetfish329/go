@@ -459,8 +459,8 @@
     margin: 0 auto;
     border-radius: 0px !important;
     background-color: var(--wc-surface);
-    border: 2px solid var(--wc-text) !important;
-    box-shadow: 6px 6px 0px var(--wc-text) !important; /* ソリッドなポップ影 */
+    border: 2px solid var(--wc-border-solid, var(--wc-text)) !important;
+    box-shadow: 6px 6px 0px var(--wc-shadow-solid, var(--wc-text)) !important; /* ソリッドなポップ影 */
     padding: 12px;
     box-sizing: border-box;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -469,14 +469,14 @@
 
   .board-container:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 7px 7px 0px var(--wc-text) !important;
+    box-shadow: 7px 7px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   /* モバイル画面用の最適化 */
   @media only screen and (max-width: 600px) {
     .board-container {
       padding: 6px;
-      box-shadow: 4px 4px 0px var(--wc-text) !important;
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
       max-width: 100%;
     }
   }

@@ -990,7 +990,7 @@
               type="button" 
               class="nm-btn-flat font-sans" 
               onclick={setCurrentPlayIndex}
-              style="font-size: 0.72rem; padding: 4px 10px; border: 1.5px solid var(--wc-text) !important; border-radius: 0 !important; height: auto; line-height: 1.5; background: var(--wc-surface) !important; color: var(--wc-text) !important; cursor: pointer; box-shadow: 2px 2px 0px var(--wc-text) !important;"
+              style="font-size: 0.72rem; padding: 4px 10px; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0 !important; height: auto; line-height: 1.5; background: var(--wc-surface) !important; color: var(--wc-text) !important; cursor: pointer; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;"
             >
               現在の再生手数（第 {currentPlayIndex} 手）をセット
             </button>
@@ -1079,7 +1079,7 @@
     max-width: 480px;
     background: var(--wc-surface) !important;
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
     padding: 32px 28px !important;
     max-height: calc(100vh - 40px);
@@ -1166,7 +1166,7 @@
   .url-ticket-box {
     display: flex;
     align-items: stretch;
-    border: 1.5px solid var(--wc-text);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
     background: rgba(245, 240, 232, 0.4);
     margin-bottom: 24px;
     position: relative;
@@ -1189,7 +1189,7 @@
 
   .url-ticket-btn {
     border: none;
-    border-left: 1.5px solid var(--wc-text);
+    border-left: 1.5px solid var(--wc-border-solid, var(--wc-text));
     background: var(--wc-surface-alt);
     color: var(--wc-text);
     padding: 0 18px;
@@ -1227,10 +1227,10 @@
   .regenerate-btn {
     width: 100%;
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 10px 16px;
     font-weight: 700;
     font-size: 0.82rem;
@@ -1245,13 +1245,13 @@
 
   .regenerate-btn:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-surface-alt) !important;
   }
 
   .regenerate-btn:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .regenerate-btn:disabled {
@@ -1350,10 +1350,10 @@
 
   .close-btn {
     border-radius: 0px !important; 
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 8px 24px;
     font-weight: 700;
     font-size: 0.88rem;
@@ -1364,13 +1364,13 @@
 
   .close-btn:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-surface-alt) !important;
   }
 
   .close-btn:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   /* Font helper styles */
@@ -1391,10 +1391,10 @@
   .ogp-toggle-btn {
     width: 100%;
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 10px 16px;
     font-weight: 700;
     font-size: 0.82rem;
@@ -1410,13 +1410,13 @@
 
   .ogp-toggle-btn:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-surface-alt) !important;
   }
 
   .ogp-toggle-btn:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .toggle-icon {
@@ -1456,7 +1456,7 @@
   .ogp-preview-board :global(.board-container) {
     max-width: 160px !important;
     padding: 6px !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .ogp-control-row {
@@ -1489,7 +1489,7 @@
     height: 32px !important;
     margin: 0 !important;
     padding: 0 4px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
     text-align: center;
@@ -1538,7 +1538,7 @@
     gap: 8px;
     height: 44px;
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
@@ -1750,7 +1750,7 @@
       padding: 0 20px;
       font-size: 0.8rem;
       min-height: 48px;
-      border-left: 1.5px solid var(--wc-text);
+      border-left: 1.5px solid var(--wc-border-solid, var(--wc-text));
       border-top: none;
     }
 
@@ -1762,7 +1762,7 @@
       padding: 12px 16px;
       font-size: 0.8rem;
       min-height: 48px;
-      box-shadow: 2px 2px 0px var(--wc-text) !important;
+      box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     }
 
     .privacy-section {
@@ -1793,7 +1793,7 @@
       padding: 12px 28px;
       font-size: 0.85rem;
       min-height: 48px;
-      box-shadow: 2px 2px 0px var(--wc-text) !important;
+      box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     }
 
     /* OGP customization responsive styles */
@@ -1810,7 +1810,7 @@
     .ogp-preview-board :global(.board-container) {
       max-width: 120px !important;
       padding: 4px !important;
-      box-shadow: 2px 2px 0px var(--wc-text) !important;
+      box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     }
 
     .ogp-control-row {
@@ -1835,7 +1835,7 @@
       padding: 12px 16px;
       font-size: 0.8rem;
       min-height: 48px;
-      box-shadow: 2px 2px 0px var(--wc-text) !important;
+      box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     }
 
     /* SNS Share responsive styles */

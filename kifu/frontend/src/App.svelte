@@ -121,7 +121,11 @@
         selectedUserId = "";
         selectedKifuId = "";
         selectedShareToken = "";
-        if (!auth.isLoggedIn) {
+        const viewParam = params.get('view');
+        const validViews = ["list", "loading", "detail", "auth", "create", "admin_auth", "admin_dashboard", "public_list"] as const;
+        if (viewParam && (validViews as readonly string[]).includes(viewParam)) {
+          currentView = viewParam as typeof currentView;
+        } else if (!auth.isLoggedIn) {
           currentView = "auth";
         } else {
           currentView = "list";
@@ -291,7 +295,7 @@
       <div class="masthead-flex-row">
         <!-- Left decoration: collage tag (Parallax layered) -->
         <div class="parallax-tag-left" style="display: inline-block;">
-          <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-text); border-width: 2px;">
+          <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)); border: 1.5px solid var(--wc-border-solid, var(--wc-text));">
             EDITION II // TOKYO
           </span>
         </div>
@@ -309,14 +313,14 @@
 
         <!-- Right decoration: collage tag (slanted yellow, Parallax layered) -->
         <div class="parallax-tag-right" style="display: inline-block;">
-          <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; border-width: 2px; animation-delay: -2s;">
+          <span class="em-collage-tag em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)); animation-delay: -2s;">
             ISSUE // 2026
           </span>
         </div>
       </div>
 
       <!-- Meta Bar: Slanted/Collaged actions -->
-      <div class="em-newspaper-meta-bar" style="border: 1.5px solid var(--wc-text); background: var(--wc-surface); box-shadow: 3px 3px 0px var(--wc-text); padding: 8px 16px; margin-bottom: 15px;">
+      <div class="em-newspaper-meta-bar" style="border: 1.5px solid var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface); box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)); padding: 8px 16px; margin-bottom: 15px;">
         <div class="meta-info-group">
           <span style="font-weight: 600;">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           <span style="opacity: 0.5; font-family: 'JetBrains Mono', monospace;">●</span>
@@ -329,7 +333,7 @@
           
           {#if auth.isLoggedIn}
             <!-- Username chip -->
-            <button type="button" onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; background: var(--wc-surface-alt); border: 1px solid var(--wc-text); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-text); height: auto !important; line-height: normal !important;" aria-label="ユーザー名を変更する">
+            <button type="button" onclick={() => showUsernameDialog = true} class="cursor-pointer nav-link" style="color: var(--wc-text); text-decoration: none; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.05em; font-family: 'JetBrains Mono', sans-serif; background: var(--wc-surface-alt); border: 1px solid var(--wc-border-solid, var(--wc-text)); padding: 2px 10px; border-radius: 9999px; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); height: auto !important; line-height: normal !important;" aria-label="ユーザー名を変更する">
               @{auth.username}
             </button>
             <!-- Logout Link -->
@@ -337,7 +341,7 @@
           {/if}
           
           <!-- Theme Toggle -->
-          <button type="button" onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); display: flex; align-items: center; border: 1px solid var(--wc-text); background: var(--wc-surface); padding: 4px; box-shadow: 2px 2px 0px var(--wc-text); cursor: pointer;" aria-label="テーマの切り替え">
+          <button type="button" onclick={toggleTheme} class="cursor-pointer" style="color: var(--wc-text); display: flex; align-items: center; border: 1px solid var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface); padding: 4px; border-radius: 4px; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); cursor: pointer;" aria-label="テーマの切り替え">
             <i class="material-icons" aria-hidden="true" style="font-size: 0.95rem; color: var(--wc-accent-warm);">
               {themeMode === 'light' ? 'wb_sunny' : themeMode === 'dark' ? 'brightness_2' : 'brightness_auto'}
             </i>

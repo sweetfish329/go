@@ -399,7 +399,7 @@
   /* Base Vogue Admin Card */
   .admin-panel-card {
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
   }
@@ -448,7 +448,7 @@
 
   /* Sharp Tab Switcher */
   .tabs-container {
-    border: 1.5px solid var(--wc-text);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
     background: var(--wc-surface);
     box-shadow: 4px 4px 0px var(--wc-shadow-dark);
   }
@@ -466,7 +466,7 @@
     color: var(--wc-text-muted);
     cursor: pointer;
     transition: var(--wc-transition-fast);
-    border-right: 1.5px solid var(--wc-text);
+    border-right: 1.5px solid var(--wc-border-solid, var(--wc-text));
     font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
   }
 
@@ -487,10 +487,10 @@
   /* Action Buttons - Vogue sharp style */
   .logout-btn {
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 8px 18px;
     font-weight: 700;
     font-size: 0.88rem;
@@ -503,21 +503,21 @@
 
   .logout-btn:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-surface-alt) !important;
   }
 
   .logout-btn:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .save-settings-btn {
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-accent) !important;
     color: #FFFFFF !important;
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 10px 24px;
     font-weight: 700;
     font-size: 0.9rem;
@@ -530,13 +530,13 @@
 
   .save-settings-btn:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 5px 5px 0px var(--wc-text) !important;
+    box-shadow: 5px 5px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-accent-hover) !important;
   }
 
   .save-settings-btn:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .save-settings-btn:disabled {

@@ -1012,9 +1012,9 @@
 
 <div class="row kifu-detail-root">
   <!-- Header Navigation（PC表示・スマホでは非表示） -->
-  <div class="col s12 d-flex align-center justify-between kifu-header-nav" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-text); padding-bottom: 12px; position: relative; z-index: 10;">
+  <div class="col s12 d-flex align-center justify-between kifu-header-nav" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 12px; position: relative; z-index: 10;">
     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 16px; position: relative;">
-      <button class="em-collage-tag-pastel em-float-badge" onclick={onBack} style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; font-size: 0.68rem; text-transform: uppercase; font-weight: bold; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text);">
+      <button class="em-collage-tag-pastel em-float-badge" onclick={onBack} style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', sans-serif; font-size: 0.68rem; text-transform: uppercase; font-weight: bold; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text));">
         <i class="material-icons" style="font-size: 0.85rem; vertical-align: middle;">arrow_back</i>Back
       </button>
       {#if kifu}
@@ -1086,7 +1086,7 @@
       </div>
 
       <!-- Playback Controls -->
-      <div class="em-portfolio-section" style="margin-top: 2rem; border-color: var(--wc-text) !important; padding: 28px 20px 20px 20px !important;">
+      <div class="em-portfolio-section" style="margin-top: 2rem; border-color: var(--wc-border-solid, var(--wc-text)) !important; padding: 28px 20px 20px 20px !important;">
         <!-- Overlapping Badge -->
         <span class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 10; font-size: 0.72rem; transform: rotate(-1deg);">
           Playback Controls — Navigation
@@ -1096,7 +1096,7 @@
           <!-- Slider & Info -->
           <div class="range-field" style="display: flex; flex-direction: column; margin-bottom: 0.75rem; gap: 6px; width: 100%;">
             <div class="range-info-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-text); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-text); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
+              <span style="font-weight: 700; min-width: 70px; color: var(--wc-text); font-size: 0.88rem; font-family: 'JetBrains Mono', monospace; background: var(--wc-surface-alt); border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 2px 8px; text-align: center; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); transform: rotate(-0.5deg);">{currentIndex} / {maxIndex}手</span>
               <!-- 表示オプションアイコンボタン -->
               <button
                 type="button"
@@ -1147,7 +1147,7 @@
 
           {#if isViewingVariation}
             <div class="animate-fade-in" style="margin-top: 16px; display: flex; justify-content: center;">
-              <button type="button" class="nm-btn" onclick={handleReturnToMainPath} style="border-radius: 0px !important; border: 1px solid var(--wc-text) !important; background: var(--wc-surface) !important; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
+              <button type="button" class="nm-btn" onclick={handleReturnToMainPath} style="border-radius: 0px !important; border: 1px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;">
                 <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem;">assignment_return</i>
                 本線（元の棋譜）に戻る
               </button>
@@ -1164,28 +1164,28 @@
       <div class="em-vogue-editorial-section game-info-card hoverable" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
         <!-- Card Header Toggle (Click to Toggle) - Slanted Collage Tag overlapping top border -->
         <button type="button" class="card-header-toggle cursor-pointer" onclick={() => isGameInfoExpanded = !isGameInfoExpanded} aria-expanded={isGameInfoExpanded} aria-controls="game-info-details" style="width: 100%; border: none; background: none; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; text-align: left; padding: 0;">
-          <span class="em-collage-tag" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-text);">
+          <span class="em-collage-tag" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));">
             Info — Record Specs
           </span>
           <span style="font-weight: 700; font-size: 0.95rem; color: var(--wc-text); font-family: 'Shippori Mincho B1', serif; padding-top: 6px;">
             ● {kifu.black_player || 'Unknown'} vs ○ {kifu.white_player || 'Unknown'}
           </span>
-          <div class="nm-btn-flat" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+          <div class="nm-btn-flat" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
             <i class="material-icons" aria-hidden="true" style="font-size: 1.1rem; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform: {isGameInfoExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; color: var(--wc-text);">keyboard_arrow_down</i>
           </div>
         </button>
 
         <!-- Expanded details -->
         {#if isGameInfoExpanded}
-          <div id="game-info-details" class="card-content" style="padding: 16px 0 0 0; border-top: 1.5px solid var(--wc-text); margin-top: 14px; transition: all 0.3s ease;">
+          <div id="game-info-details" class="card-content" style="padding: 16px 0 0 0; border-top: 1.5px solid var(--wc-border-solid, var(--wc-text)); margin-top: 14px; transition: all 0.3s ease;">
             <table class="em-table">
               <tbody>
                 <tr>
-                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">● 黒番 (PB)</th>
-                  <td style="border-bottom-color: var(--wc-text);">
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-border-solid, var(--wc-text));">● 黒番 (PB)</th>
+                  <td style="border-bottom-color: var(--wc-border-solid, var(--wc-text));">
                     <span style="font-weight: 700; color: var(--wc-text);">{kifu.black_player || '不明'}</span>
                     {#if kifu.black_rank}
-                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt);">{kifu.black_rank}</span>
+                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; background: var(--wc-surface-alt);">{kifu.black_rank}</span>
                     {/if}
                     <div style="font-size: 0.8rem; color: var(--wc-text-muted); margin-top: 2px;">
                       アゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--wc-text);">{captives.W}</strong> 子
@@ -1193,11 +1193,11 @@
                   </td>
                 </tr>
                 <tr>
-                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">○ 白番 (PW)</th>
-                  <td style="border-bottom-color: var(--wc-text);">
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-border-solid, var(--wc-text));">○ 白番 (PW)</th>
+                  <td style="border-bottom-color: var(--wc-border-solid, var(--wc-text));">
                     <span style="font-weight: 700; color: var(--wc-text);">{kifu.white_player || '不明'}</span>
                     {#if kifu.white_rank}
-                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt);">{kifu.white_rank}</span>
+                      <span class="wc-tag" style="margin-left: 6px; font-size: 0.72rem; padding: 1px 6px; border: 1px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; background: var(--wc-surface-alt);">{kifu.white_rank}</span>
                     {/if}
                     <div style="font-size: 0.8rem; color: var(--wc-text-muted); margin-top: 2px;">
                       アゲハマ: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--wc-text);">{captives.B}</strong> 子
@@ -1205,16 +1205,16 @@
                   </td>
                 </tr>
                 <tr>
-                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">コミ / 置き石</th>
-                  <td style="font-family: 'JetBrains Mono', monospace; border-bottom-color: var(--wc-text);">コミ: {kifu.komi}目 / {kifu.handicap}子</td>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-border-solid, var(--wc-text));">コミ / 置き石</th>
+                  <td style="font-family: 'JetBrains Mono', monospace; border-bottom-color: var(--wc-border-solid, var(--wc-text));">コミ: {kifu.komi}目 / {kifu.handicap}子</td>
                 </tr>
                 <tr>
-                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">対局結果</th>
-                  <td style="font-weight: 700; color: var(--wc-accent); border-bottom-color: var(--wc-text);">{kifu.result || '対局中'}</td>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-border-solid, var(--wc-text));">対局結果</th>
+                  <td style="font-weight: 700; color: var(--wc-accent); border-bottom-color: var(--wc-border-solid, var(--wc-text));">{kifu.result || '対局中'}</td>
                 </tr>
                 <tr>
-                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-text);">対局日</th>
-                  <td style="border-bottom-color: var(--wc-text);">{kifu.game_date || '未登録'}</td>
+                  <th style="font-weight: 700; color: var(--wc-text); border-bottom-color: var(--wc-border-solid, var(--wc-text));">対局日</th>
+                  <td style="border-bottom-color: var(--wc-border-solid, var(--wc-text));">{kifu.game_date || '未登録'}</td>
                 </tr>
               </tbody>
             </table>
@@ -1227,7 +1227,7 @@
       {#if hasAiAnalysis && aiData.length > 0}
         <div class="em-vogue-editorial-section animate-fade-in" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
           <!-- Slanted Collage Tag -->
-          <span class="em-collage-tag-pastel" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-text); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important;">
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important;">
             AI Analysis — 分析グラフ
           </span>
           
@@ -1238,14 +1238,14 @@
                 <button 
                   class="nm-btn-flat {graphMode === 'winrate' ? 'active-tab' : ''}" 
                   onclick={() => graphMode = 'winrate'}
-                  style="padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1.5px solid var(--wc-text) !important; border-radius: 0; background: {graphMode === 'winrate' ? 'var(--wc-text)' : 'var(--wc-surface)'} !important; color: {graphMode === 'winrate' ? 'var(--wc-surface)' : 'var(--wc-text)'} !important; cursor: pointer;"
+                  style="padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0; background: {graphMode === 'winrate' ? 'var(--wc-text)' : 'var(--wc-surface)'} !important; color: {graphMode === 'winrate' ? 'var(--wc-surface)' : 'var(--wc-text)'} !important; cursor: pointer;"
                 >
                   勝率
                 </button>
                 <button 
                   class="nm-btn-flat {graphMode === 'score' ? 'active-tab' : ''}" 
                   onclick={() => graphMode = 'score'}
-                  style="padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1.5px solid var(--wc-text) !important; border-radius: 0; background: {graphMode === 'score' ? 'var(--wc-text)' : 'var(--wc-surface)'} !important; color: {graphMode === 'score' ? 'var(--wc-surface)' : 'var(--wc-text)'} !important; cursor: pointer;"
+                  style="padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0; background: {graphMode === 'score' ? 'var(--wc-text)' : 'var(--wc-surface)'} !important; color: {graphMode === 'score' ? 'var(--wc-surface)' : 'var(--wc-text)'} !important; cursor: pointer;"
                 >
                   目数差
                 </button>
@@ -1259,7 +1259,7 @@
             <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
             <div 
               class="ai-graph-container" 
-              style="position: relative; height: 120px; border: 2.5px solid var(--wc-text); background: var(--wc-surface-alt); padding: 8px; box-sizing: border-box; box-shadow: 3px 3px 0px var(--wc-text); cursor: crosshair;"
+              style="position: relative; height: 120px; border: 2.5px solid var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface-alt); padding: 8px; box-sizing: border-box; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)); cursor: crosshair;"
               onmousemove={handleGraphMouseMove}
               onmouseleave={handleGraphMouseLeave}
               onclick={handleGraphClick}
@@ -1361,7 +1361,7 @@
             </div>
 
             <!-- Graph Hover Tooltip / Status -->
-            <div style="margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--wc-text); display: flex; justify-content: space-between; align-items: center; border: 1.5px solid var(--wc-text); padding: 6px 12px; background: var(--wc-surface-alt); box-shadow: 2px 2px 0px var(--wc-text);">
+            <div style="margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--wc-text); display: flex; justify-content: space-between; align-items: center; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 6px 12px; background: var(--wc-surface-alt); box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text));">
               {#if graphHoverIndex !== null}
                 {@const hoverD = aiData.find(d => d.moveNumber === graphHoverIndex)}
                 <span style="font-weight: 700;">{graphHoverIndex}手目 ({graphHoverIndex % 2 === 0 ? '○白' : '●黒'})</span>
@@ -1385,7 +1385,7 @@
             
             <!-- Candidates List Detail -->
             {#if aiCandidates && aiCandidates.length > 0}
-              <div style="margin-top: 14px; border: 1.5px solid var(--wc-text); padding: 10px; background: var(--wc-surface);">
+              <div style="margin-top: 14px; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 10px; background: var(--wc-surface);">
                 <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid var(--wc-border); padding-bottom: 4px;">AI候補手リスト</div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
                   {#each aiCandidates as cand}
@@ -1402,7 +1402,7 @@
                     >
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <span 
-                          style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--wc-text); background: {getCandidateColor(cand)};"
+                          style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--wc-border-solid, var(--wc-text)); background: {getCandidateColor(cand)};"
                         ></span>
                         <span style="font-family: 'JetBrains Mono', monospace; font-weight: bold;">
                           {cand.isBest ? '最善手' : `候補 ${cand.rank}`} ({cand.coords})
@@ -1435,21 +1435,21 @@
       {#if alternativeBranches.length > 0}
         <div class="em-vogue-editorial-section animate-fade-in" style="margin-top: 1.5rem; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
           <!-- Slanted Collage Tag -->
-          <span class="em-collage-tag-pastel" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important;">
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -14px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important;">
             Variations — 変化図
           </span>
           <div class="card-content" style="padding: 16px 0 0 0;">
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
               <!-- Main branch return button if not on primary branch -->
               {#if isViewingVariation}
-                <button type="button" class="share-settings-btn" onclick={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-text) !important;">
+                <button type="button" class="share-settings-btn" onclick={handleReturnToMainPath} style="display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;">
                   <i class="material-icons" aria-hidden="true" style="font-size: 1.05rem; vertical-align: middle;">assignment_return</i>
                   本線に戻る
                 </button>
               {/if}
               <!-- Display other branch buttons -->
               {#each alternativeBranches as branch}
-                <button type="button" class="share-settings-btn" onclick={() => selectBranch(branch.originalIndex)} style="background: var(--wc-surface-alt) !important; border: 1.5px solid var(--wc-text) !important; display: inline-flex; align-items: center; gap: 4px;">
+                <button type="button" class="share-settings-btn" onclick={() => selectBranch(branch.originalIndex)} style="background: var(--wc-surface-alt) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; gap: 4px;">
                   <i class="material-icons" aria-hidden="true" style="font-size: 1.05rem; vertical-align: middle;">call_split</i>
                   {branch.label}
                 </button>
@@ -1463,7 +1463,7 @@
       <div class="em-vogue-editorial-section" style="min-height: 180px; display: flex; flex-direction: column; margin-bottom: 2rem; border-bottom: 1.5px solid var(--wc-border); padding: 24px 0 20px 0 !important; position: relative;">
         <div class="card-content" style="padding: 16px 0 0 0; flex-grow: 1; position: relative;">
           <!-- Overlapping Title with Collage style -->
-          <span class="em-collage-tag-pastel" style="position: absolute; top: -38px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-text);">
+          <span class="em-collage-tag-pastel" style="position: absolute; top: -38px; left: 0; z-index: 10; font-size: 0.72rem; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text));">
             Reviews (第 {currentIndex} 手)
           </span>
 
@@ -1477,11 +1477,11 @@
               {#each comments as comment}
                 <div class="comment-item" style="border-bottom: 1.5px dashed var(--wc-border); padding: 14px 0; display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="flex-grow: 1; text-align: left;">
-                    <span class="wc-tag" style="font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">
+                    <span class="wc-tag" style="font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">
                       {comment.author}
                     </span>
                     {#if comment.isFromVariationRoot}
-                      <span class="wc-tag animate-fade-in" style="margin-left: 6px; font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface); color: var(--wc-accent); box-shadow: 1.5px 1.5px 0px var(--wc-text); display: inline-block;">
+                      <span class="wc-tag animate-fade-in" style="margin-left: 6px; font-weight: 700; margin-bottom: 8px; padding: 2px 10px; font-size: 0.7rem; letter-spacing: 0.05em; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; background: var(--wc-surface); color: var(--wc-accent); box-shadow: 1.5px 1.5px 0px var(--wc-shadow-solid, var(--wc-text)); display: inline-block;">
                         変化図の開始コメント
                       </span>
                     {/if}
@@ -1489,10 +1489,10 @@
                   </div>
                   {#if comment.reviewId && !isPublic && (isOwner || auth.username === comment.reviewerName)}
                     <div style="display: flex; gap: 6px; margin-left: 12px;">
-                      <button type="button" class="nm-btn-flat" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" aria-label="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+                      <button type="button" class="nm-btn-flat" onclick={() => handleEditReview(comment.reviewId || '', comment.reviewerName || '', comment.text)} title="指導を編集" aria-label="指導を編集" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
                         <i class="material-icons" aria-hidden="true" style="font-size: 1rem; color: var(--wc-text);">edit</i>
                       </button>
-                      <button type="button" class="nm-btn-flat" onclick={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" aria-label="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-text) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
+                      <button type="button" class="nm-btn-flat" onclick={() => handleDeleteReview(comment.reviewId || '')} title="指導を削除" aria-label="指導を削除" style="width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0 !important; background: var(--wc-surface) !important; display: flex; align-items: center; justify-content: center;">
                         <i class="material-icons" aria-hidden="true" style="font-size: 1rem; color: #e53935;">delete</i>
                       </button>
                     </div>
@@ -1504,9 +1504,9 @@
         </div>
 
         <!-- Mode Toggle & Edit Panel Footer -->
-        <div class="card-action" style="border-top: 1.5px solid var(--wc-text); padding: 16px 0 0 0; margin-top: 16px; background: transparent;">
+        <div class="card-action" style="border-top: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 16px 0 0 0; margin-top: 16px; background: transparent;">
           {#if isPublic}
-            <div class="wc-info-banner animate-fade-in" style="margin-bottom: 16px; background: rgba(37,53,48,0.05); border: 1.5px solid var(--wc-border); padding: 12px; font-size: 0.78rem; color: var(--wc-text-muted); display: flex; align-items: center; gap: 6px; box-shadow: 2px 2px 0px var(--wc-text); margin-top: 8px;">
+            <div class="wc-info-banner animate-fade-in" style="margin-bottom: 16px; background: rgba(37,53,48,0.05); border: 1.5px solid var(--wc-border); padding: 12px; font-size: 0.78rem; color: var(--wc-text-muted); display: flex; align-items: center; gap: 6px; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); margin-top: 8px;">
               <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm); vertical-align: middle;">info_outline</i>
               <span>一般公開中の棋譜は添削できません。添削を追加・編集するには限定公開に変更してください。</span>
             </div>
@@ -1516,13 +1516,13 @@
             <label style="font-weight: 500; display: inline-flex; align-items: center; gap: 8px; color: var(--wc-text); font-family: 'DM Sans', 'Noto Sans JP', sans-serif;">
               <span style="color: var(--wc-text-muted); font-size: 0.88rem;">通常再生</span>
               <input type="checkbox" bind:checked={reviewMode} disabled={isPublic}>
-              <span class="lever" style="background-color: var(--wc-border); border: 1px solid var(--wc-text);"></span>
+              <span class="lever" style="background-color: var(--wc-border); border: 1px solid var(--wc-border-solid, var(--wc-text));"></span>
               <span style="color: var(--wc-text); font-weight: 700; font-size: 0.88rem;">添削モード (盤面入力)</span>
             </label>
           </div>
 
           {#if reviewMode}
-            <div class="review-edit-panel animate-fade-in" style="margin-top: 12px; border-top: 1.5px dashed var(--wc-text); padding-top: 16px;">
+            <div class="review-edit-panel animate-fade-in" style="margin-top: 12px; border-top: 1.5px dashed var(--wc-border-solid, var(--wc-text)); padding-top: 16px;">
               <p style="font-size: 0.78rem; margin: 0 0 16px 0; color: var(--wc-text-muted); display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', 'Noto Sans JP', sans-serif; line-height: 1.45;">
                 <i class="material-icons" style="font-size: 0.95rem; color: var(--wc-accent-warm);">info_outline</i>
                 盤面をクリックして着手し、解説コメントを入力してください。
@@ -1530,11 +1530,11 @@
               
               <div class="row" style="margin-bottom: 0; display: flex; flex-direction: column; gap: 12px;">
                 <div class="input-field col s12" style="margin-top: 0; margin-bottom: 0;">
-                  <input id="reviewer_name" type="text" class="nm-input" bind:value={reviewerName} placeholder="添削者名を入力" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                  <input id="reviewer_name" type="text" class="nm-input" bind:value={reviewerName} placeholder="添削者名を入力" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
                   <label for="reviewer_name" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">添削者 (Reviewer)</label>
                 </div>
                 <div class="input-field col s12" style="margin-top: 4px; margin-bottom: 0;">
-                  <input id="review_comment" type="text" class="nm-input" bind:value={reviewComment} placeholder="指導・変化図の解説を入力" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important;" />
+                  <input id="review_comment" type="text" class="nm-input" bind:value={reviewComment} placeholder="指導・変化図の解説を入力" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
                   <label for="review_comment" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">コメント (Comment)</label>
                 </div>
                 <div class="col s12 right-align" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
@@ -1542,11 +1542,11 @@
                     <button class="nm-btn-flat" style="border-radius: 0 !important;" onclick={handleCancelEdit} disabled={isAddingReview}>
                       キャンセル
                     </button>
-                    <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text) !important;" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
+                    <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
                       <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 4px;">save</i>添削を更新
                     </button>
                   {:else}
-                    <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-text) !important; box-shadow: 2px 2px 0px var(--wc-text) !important;" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
+                    <button class="nm-btn-primary" style="border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;" disabled={!reviewerName || !reviewComment || isAddingReview} onclick={handleSaveReview}>
                       <i class="material-icons" style="font-size: 1.1rem; vertical-align: middle; margin-right: 4px;">save</i>添削を保存
                     </button>
                   {/if}
@@ -1711,8 +1711,8 @@
     background-color: var(--wc-surface) !important;
     color: var(--wc-text) !important;
     transition: transform 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease !important;
-    border: 1.5px solid var(--wc-text) !important;
-    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
@@ -1843,7 +1843,7 @@
   .board-wrapper.viewing-variation {
     border-color: var(--wc-accent-warm) !important;
     background-color: var(--wc-surface-alt) !important;
-    box-shadow: 6px 6px 0px var(--wc-text) !important;
+    box-shadow: 6px 6px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   /* Washi Clay Variation Badge */
@@ -1867,9 +1867,9 @@
     font-family: 'JetBrains Mono', sans-serif;
     font-size: 0.72rem;
     text-transform: uppercase;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
-    box-shadow: 2.5px 2.5px 0px var(--wc-text) !important;
+    box-shadow: 2.5px 2.5px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     font-weight: bold;
     padding: 4px 14px !important;
     color: var(--wc-text) !important;
@@ -1881,14 +1881,14 @@
     .share-settings-btn:hover {
       animation-play-state: paused !important; /* Pause pulse-btn animation on hover */
       transform: translate(-1.5px, -1.5px) scale(1.03) !important;
-      box-shadow: 4px 4px 0px var(--wc-text) !important;
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
       background-color: var(--wc-surface-alt) !important;
     }
   }
 
   .share-settings-btn:active {
     transform: translate(1px, 1px) scale(0.97) !important;
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   @media (min-width: 993px) {
@@ -1900,7 +1900,7 @@
 
   .candidate-row:hover, .candidate-row.hovered {
     background: var(--wc-surface-alt);
-    border-color: var(--wc-text) !important;
+    border-color: var(--wc-border-solid, var(--wc-text)) !important;
   }
   /* ---- スマホ：ヘッダーナビ非表示 / ボトムバー表示 ---- */
   @media only screen and (max-width: 600px) {
@@ -1927,8 +1927,8 @@
       right: 0;
       z-index: 200;
       background: var(--wc-surface);
-      border-top: 2px solid var(--wc-text);
-      box-shadow: 0 -3px 0 0 var(--wc-text);
+      border-top: 2px solid var(--wc-border-solid, var(--wc-text));
+      box-shadow: 0 -3px 0 0 var(--wc-shadow-solid, var(--wc-text));
       padding: 6px 12px;
       padding-bottom: max(6px, env(safe-area-inset-bottom));
       min-height: 48px;
@@ -1943,8 +1943,8 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       background: var(--wc-surface-alt);
-      border: 1.5px solid var(--wc-text);
-      box-shadow: 2px 2px 0 var(--wc-text);
+      border: 1.5px solid var(--wc-border-solid, var(--wc-text));
+      box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));
       padding: 4px 10px;
       color: var(--wc-text);
       cursor: pointer;
@@ -1969,8 +1969,8 @@
       width: 36px;
       height: 36px;
       background: var(--wc-surface-alt);
-      border: 1.5px solid var(--wc-text);
-      box-shadow: 2px 2px 0 var(--wc-text);
+      border: 1.5px solid var(--wc-border-solid, var(--wc-text));
+      box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));
       color: var(--wc-text);
       cursor: pointer;
       flex-shrink: 0;
@@ -1997,9 +1997,9 @@
     overflow-y: auto;
     z-index: 901;
     background: var(--wc-surface);
-    border: 2px solid var(--wc-text);
+    border: 2px solid var(--wc-border-solid, var(--wc-text));
     border-bottom: none;
-    box-shadow: 0 -4px 0 0 var(--wc-text);
+    box-shadow: 0 -4px 0 0 var(--wc-shadow-solid, var(--wc-text));
     padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-radius: 0;
     will-change: transform;
@@ -2026,7 +2026,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px 10px;
-    border-bottom: 1.5px solid var(--wc-text);
+    border-bottom: 1.5px solid var(--wc-border-solid, var(--wc-text));
   }
 
   :global(.settings-sheet-title) {
@@ -2044,9 +2044,9 @@
     justify-content: center;
     width: 30px;
     height: 30px;
-    border: 1.5px solid var(--wc-text);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
     background: var(--wc-surface-alt);
-    box-shadow: 2px 2px 0 var(--wc-text);
+    box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));
     color: var(--wc-text);
     cursor: pointer;
   }
@@ -2094,9 +2094,9 @@
     position: relative;
     width: 42px;
     height: 24px;
-    border: 1.5px solid var(--wc-text);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
     background: var(--wc-surface-alt);
-    box-shadow: 2px 2px 0 var(--wc-text);
+    box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s ease;
@@ -2133,8 +2133,8 @@
     width: 100%;
     padding: 10px 12px;
     background: var(--wc-surface-alt);
-    border: 1.5px solid var(--wc-text);
-    box-shadow: 2px 2px 0 var(--wc-text);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
+    box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.78rem;
     font-weight: 600;
@@ -2163,8 +2163,8 @@
     width: 32px !important;
     min-width: 32px !important;
     padding: 0 !important;
-    border: 1.5px solid var(--wc-text) !important;
-    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     border-radius: 0 !important;
     cursor: pointer;
@@ -2173,10 +2173,10 @@
   .settings-icon-btn:hover {
     background: var(--wc-surface-alt) !important;
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
   .settings-icon-btn:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 </style>

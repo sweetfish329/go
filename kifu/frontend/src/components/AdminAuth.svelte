@@ -119,7 +119,7 @@
 <style>
   .admin-auth-card {
     border-radius: 0px !important; /* Sharp Vogue corners */
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
   }
@@ -201,10 +201,10 @@
   .login-btn {
     width: 100%;
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-accent) !important;
     color: #FFFFFF !important;
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 12px 24px !important;
     font-weight: 700;
     font-size: 0.95rem;
@@ -215,13 +215,13 @@
 
   .login-btn:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 5px 5px 0px var(--wc-text) !important;
+    box-shadow: 5px 5px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-accent-hover) !important;
   }
 
   .login-btn:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .login-btn:disabled {

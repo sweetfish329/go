@@ -187,7 +187,7 @@
     max-width: 440px;
     background: var(--wc-surface) !important;
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     box-shadow: 8px 8px 0px var(--wc-shadow-dark) !important;
     padding: 32px 28px !important;
     max-height: calc(100vh - 40px);
@@ -284,10 +284,10 @@
   /* Vogue sharp solid buttons */
   .save-btn {
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-accent) !important;
     color: #FFFFFF !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 8px 24px !important;
     font-weight: 700;
     font-size: 0.88rem;
@@ -298,13 +298,13 @@
 
   .save-btn:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-accent-hover) !important;
   }
 
   .save-btn:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .save-btn:disabled {
@@ -316,10 +316,10 @@
 
   .cancel-btn {
     border-radius: 0px !important;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
-    box-shadow: 3px 3px 0px var(--wc-text) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     padding: 8px 24px;
     font-weight: 700;
     font-size: 0.88rem;
@@ -330,13 +330,13 @@
 
   .cancel-btn:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0px var(--wc-text) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     background: var(--wc-surface-alt) !important;
   }
 
   .cancel-btn:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   /* Typography / Fonts classes */

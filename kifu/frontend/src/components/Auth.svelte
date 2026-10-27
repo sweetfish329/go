@@ -315,13 +315,13 @@
   <div class="row hero-section" style="display: flex; flex-wrap: wrap; align-items: center; gap: 30px 0; min-height: 70vh;">
     <!-- Left Column: Giant Editorial Typo (Magazine Style) -->
     <div class="col s12 l7" style="position: relative; z-index: 2; padding-right: 40px; text-align: left;">
-      <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; display: inline-block; margin-bottom: 20px;">
+      <span class="em-collage-tag-pastel em-float-badge" style="font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); border-width: 1.5px; display: inline-block; margin-bottom: 20px;">
         CATALOGUE SYSTEM
       </span>
       <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 5rem; font-style: italic; font-weight: 800; line-height: 0.9; color: var(--wc-text); margin: 0 0 20px 0; letter-spacing: -0.02em;">
         kifu_store.
       </h2>
-      <div style="border-left: 3px solid var(--wc-text); padding-left: 20px; max-width: 440px;">
+      <div style="border-left: 3px solid var(--wc-border-solid, var(--wc-text)); padding-left: 20px; max-width: 440px;">
         <p style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 1.1rem; line-height: 1.6; color: var(--wc-text); margin: 0 0 12px 0;">
           囲碁の対局記録と分析管理
         </p>
@@ -341,8 +341,8 @@
 
     <!-- Right Column: Login Card -->
     <div class="col s12 l5" style="position: relative; z-index: 3;">
-      <div class="em-portfolio-section auth-card" style="border-color: var(--wc-text) !important; transform: rotate(-1.5deg); box-shadow: 8px 8px 0px var(--wc-text) !important; background: var(--wc-surface) !important; transition: transform 0.3s ease;">
-        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.72rem; z-index: 10; box-shadow: 2.5px 2.5px 0px var(--wc-text); transform: rotate(1deg);">
+      <div class="em-portfolio-section auth-card" style="border-color: var(--wc-border-solid, var(--wc-text)) !important; transform: rotate(-1.5deg); box-shadow: 8px 8px 0px var(--wc-shadow-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; transition: transform 0.3s ease;">
+        <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.72rem; z-index: 10; box-shadow: 2.5px 2.5px 0px var(--wc-shadow-solid, var(--wc-text)); transform: rotate(1deg);">
           ACCESS GATEWAYS
         </span>
 
@@ -363,7 +363,7 @@
           </div>
 
           {#if error}
-            <div class="error-panel" aria-live="polite" style="border-radius: 0px; border: 1.5px solid var(--wc-text); background: var(--wc-surface-alt); color: var(--wc-text); font-weight: 600; padding: 12px; margin-bottom: 20px; box-shadow: 3px 3px 0px var(--wc-text);">
+            <div class="error-panel" aria-live="polite" style="border-radius: 0px; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); background: var(--wc-surface-alt); color: var(--wc-text); font-weight: 600; padding: 12px; margin-bottom: 20px; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text));">
               <i class="material-icons" aria-hidden="true" style="font-size: 1.1rem; vertical-align: middle; margin-right: 6px;">error_outline</i>
               <span>{error}</span>
             </div>
@@ -372,12 +372,12 @@
           <!-- Social Login Buttons -->
           {#if loading}
             <div class="center-align" style="margin: 2.5rem 0;">
-              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 36px; height: 36px;"></div>
+              <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-border-solid, var(--wc-text)); width: 36px; height: 36px;"></div>
               <p class="text-muted" style="margin-top: 12px; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">CONNECTING...</p>
             </div>
           {:else}
             {#if !providers.google && !providers.line && !providers.meta}
-              <div class="center-align" style="margin-top: 15px; border: 2px solid var(--wc-text); padding: 24px 16px; background: var(--wc-surface-alt); box-shadow: 4px 4px 0px var(--wc-text);">
+              <div class="center-align" style="margin-top: 15px; border: 2px solid var(--wc-border-solid, var(--wc-text)); padding: 24px 16px; background: var(--wc-surface-alt); box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text));">
                 <i class="material-icons" aria-hidden="true" style="font-size: 2.2rem; color: var(--wc-accent); margin-bottom: 8px; display: block;">info_outline</i>
                 <p class="font-outfit" style="margin: 0; font-weight: 700; font-size: 0.95rem; color: var(--wc-text);">ソーシャルログインは現在無効化されています</p>
                 <p style="margin: 6px 0 0 0; font-size: 0.78rem; color: var(--wc-text-muted);">管理者へお問い合わせください。</p>
@@ -386,8 +386,8 @@
               <div class="social-login-grid" style="display: flex; flex-direction: column; gap: 14px;">
                 <!-- Google -->
                 {#if providers.google}
-                  <button class="social-btn google-btn em-pulse-button" onclick={() => handleOAuth('google')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; transition: all 0.2s ease;">
-                    <span class="social-btn-icon google-icon" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; border: 1.5px solid var(--wc-text); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">G</span>
+                  <button class="social-btn google-btn em-pulse-button" onclick={() => handleOAuth('google')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; transition: all 0.2s ease;">
+                    <span class="social-btn-icon google-icon" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; background: var(--wc-surface-alt); color: var(--wc-text);">G</span>
                     <span style="font-weight: 700; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: var(--wc-text);">Continue with Google</span>
                     <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--wc-text);">→</span>
                   </button>
@@ -395,8 +395,8 @@
 
                 <!-- LINE -->
                 {#if providers.line}
-                  <button class="social-btn line-btn em-pulse-button" onclick={() => handleOAuth('line')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; transition: all 0.2s ease; animation-delay: -1s;">
-                    <i class="material-icons social-btn-icon" aria-hidden="true" style="border: 1.5px solid var(--wc-text); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--wc-surface-alt); color: var(--wc-text);">chat</i>
+                  <button class="social-btn line-btn em-pulse-button" onclick={() => handleOAuth('line')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; transition: all 0.2s ease; animation-delay: -1s;">
+                    <i class="material-icons social-btn-icon" aria-hidden="true" style="border: 1.5px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--wc-surface-alt); color: var(--wc-text);">chat</i>
                     <span style="font-weight: 700; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: var(--wc-text);">Continue with LINE</span>
                     <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--wc-text);">→</span>
                   </button>
@@ -404,8 +404,8 @@
 
                 <!-- Meta -->
                 {#if providers.meta}
-                  <button class="social-btn meta-btn em-pulse-button" onclick={() => handleOAuth('meta')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; transition: all 0.2s ease; animation-delay: -2s;">
-                    <i class="material-icons social-btn-icon" aria-hidden="true" style="border: 1.5px solid var(--wc-text); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--wc-surface-alt); color: var(--wc-text);">facebook</i>
+                  <button class="social-btn meta-btn em-pulse-button" onclick={() => handleOAuth('meta')} style="border-radius: 0px !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; transition: all 0.2s ease; animation-delay: -2s;">
+                    <i class="material-icons social-btn-icon" aria-hidden="true" style="border: 1.5px solid var(--wc-border-solid, var(--wc-text)); border-radius: 0; padding: 4px; font-size: 1.1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--wc-surface-alt); color: var(--wc-text);">facebook</i>
                     <span style="font-weight: 700; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; color: var(--wc-text);">Continue with Meta</span>
                     <span class="social-btn-arrow" style="font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--wc-text);">→</span>
                   </button>
@@ -424,12 +424,12 @@
   <div class="scrolly-narrative-container" bind:this={containerEl}>
     <!-- Board Card: Placed directly in narrative container, positioned by JS state -->
     <div class="sticky-board-container state-{scrollStatus}" style="opacity: {boardOpacity}; transition: opacity 0.15s ease;">
-      <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-text); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
+      <span class="em-collage-tag-pastel em-float-badge" style="position: absolute; top: -16px; left: 24px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); border-width: 1.5px; z-index: 12; transform: rotate(-1deg);">
         LIVE REPLAY ARCHIVE
       </span>
 
       {#if player && boardState.length > 0}
-        <div class="board-wrapper" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-text); border: 1.5px solid var(--wc-text);">
+        <div class="board-wrapper" style="width: 100%; max-width: 320px; aspect-ratio: 1/1; margin: 16px auto 0 auto; box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)); border: 1.5px solid var(--wc-border-solid, var(--wc-text));">
           <Board
             board={boardState}
             size={boardSize}
@@ -455,7 +455,7 @@
         </div>
 
         <!-- Game Info -->
-        <div class="game-info-badge" style="margin-top: 16px; width: 100%; max-width: 320px; border: 1.5px solid var(--wc-text); padding: 8px 12px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-text); text-align: left; box-sizing: border-box;">
+        <div class="game-info-badge" style="margin-top: 16px; width: 100%; max-width: 320px; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 8px 12px; background: var(--wc-surface); box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)); text-align: left; box-sizing: border-box;">
           {#if kifuData}
             <div style="font-family: 'Shippori Mincho B1', serif; font-weight: 700; font-size: 0.88rem; color: var(--wc-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title={kifuData.title}>
               {kifuData.title}
@@ -478,7 +478,7 @@
         </div>
       {:else}
         <div style="padding: 2rem 0; text-align: center; color: var(--wc-text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; width: 100%;">
-          <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-text); width: 24px; height: 24px; margin-bottom: 8px;"></div>
+          <div class="nm-spinner mx-auto" style="border-top-color: var(--wc-border-solid, var(--wc-text)); width: 24px; height: 24px; margin-bottom: 8px;"></div>
           LOADING BOARD STATE...
         </div>
       {/if}
@@ -539,17 +539,17 @@
     {:else}
       <div class="bottom-login-row" style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; max-width: 500px; margin: 0 auto;">
         {#if providers.google}
-          <button type="button" class="social-btn google-btn font-sans" onclick={() => handleOAuth('google')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+          <button type="button" class="social-btn google-btn font-sans" onclick={() => handleOAuth('google')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-shadow-solid, var(--wc-text)) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
             <span>Googleでログイン</span>
           </button>
         {/if}
         {#if providers.line}
-          <button type="button" class="social-btn line-btn font-sans" onclick={() => handleOAuth('line')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+          <button type="button" class="social-btn line-btn font-sans" onclick={() => handleOAuth('line')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-shadow-solid, var(--wc-text)) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
             <span>LINEでログイン</span>
           </button>
         {/if}
         {#if providers.meta}
-          <button type="button" class="social-btn meta-btn font-sans" onclick={() => handleOAuth('meta')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-text) !important; border: 1.5px solid var(--wc-text) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
+          <button type="button" class="social-btn meta-btn font-sans" onclick={() => handleOAuth('meta')} style="width: 160px; justify-content: center; padding: 10px 16px; font-size: 0.82rem; border-radius: 0; box-shadow: 2.5px 2.5px 0px var(--wc-shadow-solid, var(--wc-text)) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important; color: var(--wc-text) !important;">
             <span>Metaでログイン</span>
           </button>
         {/if}
@@ -577,9 +577,9 @@
     flex-direction: column;
     align-items: center;
     padding: 1.5rem;
-    border: 2.5px solid var(--wc-text);
+    border: 2.5px solid var(--wc-border-solid, var(--wc-text));
     background: var(--wc-surface-alt);
-    box-shadow: 6px 6px 0px var(--wc-text);
+    box-shadow: 6px 6px 0px var(--wc-shadow-solid, var(--wc-text));
     max-width: 380px;
     width: 90%;
     will-change: transform, opacity;
@@ -628,7 +628,7 @@
     height: 32px;
     width: 32px;
     padding: 0;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     border-radius: 0 !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
@@ -636,13 +636,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
   
   .board-mini-controls .nm-btn-flat:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px var(--wc-text) !important;
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
   }
 
   .board-mini-controls .move-counter {
@@ -651,13 +651,13 @@
     align-items: center;
     justify-content: center;
     padding: 0 12px;
-    border: 1.5px solid var(--wc-text) !important;
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important;
     border-radius: 0 !important;
     background: var(--wc-surface) !important;
     color: var(--wc-text) !important;
     font-weight: 700;
     font-size: 0.82rem;
-    box-shadow: 2px 2px 0px var(--wc-text) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
     box-sizing: border-box;
   }
 
@@ -689,8 +689,8 @@
     width: 35%;
     min-width: 290px;
     padding: 2rem;
-    border: 2px solid var(--wc-text);
-    box-shadow: 4px 4px 0px var(--wc-text);
+    border: 2px solid var(--wc-border-solid, var(--wc-text));
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text));
     transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.25s ease, box-shadow 0.25s ease;
     opacity: 0.3;
     transform: translateY(20px);
@@ -924,8 +924,8 @@
       width: 90% !important;
       max-width: 340px !important;
       margin: 0 auto !important;
-      box-shadow: 6px 6px 0px var(--wc-text) !important;
-      border: 2.5px solid var(--wc-text) !important;
+      box-shadow: 6px 6px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
+      border: 2.5px solid var(--wc-border-solid, var(--wc-text)) !important;
       background: var(--wc-surface-alt) !important;
       padding: 12px 16px !important;
       height: auto !important;
@@ -1053,7 +1053,7 @@
       transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.25s ease, box-shadow 0.25s ease;
       background: var(--wc-surface) !important;
       padding: 1.2rem !important;
-      box-shadow: 4px 4px 0px var(--wc-text) !important;
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid, var(--wc-text)) !important;
       box-sizing: border-box;
     }
 

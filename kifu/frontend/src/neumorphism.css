@@ -54,6 +54,8 @@
   --wc-board-border: var(--wc-text);
   --wc-board-star:   var(--wc-text);
   --wc-board-shadow: #1a2622;
+  --wc-shadow-solid: var(--wc-text); /* ライトテーマは既存のテキスト同色ソリッド影を完全維持 */
+  --wc-border-solid: var(--wc-text); /* ライトテーマは既存のテキスト同色境界線を完全維持 */
   --wc-go-black-grad-0:   var(--wc-text-light);
   --wc-go-black-grad-35:  var(--wc-go-black);
   --wc-go-black-grad-100: var(--wc-shadow-dark);
@@ -146,25 +148,27 @@
    ================================================================ */
 :root.dark {
   /* ================================================================
-     Nordic Dark Neon Pastel Palette — ダークセージ＆ネオンパステル
+     Washi Charcoal Sage Dark Palette — 和モダン・深玄セージ
      ================================================================ */
-  --wc-bg:           #352e35;   /* 深く静かなスモーキーパステルモーブ — ページ背景 */
-  --wc-surface:      #403840;   /* くすみパステルラベンダー面 */
-  --wc-surface-alt:  #4c434c;   /* ライトモーブ面 */
-  --wc-shadow-dark:  #1d191d;
-  --wc-shadow-light: #4e444e;
-  --wc-border:       #968996;   /* くすみモーブグレーの境界線 */
-  --wc-mid:          #706270;
-  --wc-text:         #ece5ec;   /* ペールモーブホワイト — テキスト */
-  --wc-text-muted:   #a395a3;
-  --wc-text-light:   #756775;
-  --wc-accent:       #e899c4;   /* 落ち着いたパステルモーヴピンク */
-  --wc-accent-hover: #f1b5d6;
-  --wc-accent-warm:  #f3ce73;   /* 落ち着いたパステルミモザ */
-  --wc-accent-warm-hover: #ffd985;
-  --wc-accent-soft:  rgba(232, 153, 196, 0.12);
-  --wc-glass-bg:     rgba(53, 46, 53, 0.85);
-  --wc-glass-border: rgba(232, 153, 196, 0.15);
+  --wc-bg:           #121816;   /* 深く静寂な木炭セージ — ページ背景 */
+  --wc-surface:      #1a2420;   /* 深みのある上質カード面 */
+  --wc-surface-alt:  #222f2b;   /* コントラストを高めたサブサーフェス */
+  --wc-shadow-dark:  #080d0b;   /* ソリッド影用の漆黒 */
+  --wc-shadow-light: #243530;
+  --wc-border:       #364741;   /* 洗練されたセージ境界線 */
+  --wc-border-solid: #3b4e47;   /* ソリッド境界線 */
+  --wc-shadow-solid: #080d0b;   /* 浮かない自然な深墨色のソリッド影 */
+  --wc-mid:          #5a736a;
+  --wc-text:         #e4ece8;   /* 柔らかな和紙ホワイト — 高い可読性と目に優しいコントラスト */
+  --wc-text-muted:   #8fa89f;   /* ミディアムセージグレー */
+  --wc-text-light:   #5d746c;
+  --wc-accent:       #f4a7c8;   /* 落ち着いた和風撫子ピンク */
+  --wc-accent-hover: #f9c6dc;
+  --wc-accent-warm:  #f0c458;   /* 上品な金箔ミモザゴールド */
+  --wc-accent-warm-hover: #f7d57a;
+  --wc-accent-soft:  rgba(244, 167, 200, 0.14);
+  --wc-glass-bg:     rgba(18, 24, 22, 0.88);
+  --wc-glass-border: rgba(244, 167, 200, 0.18);
 
   /* --- Go Stone & Board Colors (Dark Mode: Ash Wood 銘木スタイル) --- */
   --wc-board:        #504150;   /* レガシー互換 */
@@ -206,23 +210,25 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --wc-bg:           #141c19;
-    --wc-surface:      #1d2925;
-    --wc-surface-alt:  #253530;
-    --wc-shadow-dark:  #0a0e0d;
+    --wc-bg:           #121816;
+    --wc-surface:      #1a2420;
+    --wc-surface-alt:  #222f2b;
+    --wc-shadow-dark:  #080d0b;
     --wc-shadow-light: #243530;
-    --wc-border:       #2b3a36;
-    --wc-mid:          #506b62;
-    --wc-text:         #e2ede9;
-    --wc-text-muted:   #819c90;
-    --wc-text-light:   #50675d;
-    --wc-accent:       #f4b2d5;
-    --wc-accent-hover: #f9cce4;
-    --wc-accent-warm:  #ffd466;
-    --wc-accent-warm-hover: #ffe299;
-    --wc-accent-soft:  rgba(244, 178, 213, 0.12);
-    --wc-glass-bg:     rgba(20, 28, 25, 0.85);
-    --wc-glass-border: rgba(244, 178, 213, 0.15);
+    --wc-border:       #364741;
+    --wc-border-solid: #3b4e47;
+    --wc-shadow-solid: #080d0b;
+    --wc-mid:          #5a736a;
+    --wc-text:         #e4ece8;
+    --wc-text-muted:   #8fa89f;
+    --wc-text-light:   #5d746c;
+    --wc-accent:       #f4a7c8;
+    --wc-accent-hover: #f9c6dc;
+    --wc-accent-warm:  #f0c458;
+    --wc-accent-warm-hover: #f7d57a;
+    --wc-accent-soft:  rgba(244, 167, 200, 0.14);
+    --wc-glass-bg:     rgba(18, 24, 22, 0.88);
+    --wc-glass-border: rgba(244, 167, 200, 0.18);
 
     /* --- Go Stone & Board Colors (Dark Mode: Ash Wood 銘木スタイル) --- */
     --wc-board:        #23302c;
@@ -1570,4 +1576,209 @@ a,
     cursor: pointer;
   }
 }
+
+/* ================================================================
+   Dark Theme Refinement — 和モダン深玄ダークの全体洗練
+   ================================================================ */
+
+:root.dark {
+  /* 1. 背景ドットパルスを静寂で上質な薄さに抑える */
+  .em-bg-pulse-dots {
+    background-image: radial-gradient(rgba(143, 168, 159, 0.08) 1.5px, transparent 1.5px) !important;
+  }
+
+  /* 2. 巨大装飾文字（RECORDINGS, SECURE, 01）を目立ちすぎない品格ある透かしに */
+  .em-huge-title,
+  .masthead-bg-title {
+    color: rgba(228, 236, 232, 0.04) !important;
+    text-shadow: none !important;
+  }
+
+  /* 3. エディトリアルセクション・カードの白影・白枠を深墨色のソリッド影に */
+  .em-portfolio-section {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 6px 6px 0px var(--wc-shadow-solid) !important;
+  }
+  .em-portfolio-section:focus-within {
+    border-color: var(--wc-accent-warm) !important;
+    box-shadow: 8px 8px 0px var(--wc-shadow-solid) !important;
+  }
+
+  .em-portfolio-card {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+  }
+  .em-portfolio-card:hover {
+    box-shadow: 7px 7px 0px var(--wc-shadow-solid) !important;
+  }
+
+  /* 4. メタバー（ナビゲーション）の調和 */
+  .em-newspaper-meta-bar {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+  }
+
+  /* 5. コラージュタグ・バッジ */
+  .em-collage-tag,
+  .em-collage-tag-pastel {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+  }
+  .em-portfolio-section:hover .em-collage-tag,
+  .em-portfolio-section:hover .em-collage-tag-pastel {
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+  }
+  .em-portfolio-card:hover .em-index-num {
+    text-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+  }
+
+  /* 6. ボタン（プライマリ・セカンダリ） */
+  .nm-btn-primary {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+  }
+  .nm-btn-primary:hover {
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+  }
+  .nm-btn {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+  }
+  .nm-btn:hover {
+    box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+  }
+
+  /* 7. フォーム入力要素（input, select, textarea） */
+  .nm-input,
+  input[type=text],
+  input[type=password],
+  input[type=email],
+  input[type=date],
+  select,
+  textarea {
+    background-color: var(--wc-surface) !important;
+    border: 1.5px solid var(--wc-border-solid) !important;
+    color: var(--wc-text) !important;
+    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4) !important;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--wc-accent-warm) !important;
+    box-shadow: 0 0 0 2px rgba(240, 196, 88, 0.25) !important;
+    outline: none !important;
+  }
+
+  /* 8. スライダーつまみ */
+  input[type=range]::-webkit-slider-thumb {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid) !important;
+  }
+  input[type=range]::-moz-range-thumb {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid) !important;
+  }
+
+  /* 9. 一覧カード（KifuList） */
+  .kifu-tile-card {
+    border-color: var(--wc-border-solid) !important;
+    box-shadow: 5px 5px 0px var(--wc-shadow-solid) !important;
+  }
+  .kifu-tile-card:hover {
+    box-shadow: 7px 7px 0px var(--wc-shadow-solid) !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    .em-bg-pulse-dots {
+      background-image: radial-gradient(rgba(143, 168, 159, 0.08) 1.5px, transparent 1.5px) !important;
+    }
+    .em-huge-title,
+    .masthead-bg-title {
+      color: rgba(228, 236, 232, 0.04) !important;
+      text-shadow: none !important;
+    }
+    .em-portfolio-section {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 6px 6px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-portfolio-section:focus-within {
+      border-color: var(--wc-accent-warm) !important;
+      box-shadow: 8px 8px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-portfolio-card {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-portfolio-card:hover {
+      box-shadow: 7px 7px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-newspaper-meta-bar {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-collage-tag,
+    .em-collage-tag-pastel {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-portfolio-section:hover .em-collage-tag,
+    .em-portfolio-section:hover .em-collage-tag-pastel {
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+    }
+    .em-portfolio-card:hover .em-index-num {
+      text-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+    }
+    .nm-btn-primary {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+    }
+    .nm-btn-primary:hover {
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+    }
+    .nm-btn {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 3px 3px 0px var(--wc-shadow-solid) !important;
+    }
+    .nm-btn:hover {
+      box-shadow: 4px 4px 0px var(--wc-shadow-solid) !important;
+    }
+    .nm-input,
+    input[type=text],
+    input[type=password],
+    input[type=email],
+    input[type=date],
+    select,
+    textarea {
+      background-color: var(--wc-surface) !important;
+      border: 1.5px solid var(--wc-border-solid) !important;
+      color: var(--wc-text) !important;
+      box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4) !important;
+    }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--wc-accent-warm) !important;
+      box-shadow: 0 0 0 2px rgba(240, 196, 88, 0.25) !important;
+      outline: none !important;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 2px 2px 0px var(--wc-shadow-solid) !important;
+    }
+    input[type=range]::-moz-range-thumb {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 2px 2px 0px var(--wc-shadow-solid) !important;
+    }
+    .kifu-tile-card {
+      border-color: var(--wc-border-solid) !important;
+      box-shadow: 5px 5px 0px var(--wc-shadow-solid) !important;
+    }
+    .kifu-tile-card:hover {
+      box-shadow: 7px 7px 0px var(--wc-shadow-solid) !important;
+    }
+  }
+}
+
 
