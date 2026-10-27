@@ -497,7 +497,7 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * **対策**: `handleFileUpload` および `handleCameraCapture` 内で `await tick()` を明示的に呼び出し、DOMマウント完了を待機してから描画を実行。さらに `$effect` による自動再描画同期のフォールバックを完備。
 * **スマホ超高解像度写真（48MP/12MP等）のブラウザ Canvas テクスチャ上限（Black Canvas）対策**:
   * 4000x3000 を超える高解像度写真をそのまま `<canvas>` に設定すると、ブラウザおよび GPU のテクスチャ制限・メモリ上限により Canvas のアロケーションに失敗し、Canvas 全体が真っ黒（Black Screen）としてレンダリングされる致命的仕様が存在した。
-  * **対策**: `createScaledCanvas` により、画像の長辺を最大 1600px にアスペクト比を完全維持して自動ダウンサンプリング。Canvas の黒潰れを防止するとともに、Go WASM / ML モデルへの転送データ量（48MB→4MB程度）を劇的に削減し認識処理を高速化。
+  * **対策**: `createScaledCanvas` により、画像の長辺を最大 `2800px` (`MAX_IMAGE_DIMENSION = 2800`) にアスペクト比を完全維持して制限。ブラウザの 4096px GPUテクスチャ上限による黒潰れを防止しつつ、一般的なスマホ撮影画像（2000〜2700px）の1線エッジ・星・碁石特徴を一切劣化させずに Go WASM へ渡す設計とした。
 * **非対応フォーマット（HEIC）への事前通知とエラーハンドリング**:
   * iPhone 等の標準保存形式である HEIC は Chrome/Edge 等の PC ブラウザでネイティブデコードできないため、拡張子および MIME タイプを事前チェックして分かりやすい変換案内メッセージを表示。`reader.onerror` / `img.onerror` も完備。
 * **アスペクト比対応の `.canvas-stage` 構造と Flexbox 縮退防止**:
@@ -510,3 +510,15 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * ファイル選択時は `await img.decode()` を呼び出してブラウザの非同期画像展開完了を保証し、`drawImage` 時の透明/黒描画を防止。
   * 静止画撮影時は `videoEl.readyState >= 2` およびビデオ解像度の確定を検証し、未準備状態の黒フレームがキャプチャされるのを防止。
 
+### ㊴ 碁盤四隅自動検出におけるダミーONNXバイパス問題の解消とGo WASM幾何認識の精度向上
+* **ダミー（プレースホルダー）ONNXモデルによるGo WASMバイパス問題の解消**:
+  * `public/model/goban-corners.onnx`（197バイトの `kifu-init-model` プレースホルダー）は `Constant_0` ノードのみで常に固定値 `[0.1, 0.1, 0.9, 0.1, 0.9, 0.9, 0.1, 0.9]` を出力する初期化グラフであった。
+  * `MLCornerDetector` がこれを正常な学習済みモデルとしてロードし `confidence: 0.95` で固定矩形（10%〜90%）を即座に返していたため、`CameraCaptureModal.svelte` 側で本命の Go WASM `kifu.detectBoardCorners()`（木目ブロブ抽出・DirectGrid 1線探索・星ホモグラフィ・Förstnerサブピクセル吸着）が100%スキップされていた。
+  * **対策**: `MLCornerDetector.load()` にてモデルサイズ（`< 4096B`）および `'kifu-init-model'` シグネチャを検証し、プレースホルダーの場合は `isReady = false` としてセッション生成をスキップするよう修正。さらに `_postprocess()` でも定数ダミー出力を無効化し、`CameraCaptureModal.svelte` でも `mlRes.method === "ML-Keypoints"` の場合のみ採用して確実に Go WASM `detectBoardCorners` が動作するように統一。
+* **Go WASM 四隅認識アルゴリズム（`corners.go` / `direct_grid.go` / `board_blob.go`）の精度向上**:
+  * **右辺の外包（Outer-Envelope）RANSACペナルティ**: 1線・2線上に黒石が密集して木目ブロブ境界が内側に凹むケース（`test2-1.jpg` 等）で、外縁直線が内側に引きずられるのを防ぐため、`outsideCount` ペナルティを導入。
+  * **DirectGrid 垂直1線の透視傾き整合性制約**: `fitVertLineRANSAC` において木枠外縁の傾き `aRawRef` との差 `|a - aRawRef| <= 0.15` を課すことで、背景や碁笥のノイズ点へ誤フィットするのを遮断。
+  * **斜め俯角撮影時の上辺浸食補正と解像度スケール不変化**: 斜め撮影時（`|cT| > 0.05`）のモルフォロジー開処理・上辺石影による浸食補正と、縮小画像に対するピクセル閾値のスケール正規化（`scale`）を導入。
+  * **定量評価結果 (`eval_corners`)**:
+    * `test3-1.jpg` (王座戦予選 204手): IoU **91.08% → 93.37%**、頂点平均誤差 (MAE) **40.5px → 33.1px** に向上。
+    * `test2-1.jpg` (竜星戦 282手): IoU **89.02% → 91.14%**、頂点平均誤差 (MAE) **64.0px → 45.3px** に大幅向上。

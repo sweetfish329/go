@@ -88,17 +88,26 @@ func DetectBoardCorners(img image.Image) (*CornerDetectionResult, error) {
 
 // fitOuterBoundaryCorners は天板ブロブ境界点群から木枠外縁4直線をRANSAC推定し、外隅4点を算出する
 func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [4]Point {
-	fitVertLine := func(pts []Point) (float64, float64) {
+	scale := math.Min(1.0, math.Max(float64(w), float64(h))/2156.0)
+	if scale < 0.4 {
+		scale = 0.4
+	}
+
+	fitVertLine := func(pts []Point, isRight bool) (float64, float64) {
 		n := len(pts)
 		if n < 5 {
 			return 0, 0
 		}
 		var bestInliers []Point
+		bestScore := -1e9
 		bestA, bestB := 0.0, 0.0
+		minDY := 15.0 * scale
+		inlierTol := 25.0 * scale
+
 		for iter := 0; iter < 80; iter++ {
 			i1 := (iter * 17) % n
 			i2 := (iter*31 + 13) % n
-			if i1 == i2 || math.Abs(pts[i1].Y-pts[i2].Y) < 15.0 {
+			if i1 == i2 || math.Abs(pts[i1].Y-pts[i2].Y) < minDY {
 				continue
 			}
 			p1, p2 := pts[i1], pts[i2]
@@ -106,12 +115,19 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 			b := p1.X - a*p1.Y
 
 			var inliers []Point
+			outsideCount := 0
 			for _, p := range pts {
-				if math.Abs(p.X-(a*p.Y+b)) < 25.0 {
+				diff := p.X - (a*p.Y + b)
+				if math.Abs(diff) < inlierTol {
 					inliers = append(inliers, p)
+				} else if isRight && diff > inlierTol {
+					// 右辺において、中腹の黒石密集による内側凹みに引きずられて天板外形線が内側に食い込むのを防止
+					outsideCount++
 				}
 			}
-			if len(inliers) > len(bestInliers) {
+			score := float64(len(inliers)) - float64(outsideCount)*1.2
+			if score > bestScore && len(inliers) >= 3 {
+				bestScore = score
 				bestInliers = inliers
 				bestA, bestB = a, b
 			}
@@ -150,7 +166,7 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		for i := 0; i < len(leftPts) && i < len(rightPts); i++ {
 			if leftPts[i].Y >= midYMin && leftPts[i].Y <= midYMax {
 				w := rightPts[i].X - leftPts[i].X
-				if w > 50 {
+				if w > 50*scale {
 					midWidths = append(midWidths, w)
 				}
 			}
@@ -177,8 +193,8 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		}
 	}
 
-	aL, bL := fitVertLine(leftPts)
-	aR, bR := fitVertLine(rightPts)
+	aL, bL := fitVertLine(leftPts, false)
+	aR, bR := fitVertLine(rightPts, true)
 
 	// 底辺直線 (手前碁石密集による凹み耐性フィルタ)
 	botPts := blob.BotPts
@@ -191,7 +207,7 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		p75Y := ys[int(float64(len(ys))*0.75)]
 		var deepBotPts []Point
 		for _, p := range botPts {
-			if p.Y >= p75Y-140.0 {
+			if p.Y >= p75Y-140.0*scale {
 				deepBotPts = append(deepBotPts, p)
 			}
 		}
@@ -207,11 +223,13 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		}
 		var bestInliers []Point
 		bestC, bestD := 0.0, 0.0
+		minDX := 40.0 * scale
+		inlierTol := 30.0 * scale
 
 		for iter := 0; iter < 120; iter++ {
 			i1 := (iter * 19) % n
 			i2 := (iter*37 + 11) % n
-			if i1 == i2 || math.Abs(pts[i1].X-pts[i2].X) < 40.0 {
+			if i1 == i2 || math.Abs(pts[i1].X-pts[i2].X) < minDX {
 				continue
 			}
 			p1, p2 := pts[i1], pts[i2]
@@ -223,7 +241,7 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 
 			var inliers []Point
 			for _, p := range pts {
-				if math.Abs(p.Y-(c*p.X+d)) < 30.0 {
+				if math.Abs(p.Y-(c*p.X+d)) < inlierTol {
 					inliers = append(inliers, p)
 				}
 			}
@@ -279,7 +297,12 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 	okTop := false
 	if len(topPts) >= 8 {
 		cT, dT = fitHorizLine(topPts)
-		dT -= 25.0
+		// 俯角・斜め撮影時はモルフォロジー開処理(2セル)＋上辺碁石の影による浸食量を補正
+		if math.Abs(cT) > 0.05 {
+			dT -= 55.0 * scale
+		} else {
+			dT -= 25.0 * scale
+		}
 		okTop = true
 	}
 
@@ -325,7 +348,7 @@ func fitOuterBoundaryCorners(img image.Image, blob *BoardBlobResult, w, h int) [
 		if len(centerTopYs) >= 5 {
 			sort.Float64s(centerTopYs)
 			medBlobTopY := centerTopYs[len(centerTopYs)/2]
-			bestTopY = medBlobTopY - 25.0
+			bestTopY = medBlobTopY - 25.0*scale
 		}
 		perspectiveSlopeRatio := 0.35
 		cT = cB * perspectiveSlopeRatio

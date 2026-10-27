@@ -300,8 +300,9 @@
     onClose();
   }
 
-  // 巨大画像によるブラウザCanvasクラッシュ・テクスチャ上限（Black Canvas）を回避する最大解像度
-  const MAX_IMAGE_DIMENSION = 1600;
+  // 巨大画像（4000px超）によるブラウザCanvasクラッシュ・テクスチャ上限（Black Canvas）を回避しつつ、
+  // スマホ標準解像度（2000〜2700px）の1線エッジ・星・碁石特徴を劣化させない最大解像度
+  const MAX_IMAGE_DIMENSION = 2800;
 
   function createScaledCanvas(imageSource: HTMLImageElement | HTMLVideoElement): HTMLCanvasElement {
     const rawWidth = (imageSource as HTMLVideoElement).videoWidth || (imageSource as HTMLImageElement).naturalWidth || (imageSource as any).width || 640;
@@ -433,23 +434,31 @@
     const height = (source as HTMLVideoElement).videoHeight || (source as HTMLImageElement).naturalHeight || source.height;
     if (!width || !height) return null;
 
-    // 1. 超軽量MLモデル（キーポイント検出）を最優先で実行
-    try {
-      const mlRes = await mlDetector.detect(source, kifu);
-      if (mlRes && mlRes.corners && mlRes.corners.length === 4) {
-        return mlRes.corners;
+    // 1. 学習済みMLモデルが有効な場合のみキーポイント推論を実行（ダミー/DefaultRectは除外）
+    if (mlDetector.isReady) {
+      try {
+        const mlRes = await mlDetector.detect(source);
+        if (mlRes && mlRes.method === "ML-Keypoints" && mlRes.corners && mlRes.corners.length === 4) {
+          return mlRes.corners;
+        }
+      } catch (mlErr) {
+        console.warn("ML corner detection notice:", mlErr);
       }
-    } catch (mlErr) {
-      console.warn("ML corner detection notice:", mlErr);
     }
 
-    // 2. オフスクリーン Canvas で RGBA データを取得し Go WASM（ハフ変換・消失点解析）でフォールバック
-    const offscreen = document.createElement("canvas");
-    offscreen.width = width;
-    offscreen.height = height;
-    const ctx = offscreen.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(source, 0, 0, width, height);
+    // 2. Canvas から RGBA データを取得し Go WASM（木目領域抽出・DirectGrid 1線探索・消失点解析）を実行
+    let ctx: CanvasRenderingContext2D | null = null;
+    if (source instanceof HTMLCanvasElement) {
+      ctx = source.getContext("2d", { willReadFrequently: true });
+    }
+    if (!ctx) {
+      const offscreen = document.createElement("canvas");
+      offscreen.width = width;
+      offscreen.height = height;
+      ctx = offscreen.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return null;
+      ctx.drawImage(source, 0, 0, width, height);
+    }
     const imgData = ctx.getImageData(0, 0, width, height);
 
     if (kifu.isReady()) {

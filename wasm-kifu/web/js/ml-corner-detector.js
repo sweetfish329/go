@@ -67,7 +67,28 @@ export class MLCornerDetector {
                 graphOptimizationLevel: 'all',
             };
 
-            this.session = await this.ort.InferenceSession.create(this.modelPath, sessionOptions);
+            let modelSource = this.modelPath;
+            if (typeof fetch === 'function' && typeof this.modelPath === 'string') {
+                const resp = await fetch(this.modelPath);
+                if (!resp.ok) {
+                    throw new Error(`HTTP ${resp.status} fetching ${this.modelPath}`);
+                }
+                const buf = await resp.arrayBuffer();
+                // プレースホルダー（ダミー定数モデル < 4KB または 'kifu-init-model'）の検知とスキップ
+                const headerStr = new TextDecoder('utf-8', { fatal: false }).decode(
+                    new Uint8Array(buf, 0, Math.min(buf.byteLength, 512))
+                );
+                if (buf.byteLength < 4096 || headerStr.includes('kifu-init-model')) {
+                    console.info('[MLCornerDetector] Placeholder ONNX model detected. Delegating corner detection to Go WASM engine.');
+                    this.session = null;
+                    this.isReady = false;
+                    this.isLoading = false;
+                    return false;
+                }
+                modelSource = buf;
+            }
+
+            this.session = await this.ort.InferenceSession.create(modelSource, sessionOptions);
             this.isReady = true;
             this.isLoading = false;
             return true;
@@ -210,6 +231,13 @@ export class MLCornerDetector {
 
         // 形式 1: 直接回帰モデル [1, 8] または [1, 4, 2] (正規化座標 0.0〜1.0)
         if (dims.length === 2 && dims[1] === 8) {
+            // 定数ダミー出力 [0.1, 0.1, 0.9, 0.1, 0.9, 0.9, 0.1, 0.9] の場合は無効化
+            const dummyExpected = [0.1, 0.1, 0.9, 0.1, 0.9, 0.9, 0.1, 0.9];
+            const isDummy = dummyExpected.every((v, idx) => Math.abs((data[idx] ?? 0) - v) < 1e-3);
+            if (isDummy) {
+                return null;
+            }
+
             const corners = [];
             for (let i = 0; i < 4; i++) {
                 const normX = data[i * 2];

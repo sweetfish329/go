@@ -317,9 +317,14 @@ func morphOpen(grid [][]bool, w, h, radius int) [][]bool {
 // 厚みのある卓上盤や脚付盤でも底辺直線 (cB, dB) を側面底から天板上面エッジへ高精度に引き戻す (NotebookLM 学術数理モデル)。
 func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBot float64) (float64, float64) {
 	bounds := img.Bounds()
-	imgH := bounds.Dy()
-	maxThick := math.Min(160.0, wBot*0.12)
-	if maxThick < 20.0 {
+	imgW, imgH := bounds.Dx(), bounds.Dy()
+	scale := math.Min(1.0, math.Max(float64(imgW), float64(imgH))/2156.0)
+	if scale < 0.4 {
+		scale = 0.4
+	}
+
+	maxThick := math.Min(160.0*scale, wBot*0.12)
+	if maxThick < 16.0*scale {
 		return cB, dB
 	}
 
@@ -332,10 +337,13 @@ func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBo
 
 	numSteps := 20
 	stepX := (maxX - minX) * 0.60 / float64(numSteps)
+	minDy := math.Max(8.0, 12.0*scale)
+	stepDy := math.Max(1.0, 2.0*scale)
+
 	for i := 0; i <= numSteps; i++ {
 		x := minX + (maxX-minX)*0.20 + float64(i)*stepX
 		ix := int(x)
-		if ix < 5 || ix >= bounds.Dx()-5 {
+		if ix < 5 || ix >= imgW-5 {
 			continue
 		}
 		initY := cB*x + dB
@@ -343,7 +351,7 @@ func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBo
 		bestY := -1.0
 		bestScore := 0.0
 
-		for dy := 12.0; dy <= maxThick; dy += 2.0 {
+		for dy := minDy; dy <= maxThick; dy += stepDy {
 			y := initY - dy
 			iy := int(y)
 			if iy < 10 || iy >= imgH-10 {
@@ -392,11 +400,12 @@ func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBo
 
 	maxInliers := 0
 	var bestInlierDs []float64
+	inlierTol := 15.0 * scale
 
 	for _, o := range offsets {
 		var curInliers []float64
 		for _, other := range offsets {
-			if math.Abs(other.d-o.d) < 15.0 {
+			if math.Abs(other.d-o.d) < inlierTol {
 				curInliers = append(curInliers, other.d)
 			}
 		}
@@ -410,7 +419,7 @@ func refineBottomLineWithShadow(img image.Image, cB, dB float64, minX, maxX, wBo
 		sort.Float64s(bestInlierDs)
 		medD := bestInlierDs[len(bestInlierDs)/2]
 		shift := dB - medD
-		if shift >= 10.0 && shift <= maxThick {
+		if shift >= 10.0*scale && shift <= maxThick {
 			return cB, medD
 		}
 	}
