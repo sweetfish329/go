@@ -101,11 +101,15 @@
     }
   });
 
+  // 描画済み画像バージョン追跡（再描画の完全同期）
+  let renderedImageSource: HTMLCanvasElement | null = null;
+
   // loadedImageMat と previewCanvas の同期保証（マウント後の確実な描画）
   $effect(() => {
     if (loadedImageMat && previewCanvas) {
       const source = loadedImageMat as HTMLCanvasElement;
-      if (previewCanvas.width !== source.width || previewCanvas.height !== source.height) {
+      if (renderedImageSource !== source || previewCanvas.width !== source.width || previewCanvas.height !== source.height) {
+        renderedImageSource = source;
         drawLoadedImageOnPreview(source);
       }
     }
@@ -114,6 +118,7 @@
   function resetState() {
     cornerPoints = [];
     loadedImageMat = null;
+    renderedImageSource = null;
     detectedBoard = null;
     detectedBlackCount = 0;
     detectedWhiteCount = 0;
@@ -130,6 +135,13 @@
     if (!videoEl || !isCvReady) return;
     try {
       errorMessage = "";
+      // 既存の mediaStream がアクティブな場合はトラックを再利用して新しい videoEl にアタッチ
+      if (mediaStream && mediaStream.active && mediaStream.getVideoTracks().some(t => t.readyState === "live")) {
+        videoEl.srcObject = mediaStream;
+        videoEl.setAttribute("playsinline", "");
+        await videoEl.play().catch(e => console.warn("video.play notice:", e));
+        return;
+      }
       stopCameraStream();
       mediaStream = await detector.startCamera(videoEl, facingMode);
     } catch (err: any) {
@@ -147,15 +159,18 @@
 
   function toggleCameraFacing() {
     facingMode = facingMode === "environment" ? "user" : "environment";
+    stopCameraStream();
     startCameraStream();
   }
 
-  function handleTabChange(tab: "stream" | "camera" | "file") {
+  async function handleTabChange(tab: "stream" | "camera" | "file") {
     activeTab = tab;
     stopStreamRecording();
     resetState();
     if (tab === "stream" || tab === "camera") {
-      setTimeout(() => startCameraStream(), 100);
+      // Svelte の DOM 更新で新しい videoEl がバインドされるのを待機
+      await tick();
+      await startCameraStream();
     } else {
       stopCameraStream();
     }
@@ -342,6 +357,14 @@
 
       img.onload = async () => {
         try {
+          if (typeof img.decode === "function") {
+            try {
+              await img.decode();
+            } catch (decodeErr) {
+              console.warn("img.decode non-fatal notice:", decodeErr);
+            }
+          }
+
           if (!img.naturalWidth || !img.naturalHeight) {
             errorMessage = "画像の解像度を取得できませんでした。画像ファイルが破損している可能性があります。";
             return;
@@ -367,6 +390,11 @@
 
   async function handleCameraCapture() {
     if (!videoEl) return;
+    if (videoEl.readyState < 2 || !videoEl.videoWidth || !videoEl.videoHeight) {
+      errorMessage = "カメラ映像の準備が整っていません。映像が表示されるまでお待ちください。";
+      return;
+    }
+
     try {
       errorMessage = "";
       const canvas = createScaledCanvas(videoEl);
@@ -385,6 +413,7 @@
 
   function drawLoadedImageOnPreview(canvasSource: HTMLCanvasElement) {
     if (!previewCanvas) return;
+    renderedImageSource = canvasSource;
     if (previewCanvas.width !== canvasSource.width) {
       previewCanvas.width = canvasSource.width;
     }
@@ -1519,8 +1548,9 @@
   .canvas-wrapper {
     position: relative;
     width: 100%;
-    max-height: 280px;
-    background: #111;
+    min-height: 200px;
+    max-height: 320px;
+    background: #1a1716;
     border: 1.5px solid var(--wc-text, #2c2523);
     border-radius: 4px;
     overflow: hidden;
@@ -1535,13 +1565,15 @@
     align-items: center;
     justify-content: center;
     max-width: 100%;
-    max-height: 280px;
+    max-height: 320px;
   }
 
   .board-preview-canvas {
     display: block;
     max-width: 100%;
-    max-height: 280px;
+    max-height: 320px;
+    width: auto;
+    height: auto;
     object-fit: contain;
     cursor: crosshair;
   }
