@@ -16,14 +16,51 @@ class WasmKifu {
      * @returns {Promise<void>}
      */
     async load(wasmPath) {
+        // wasm_exec.js が未ロードの場合は動的にスクリプトを読み込む
+        if (typeof Go === "undefined") {
+            await this._loadWasmExec(wasmPath);
+        }
         const go = new Go(); // wasm_exec.js が提供するグローバル
+        const response = await fetch(wasmPath);
         const result = await WebAssembly.instantiateStreaming(
-            fetch(wasmPath),
+            response,
             go.importObject
         );
         this.instance = result.instance;
         go.run(this.instance); // バックグラウンドで Go ランタイム実行
         this.wasmReady = true;
+    }
+
+    /**
+     * wasm_exec.js を動的にロードする内部メソッド
+     * @private
+     */
+    async _loadWasmExec(wasmPath) {
+        if (typeof window === "undefined" || typeof document === "undefined") {
+            throw new Error("Go wasm_exec.js requires a browser DOM environment.");
+        }
+        // wasmPath と同じディレクトリの wasm_exec.js またはルート/web/wasm/wasm_exec.js を探索
+        let execUrl = "/wasm/wasm_exec.js";
+        if (wasmPath) {
+            const lastSlash = wasmPath.lastIndexOf("/");
+            if (lastSlash !== -1) {
+                execUrl = wasmPath.slice(0, lastSlash) + "/wasm_exec.js";
+            }
+        }
+        return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = execUrl;
+            script.onload = () => resolve();
+            script.onerror = () => {
+                // フォールバックとしてルート /wasm/wasm_exec.js を試す
+                const fbScript = document.createElement("script");
+                fbScript.src = "/wasm/wasm_exec.js";
+                fbScript.onload = () => resolve();
+                fbScript.onerror = () => reject(new Error(`Failed to load wasm_exec.js from ${execUrl} and /wasm/wasm_exec.js`));
+                document.head.appendChild(fbScript);
+            };
+            document.head.appendChild(script);
+        });
     }
 
     /**
@@ -250,6 +287,36 @@ class WasmKifu {
         this._checkReady();
         const u8 = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData.buffer, rgbaData.byteOffset, rgbaData.byteLength);
         const result = wasmDetectWarpAndAnalyze(u8, width, height);
+        return JSON.parse(result);
+    }
+
+    /**
+     * 外部指定（ML検出または手動ドラッグ）の四隅座標を用いて射影変換〜石判定までを一括実行する
+     *
+     * @param {Uint8ClampedArray|Uint8Array} rgbaData - RGBAピクセル配列 (width * height * 4)
+     * @param {number} width - 画像幅
+     * @param {number} height - 画像高さ
+     * @param {Array<{x: number, y: number}>} corners - 4隅座標 [TL, TR, BR, BL]
+     * @param {boolean} [refineWithStars=false] - 星点によるサブピクセル精密化を実行するかどうか
+     * @returns {Object} FullBoardResult {
+     *   corners: Array<{x, y}>,
+     *   area: number,
+     *   confidence: number,
+     *   warpedWidth: number,
+     *   warpedHeight: number,
+     *   warpedRgbaBase64: string,
+     *   margin: number,
+     *   grid: number[],
+     *   blackCount: number,
+     *   whiteCount: number,
+     *   emptyCount: number
+     * }
+     */
+    warpAndAnalyzeWithCorners(rgbaData, width, height, corners, refineWithStars = false) {
+        this._checkReady();
+        const u8 = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData.buffer, rgbaData.byteOffset, rgbaData.byteLength);
+        const cornersJSON = JSON.stringify(corners);
+        const result = wasmWarpAndAnalyzeWithCorners(u8, width, height, cornersJSON, refineWithStars);
         return JSON.parse(result);
     }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"sort"
 )
 
 // StarPoint は盤面の星（花点）の検出結果
@@ -246,10 +247,11 @@ func RefineHomographyLM(initH [9]float64, points []StarPoint) [9]float64 {
 
 		candCost, _ := calcResiduals(candH)
 		if candCost < bestCost {
+			improvement := bestCost - candCost
 			bestCost = candCost
 			curH = candH
 			lambda *= 0.3
-			if math.Abs(bestCost-candCost) < 1e-4 {
+			if improvement < 1e-4 {
 				break
 			}
 		} else {
@@ -392,6 +394,12 @@ func (r *StarHomographyRefiner) DetectStarPoints(img image.Image, initialCorners
 	return detectedStars
 }
 
+// checkCollinear は3つの星点が同一線上にあるか判定する
+func checkCollinear(p1, p2, p3 StarPoint) bool {
+	area2 := (p2.NormX-p1.NormX)*(p3.NormY-p1.NormY) - (p2.NormY-p1.NormY)*(p3.NormX-p1.NormX)
+	return math.Abs(area2) < 1e-4
+}
+
 // FindHomographyRANSAC は複数の星候補から RANSAC により外れ値（石や影）を除外し、
 // 最良のインライア星群とそのホモグラフィ行列を返す
 func FindHomographyRANSAC(stars []StarPoint, maxReprojErr float64) ([9]float64, []StarPoint, error) {
@@ -400,37 +408,56 @@ func FindHomographyRANSAC(stars []StarPoint, maxReprojErr float64) ([9]float64, 
 		return [9]float64{}, nil, fmt.Errorf("at least 4 stars required, got %d", numStars)
 	}
 
-	bestInliers := []StarPoint{}
-	var bestH [9]float64
-	iters := 150
-	if numStars == 4 {
-		iters = 1
+	// 盤面上の星点は最大9個。信頼度の高い上位9個を優先
+	candStars := stars
+	if len(candStars) > 9 {
+		sorted := make([]StarPoint, len(stars))
+		copy(sorted, stars)
+		sort.Slice(sorted, func(i, j int) bool {
+			return sorted[i].Confidence > sorted[j].Confidence
+		})
+		candStars = sorted[:9]
+		numStars = len(candStars)
 	}
 
-	for it := 0; it < iters; it++ {
-		i1 := it % numStars
-		i2 := (it*3 + 1) % numStars
-		i3 := (it*7 + 2) % numStars
-		i4 := (it*11 + 3) % numStars
-		if i1 == i2 || i1 == i3 || i1 == i4 || i2 == i3 || i2 == i4 || i3 == i4 {
-			continue
-		}
-		sample := []StarPoint{stars[i1], stars[i2], stars[i3], stars[i4]}
-		h, err := FindHomographyLeastSquares(sample)
-		if err != nil {
-			continue
-		}
+	bestInliers := []StarPoint{}
+	var bestH [9]float64
 
-		var inliers []StarPoint
-		for _, s := range stars {
-			p := ProjectPoint(h, s.NormX, s.NormY)
-			if math.Hypot(p.X-s.ImgX, p.Y-s.ImgY) <= maxReprojErr {
-				inliers = append(inliers, s)
+	// 4点の組み合わせを網羅探索（最大 C(9, 4) = 126 通り）
+	for i1 := 0; i1 < numStars; i1++ {
+		for i2 := i1 + 1; i2 < numStars; i2++ {
+			for i3 := i2 + 1; i3 < numStars; i3++ {
+				// 3点が同一直線上の場合はスキップ
+				if checkCollinear(candStars[i1], candStars[i2], candStars[i3]) {
+					continue
+				}
+				for i4 := i3 + 1; i4 < numStars; i4++ {
+					// 任意の3点の共線判定
+					if checkCollinear(candStars[i1], candStars[i2], candStars[i4]) ||
+						checkCollinear(candStars[i1], candStars[i3], candStars[i4]) ||
+						checkCollinear(candStars[i2], candStars[i3], candStars[i4]) {
+						continue
+					}
+
+					sample := []StarPoint{candStars[i1], candStars[i2], candStars[i3], candStars[i4]}
+					h, err := FindHomographyLeastSquares(sample)
+					if err != nil {
+						continue
+					}
+
+					var inliers []StarPoint
+					for _, s := range stars {
+						p := ProjectPoint(h, s.NormX, s.NormY)
+						if math.Hypot(p.X-s.ImgX, p.Y-s.ImgY) <= maxReprojErr {
+							inliers = append(inliers, s)
+						}
+					}
+					if len(inliers) > len(bestInliers) {
+						bestInliers = inliers
+						bestH = h
+					}
+				}
 			}
-		}
-		if len(inliers) > len(bestInliers) {
-			bestInliers = inliers
-			bestH = h
 		}
 	}
 

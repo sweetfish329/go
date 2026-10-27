@@ -3,6 +3,7 @@
   import { fade, scale } from "svelte/transition";
   import { BoardDetector, type Point2D } from "@wasm-kifu/web/js/board-detector.js";
   import { WasmKifu } from "@wasm-kifu/web/js/wasm-bridge.js";
+  import { MLCornerDetector } from "@wasm-kifu/web/js/ml-corner-detector.js";
   import kifuWasmUrl from "@wasm-kifu/web/wasm/kifu.wasm?url";
 
   let { isOpen, onClose, onImport } = $props<{
@@ -55,17 +56,22 @@
   let notificationTimer: any = null;
 
   const detector = new BoardDetector();
-  const kifu = new WasmKifu();
+  const kifu: any = new WasmKifu();
+  const mlDetector: any = new MLCornerDetector({ modelPath: "/model/goban-corners.onnx" });
 
   onMount(async () => {
     try {
       statusMessage = "WASM エンジンを初期化中...";
       await kifu.load(kifuWasmUrl);
 
-      statusMessage = "画像認識ライブラリを準備中...";
-      await detector.waitForOpenCV();
-      isCvReady = true;
+      statusMessage = "ML 4隅検出モデルを準備中...";
+      try {
+        await mlDetector.load();
+      } catch (mlErr) {
+        console.warn("ML corner detector load notice:", mlErr);
+      }
 
+      isCvReady = true;
       isInitializing = false;
       statusMessage = "準備完了";
 
@@ -317,12 +323,22 @@
     renderCornerOverlay();
   }
 
-  function detectCornersFromElement(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): Point2D[] | null {
+  async function detectCornersFromElement(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): Promise<Point2D[] | null> {
     const width = (source as HTMLVideoElement).videoWidth || (source as HTMLImageElement).naturalWidth || source.width;
     const height = (source as HTMLVideoElement).videoHeight || (source as HTMLImageElement).naturalHeight || source.height;
     if (!width || !height) return null;
 
-    // 1. オフスクリーン Canvas で RGBA データを取得
+    // 1. 超軽量MLモデル（キーポイント検出）を最優先で実行
+    try {
+      const mlRes = await mlDetector.detect(source, kifu);
+      if (mlRes && mlRes.corners && mlRes.corners.length === 4) {
+        return mlRes.corners;
+      }
+    } catch (mlErr) {
+      console.warn("ML corner detection notice:", mlErr);
+    }
+
+    // 2. オフスクリーン Canvas で RGBA データを取得し Go WASM（ハフ変換・消失点解析）でフォールバック
     const offscreen = document.createElement("canvas");
     offscreen.width = width;
     offscreen.height = height;
@@ -331,7 +347,6 @@
     ctx.drawImage(source, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
 
-    // 2. Go WASM による高精度・ロバスト検出（RANSAC、ブロブ追跡、シャドウライン補正）
     if (kifu.isReady()) {
       try {
         const res = kifu.detectBoardCorners(imgData.data, width, height);
@@ -343,25 +358,13 @@
       }
     }
 
-    // 3. フォールバック: OpenCV.js
-    if (detector.isReady()) {
-      try {
-        const detected = detector.autoDetectCorners(offscreen);
-        if (detected && detected.length === 4) {
-          return detected;
-        }
-      } catch (err) {
-        console.warn("OpenCV autoDetectCorners notice:", err);
-      }
-    }
-
     return null;
   }
 
-  function autoDetectCornersFromSource(source: HTMLCanvasElement) {
+  async function autoDetectCornersFromSource(source: HTMLCanvasElement) {
     try {
       errorMessage = "";
-      const corners = detectCornersFromElement(source);
+      const corners = await detectCornersFromElement(source);
       if (corners && corners.length === 4) {
         cornerPoints = corners;
         detector.setCorners(corners);
@@ -376,42 +379,91 @@
     }
   }
 
-  function handlePreviewCanvasClick(e: MouseEvent) {
-    if (!previewCanvas || cornerPoints.length >= 4) return;
+  let draggingCornerIdx: number | null = null;
 
-    const rect = previewCanvas.getBoundingClientRect();
-    const scaleX = previewCanvas.width / rect.width;
-    const scaleY = previewCanvas.height / rect.height;
-
-    const point = {
-      x: Math.round((e.clientX - rect.left) * scaleX),
-      y: Math.round((e.clientY - rect.top) * scaleY),
-    };
-
-    cornerPoints = [...cornerPoints, point];
-
-    if (cornerPoints.length === 4) {
-      const source = loadedImageMat || previewCanvas;
-      if (source && detector.isReady()) {
-        try {
-          const refined = detector.refineCorners(source, cornerPoints);
-          if (refined && refined.length === 4) {
-            cornerPoints = refined;
-          }
-        } catch (err) {
-          console.warn("Corner refinement notice:", err);
-        }
+  function getCanvasCoords(e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    let clientX = 0, clientY = 0;
+    if ("touches" in e) {
+      if (e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if (e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
       }
-      detector.setCorners(cornerPoints);
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
+    return {
+      x: Math.round((clientX - rect.left) * scaleX),
+      y: Math.round((clientY - rect.top) * scaleY),
+    };
+  }
+
+  function handlePreviewPointerDown(e: MouseEvent | TouchEvent) {
+    if (!previewCanvas) return;
+    const pt = getCanvasCoords(e, previewCanvas);
+
+    // 4点設定済みの場合は既存頂点のドラッグ開始判定
+    if (cornerPoints.length === 4) {
+      let nearestIdx = -1;
+      let minDist = 40; // 40px 以内なら掴める
+      cornerPoints.forEach((cp, idx) => {
+        const d = Math.hypot(cp.x - pt.x, cp.y - pt.y);
+        if (d < minDist) {
+          minDist = d;
+          nearestIdx = idx;
+        }
+      });
+      if (nearestIdx !== -1) {
+        draggingCornerIdx = nearestIdx;
+        if ("preventDefault" in e && e.cancelable) e.preventDefault();
+        return;
+      }
+    }
+
+    // 4点未満の場合は新規ポイント追加
+    if (cornerPoints.length < 4) {
+      cornerPoints = [...cornerPoints, pt];
+      if (cornerPoints.length === 4) {
+        detector.setCorners(cornerPoints);
+      }
+      renderCornerOverlay();
+    }
+  }
+
+  function handlePreviewPointerMove(e: MouseEvent | TouchEvent) {
+    if (draggingCornerIdx === null || !previewCanvas) return;
+    if ("preventDefault" in e && e.cancelable) e.preventDefault();
+
+    const pt = getCanvasCoords(e, previewCanvas);
+    const updated = [...cornerPoints];
+    updated[draggingCornerIdx] = {
+      x: Math.max(0, Math.min(previewCanvas.width, pt.x)),
+      y: Math.max(0, Math.min(previewCanvas.height, pt.y)),
+    };
+    cornerPoints = updated;
     renderCornerOverlay();
   }
 
-  function autoDetectCornersFromVideo() {
+  function handlePreviewPointerUp() {
+    if (draggingCornerIdx !== null) {
+      draggingCornerIdx = null;
+      if (cornerPoints.length === 4) {
+        detector.setCorners(cornerPoints);
+      }
+    }
+  }
+
+  async function autoDetectCornersFromVideo() {
     if (!videoEl) return;
     try {
       errorMessage = "";
-      const corners = detectCornersFromElement(videoEl);
+      const corners = await detectCornersFromElement(videoEl);
       if (corners && corners.length === 4) {
         cornerPoints = corners;
         detector.setCorners(corners);
@@ -555,56 +607,54 @@
     errorMessage = "";
 
     try {
-      // 1. 実測間隔キャリブレーション（Recorded Spacings Model）
-      try {
-        detector.calibrateRecordedSpacings(loadedImageMat);
-      } catch (err) {
-        console.warn("Recorded spacings calibration fallback:", err);
-      }
+      const canvasEl = loadedImageMat as HTMLCanvasElement;
+      const width = canvasEl.width;
+      const height = canvasEl.height;
+      const ctx = canvasEl.getContext("2d");
+      const imgData = ctx?.getImageData(0, 0, width, height);
 
-      // 19x19 盤面マトリクスを初期化
-      const board: number[][] = Array.from({ length: 19 }, () => Array(19).fill(0));
-      let bCount = 0;
-      let wCount = 0;
-
-      // 2. 多次元特徴量抽出 (ドーナツ走査 + 距離変換スナッピング + 局所背景適応)
-      const features = detector.extractFeatures(loadedImageMat);
-
-      // 3. Go WASM による全盤面 (361交点) 一括高精度解析
       let fullBoard: any = null;
-      if (kifu.isReady()) {
+
+      // 1. Go WASM による4隅ワープ＋交点判定の一括実行
+      if (kifu.isReady() && imgData) {
         try {
-          fullBoard = kifu.analyzeFullBoard(features);
-        } catch (err) {
-          console.warn("WASM analyzeFullBoard notice:", err);
+          fullBoard = kifu.warpAndAnalyzeWithCorners(
+            imgData.data,
+            width,
+            height,
+            cornerPoints,
+            false // ユーザー指定またはML検出の4隅を厳格に尊重
+          );
+        } catch (wasmErr) {
+          console.warn("WASM warpAndAnalyzeWithCorners notice:", wasmErr);
         }
       }
 
-      if (fullBoard && fullBoard.grid && fullBoard.grid.length === 361) {
-        for (let y = 0; y < 19; y++) {
-          for (let x = 0; x < 19; x++) {
-            const val = fullBoard.grid[y * 19 + x];
-            board[y][x] = val;
-          }
+      // 2. フォールバック
+      if (!fullBoard || !fullBoard.grid || fullBoard.grid.length !== 361) {
+        const features = detector.extractFeatures(loadedImageMat);
+        if (kifu.isReady()) {
+          fullBoard = kifu.analyzeFullBoard(features);
+        } else {
+          const detected = detector.detect(loadedImageMat);
+          fullBoard = {
+            grid: detected,
+            blackCount: detected.filter((c: number) => c === 1).length,
+            whiteCount: detected.filter((c: number) => c === 2).length,
+          };
         }
-        bCount = fullBoard.blackCount ?? 0;
-        wCount = fullBoard.whiteCount ?? 0;
-      } else {
-        // フォールバック: OpenCV.js 直接分類
-        const detected = detector.detect(loadedImageMat);
-        for (let y = 0; y < 19; y++) {
-          for (let x = 0; x < 19; x++) {
-            const val = detected[y * 19 + x];
-            board[y][x] = val;
-            if (val === 1) bCount++;
-            if (val === 2) wCount++;
-          }
+      }
+
+      const board: number[][] = Array.from({ length: 19 }, () => Array(19).fill(0));
+      for (let y = 0; y < 19; y++) {
+        for (let x = 0; x < 19; x++) {
+          board[y][x] = fullBoard.grid[y * 19 + x];
         }
       }
 
       detectedBoard = board;
-      detectedBlackCount = bCount;
-      detectedWhiteCount = wCount;
+      detectedBlackCount = fullBoard.blackCount ?? 0;
+      detectedWhiteCount = fullBoard.whiteCount ?? 0;
     } catch (err: any) {
       console.error("Board analysis error:", err);
       errorMessage = `盤面解析エラー: ${err.message || err}`;
@@ -994,7 +1044,13 @@
             <div class="canvas-wrapper">
               <canvas
                 bind:this={previewCanvas}
-                onclick={handlePreviewCanvasClick}
+                onmousedown={handlePreviewPointerDown}
+                onmousemove={handlePreviewPointerMove}
+                onmouseup={handlePreviewPointerUp}
+                onmouseleave={handlePreviewPointerUp}
+                ontouchstart={handlePreviewPointerDown}
+                ontouchmove={handlePreviewPointerMove}
+                ontouchend={handlePreviewPointerUp}
                 class="board-preview-canvas"
               ></canvas>
               <canvas
@@ -1003,7 +1059,7 @@
               ></canvas>
             </div>
             <p class="calibration-hint">
-              ※ 角の位置がずれている場合は、左上 → 右上 → 右下 → 左下 の順に角をタップしてください。
+              ※ 角の位置がずれている場合は、各角の丸をドラッグして微調整できます（またはタップして再指定）。
             </p>
           </div>
         {/if}

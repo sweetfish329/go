@@ -56,42 +56,29 @@ func IntersectTwoGeneralLines(a1, b1, c1, a2, b2, c2 float64, fallback Point) Po
 
 // OrderCorners は4隅の座標を時計回り [左上(TL), 右上(TR), 右下(BR), 左下(BL)] に正準整列する
 func OrderCorners(pts [4]Point) [4]Point {
-	cx, cy := 0.0, 0.0
-	for _, p := range pts {
-		cx += p.X
-		cy += p.Y
-	}
-	cx /= 4.0
-	cy /= 4.0
-
-	type ptAngle struct {
-		p Point
-		a float64
-	}
-	angles := make([]ptAngle, 4)
-	for i, p := range pts {
-		angles[i] = ptAngle{p: p, a: math.Atan2(p.Y-cy, p.X-cx)}
-	}
-	sort.Slice(angles, func(i, j int) bool {
-		return angles[i].a < angles[j].a
+	// Y座標で昇順ソートして上部2点と下部2点に分離
+	sortedY := pts
+	sort.Slice(sortedY[:], func(i, j int) bool {
+		return sortedY[i].Y < sortedY[j].Y
 	})
 
-	minSumIdx := 0
-	minSum := angles[0].p.X + angles[0].p.Y
-	for i := 1; i < 4; i++ {
-		s := angles[i].p.X + angles[i].p.Y
-		if s < minSum {
-			minSum = s
-			minSumIdx = i
-		}
+	top1, top2 := sortedY[0], sortedY[1]
+	bot1, bot2 := sortedY[2], sortedY[3]
+
+	var tl, tr, br, bl Point
+	if top1.X < top2.X {
+		tl, tr = top1, top2
+	} else {
+		tl, tr = top2, top1
 	}
 
-	return [4]Point{
-		angles[minSumIdx].p,
-		angles[(minSumIdx+1)%4].p,
-		angles[(minSumIdx+2)%4].p,
-		angles[(minSumIdx+3)%4].p,
+	if bot1.X > bot2.X {
+		br, bl = bot1, bot2
+	} else {
+		br, bl = bot2, bot1
 	}
+
+	return [4]Point{tl, tr, br, bl}
 }
 
 // PolygonArea は靴紐の公式 (Shoelace formula) で多角形の面積を計算する
@@ -203,19 +190,27 @@ func rasterizeQuad(quad [4]Point, gw, gh int, scale float64) [][]bool {
 	return mask
 }
 
-// ApplyMarginInset は木枠外隅から内側の19路真格子隅へインセット逆算補正を行う (NotebookLM 幾何モデル)
+// ApplyMarginInset は木枠外隅から内側の19路真格子隅へインセット逆算補正を行う (透視射影整合幾何モデル)
 func ApplyMarginInset(corners [4]Point, insetX, insetY float64) [4]Point {
-	tl, tr, br, bl := corners[0], corners[1], corners[2], corners[3]
+	// 物理平面（正規化座標系 [0, 1]x[0, 1]）の外枠から画像上の外枠コーナーへのホモグラフィ行列を計算
+	unitBox := [4]Point{
+		{X: 0, Y: 0}, // TL
+		{X: 1, Y: 0}, // TR
+		{X: 1, Y: 1}, // BR
+		{X: 0, Y: 1}, // BL
+	}
+	h := getPerspectiveMatrix(unitBox, corners)
 
-	vTop := Point{X: tr.X - tl.X, Y: tr.Y - tl.Y}
-	vBot := Point{X: br.X - bl.X, Y: br.Y - bl.Y}
-	vLeft := Point{X: bl.X - tl.X, Y: bl.Y - tl.Y}
-	vRight := Point{X: br.X - tr.X, Y: br.Y - tr.Y}
+	// 物理平面上で等間隔な余白を内側に取った1線四隅を、透視投影を忠実に反映して射影
+	tlX, tlY := transformPoint(h, insetX, insetY)
+	trX, trY := transformPoint(h, 1.0-insetX, insetY)
+	brX, brY := transformPoint(h, 1.0-insetX, 1.0-insetY)
+	blX, blY := transformPoint(h, insetX, 1.0-insetY)
 
 	return [4]Point{
-		{X: tl.X + insetX*vTop.X + insetY*vLeft.X, Y: tl.Y + insetX*vTop.Y + insetY*vLeft.Y},
-		{X: tr.X - insetX*vTop.X + insetY*vRight.X, Y: tr.Y - insetX*vTop.Y + insetY*vRight.Y},
-		{X: br.X - insetX*vBot.X - insetY*vRight.X, Y: br.Y - insetX*vBot.Y - insetY*vRight.Y},
-		{X: bl.X + insetX*vBot.X - insetY*vLeft.X, Y: bl.Y + insetX*vBot.Y - insetY*vLeft.Y},
+		{X: tlX, Y: tlY},
+		{X: trX, Y: trY},
+		{X: brX, Y: brY},
+		{X: blX, Y: blY},
 	}
 }

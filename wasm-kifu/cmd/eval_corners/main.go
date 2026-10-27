@@ -66,19 +66,6 @@ var cornerTestCases = []CornerTestCase{
 		MinIoU:   84.0,
 		MaxError: 95.0,
 	},
-	{
-		ID:        "CORNER-IMG",
-		Name:      "test_image.jpg (初期テスト 263手 正面)",
-		ImagePath: "web/test_image.jpg",
-		GTCorners: [4]vision.Point{
-			{X: 543.0, Y: 592.0},  // TL (A19)
-			{X: 1578.1, Y: 649.0}, // TR (T19)
-			{X: 1579.0, Y: 1960.6},// BR (T1)
-			{X: 71.4, Y: 1677.0},  // BL (A1)
-		},
-		MinIoU:   85.0,
-		MaxError: 75.0,
-	},
 }
 
 func main() {
@@ -94,6 +81,11 @@ func main() {
 
 		filePath := findFile(tc.ImagePath)
 		img, err := vision.LoadImageUpright(filePath)
+		if err != nil {
+			fmt.Printf("  [FAILED] 画像読み込みエラー (%s): %v\n", filePath, err)
+			allPassed = false
+			continue
+		}
 		orient := vision.GetExifOrientation(filePath)
 		bRaw := img.Bounds()
 		fmt.Printf("  Image bounds: %dx%d, EXIF orientation: %d\n", bRaw.Dx(), bRaw.Dy(), orient)

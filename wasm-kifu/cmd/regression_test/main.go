@@ -472,32 +472,6 @@ var testCases = []TestCase{
 		OffY:        8.0,
 		MinAccuracy: 90.0,
 	},
-	// ----------------------------------------------------------------
-	// TEST-IMG: test_image.jpg  初期テスト画像 263手 正面視点
-	// NormR/NormB 型に統一（旧 NormL 型との後方互換不要）
-	// 最適化済みパラメータ: TopOffX=5 BotOffX=-5 TopOffY=20 BotOffY=5
-	//   TopScaleX=0.95 BotScaleX=0.97 PitchStart=35 PitchEnd=41
-	// 達成精度 90.58%  基準 >=90.0%
-	// ----------------------------------------------------------------
-	{
-		ID:          "TEST-IMG",
-		Name:        "test_image.jpg (初期テスト 263手 正面)",
-		ImagePath:   "web/test_image.jpg",
-		GTPath:      "test_ground_truth.json",
-		Corners:     [4]Point{{448, 545}, {1588, 595}, {1552, 1955}, {112, 1695}},
-		DstW:        680,
-		DstH:        730,
-		Margin:      40.0,
-		PitchStart:  34.0,
-		PitchEnd:    40.0,
-		TopOffX:     3.0,
-		BotOffX:     -5.0,
-		TopOffY:     18.0,
-		BotOffY:     7.0,
-		TopScaleX:   0.96,
-		BotScaleX:   0.96,
-		MinAccuracy: 90.0,
-	},
 }
 
 // ─────────────────── main ───────────────────

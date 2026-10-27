@@ -30,6 +30,13 @@ declare function wasmDetectBoardCorners(
   width: number,
   height: number,
 ): string;
+declare function wasmWarpAndAnalyzeWithCorners(
+  rgbaData: Uint8Array,
+  width: number,
+  height: number,
+  cornersJSON: string,
+  refineWithStars?: boolean,
+): string;
 
 declare module "@wasm-kifu/web/js/wasm-bridge.js" {
   export interface BoardState {
@@ -130,6 +137,31 @@ declare module "@wasm-kifu/web/js/wasm-bridge.js" {
       width: number,
       height: number,
     ): FullBoardResult;
+    warpAndAnalyzeWithCorners(
+      rgbaData: Uint8ClampedArray | Uint8Array,
+      width: number,
+      height: number,
+      corners: Array<{ x: number; y: number }>,
+      refineWithStars?: boolean,
+    ): FullBoardResult;
+  }
+}
+
+declare module "@wasm-kifu/web/js/ml-corner-detector.js" {
+  export interface MLCornerDetectionResult {
+    corners: Array<{ x: number; y: number }>;
+    confidence: number;
+    method: string;
+  }
+
+  export class MLCornerDetector {
+    constructor(options?: {
+      modelPath?: string;
+      inputSize?: number;
+      confidenceThreshold?: number;
+    });
+    load(modelPath?: string | null): Promise<boolean>;
+    detect(imageSource: any, fallbackWasmKifu?: any): Promise<MLCornerDetectionResult>;
   }
 }
 

@@ -314,14 +314,16 @@ func Detect1LinesDirectly(img image.Image, blob *BoardBlobResult, rawOuter [4]Po
 
 		isPerspectiveConsistent := func(c float64) bool {
 			if !okBotRef {
-				return math.Abs(c) <= 0.20
+				return math.Abs(c) <= 0.25
 			}
-			if math.Abs(cBotRef) < 0.03 {
-				return math.Abs(c) <= 0.06
-			} else if cBotRef > 0 {
-				return c >= -0.03 && c <= cBotRef*0.80 && math.Abs(c) <= 0.15
+			// カメラの傾き（ロール角）や遠近法による消失点収束を考慮
+			if math.Abs(c-cBotRef) <= 0.08 {
+				return math.Abs(c) <= 0.25
+			}
+			if cBotRef > 0 {
+				return c >= -0.05 && c <= math.Max(cBotRef*1.25, cBotRef+0.05) && math.Abs(c) <= 0.25
 			} else {
-				return c <= 0.03 && c >= cBotRef*0.80 && math.Abs(c) <= 0.15
+				return c <= 0.05 && c >= math.Min(cBotRef*1.25, cBotRef-0.05) && math.Abs(c) <= 0.25
 			}
 		}
 

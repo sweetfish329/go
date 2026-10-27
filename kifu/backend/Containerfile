@@ -1,3 +1,11 @@
+# Stage 0: WASM Builder (Go Vision & Engine)
+FROM golang:1.27-alpine AS wasm-builder
+WORKDIR /app
+COPY wasm-kifu/ ./wasm-kifu/
+WORKDIR /app/wasm-kifu
+RUN cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" web/wasm/wasm_exec.js && \
+    GOOS=js GOARCH=wasm go build -ldflags="-w -s" -o web/wasm/kifu.wasm ./cmd/wasm
+
 # Stage 1: Frontend Builder
 FROM oven/bun:alpine AS frontend-builder
 WORKDIR /app/kifu/frontend
@@ -5,6 +13,10 @@ COPY kifu/frontend/package.json kifu/frontend/bun.lock ./
 RUN bun install
 COPY kifu/frontend/ ./
 COPY wasm-kifu/ /app/wasm-kifu/
+# wasm-builder でビルドした最新バイナリ・ランタイムを上書き配置
+COPY --from=wasm-builder /app/wasm-kifu/web/wasm/kifu.wasm /app/wasm-kifu/web/wasm/kifu.wasm
+COPY --from=wasm-builder /app/wasm-kifu/web/wasm/wasm_exec.js /app/wasm-kifu/web/wasm/wasm_exec.js
+COPY --from=wasm-builder /app/wasm-kifu/web/wasm/wasm_exec.js ./public/wasm/wasm_exec.js
 RUN bun run build
 
 # Stage 2: Go Backend Builder

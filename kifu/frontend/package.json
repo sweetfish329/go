@@ -30,6 +30,7 @@
     "@sabaki/immutable-gametree": "^1.9.4",
     "@sabaki/influence": "^1.2.2",
     "@sabaki/sgf": "^3.4.7",
+    "onnxruntime-web": "^1.21.0",
     "qrcode": "^1.5.4",
     "svelte-sonner": "^1.1.1",
     "ws": "^8.21.0"

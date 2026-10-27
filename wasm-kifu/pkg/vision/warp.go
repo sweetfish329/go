@@ -162,8 +162,8 @@ func WarpPerspectiveWithMargin(src image.Image, srcCorners [4]Point, dstW, dstH 
 // WarpSize は碁盤の縦横比 (日本・韓国規格: 約1.077) と四隅形状から
 // 最適な出力サイズ (dstW, dstH) とマージン (40px) を決定する。
 //
-// 縦長（通常の対局者視点）: dstW=680, dstH=732
-// 横長（横からの撮影）: dstW=732, dstH=680
+// 縦長（通常の対局者視点）: dstW=680, dstH=726
+// 横長（横からの撮影）: dstW=726, dstH=680
 func WarpSize(corners [4]Point) (dstW, dstH int, margin float64) {
 	// 上辺・底辺の横・縦成分
 	dxTop := math.Abs(corners[1].X - corners[0].X)
@@ -179,15 +179,14 @@ func WarpSize(corners [4]Point) (dstW, dstH int, margin float64) {
 
 	margin = 40.0
 	// 通常視点（正面撮影）: 上辺・底辺が主に水平 (dx > dy)、左右辺が主に垂直 (dy > dx)
-	// 透視短縮で画面上の平均高さが平均幅より小さくなっても、通常視点なら必ず縦長(680x732)
 	isNormalView := (dxTop > dyTop && dxBot > dyBot) && (dyLeft > dxLeft && dyRight > dxRight)
 	if isNormalView {
-		// 縦長 (通常視点): 碁盤縦横比 1.077 = 45.5cm / 42.4cm
+		// 縦長 (通常視点): 盤面内寸 600px × 1.077 = 646px + 余白 2*40 = 726px
 		dstW = 680
-		dstH = 732 // round(680 * 1.077)
+		dstH = 726
 	} else {
 		// 横長 (横撮り): 縦横を入れ替え
-		dstW = 732
+		dstW = 726
 		dstH = 680
 	}
 	return
@@ -196,40 +195,22 @@ func WarpSize(corners [4]Point) (dstW, dstH int, margin float64) {
 // ExtractBoardFeatures はワープ済みの正面画像 (*image.RGBA) から
 // 全361交点の多次元特徴量 (IntersectionFeatures) を抽出する。
 //
-// board-detector.js の _extractFeaturesFromWarped を純Goへ移植。
+// 2D射影変換（ホモグラフィ）により遠近圧縮は解消済みのため、
+// 盤面上の19路格子交点は等間隔（18等分）としてサンプリングを行う。
 // dstW, dstH は WarpPerspectiveWithMargin に渡したものと同じ値を使用すること。
 func ExtractBoardFeatures(warped *image.RGBA, dstW, dstH int) *BoardFeaturesData {
 	const margin = 40.0
 	boardW := float64(dstW) - 2*margin
 	boardH := float64(dstH) - 2*margin
 
-	// 消失点・複比（Cross-Ratio）に基づく有理関数透視ピッチモデル
-	// f(t) = (boardH * rRatio * t) / ((rRatio - 1) * t + 18)
-	// pStart=33.0 (奥行間隔), pEnd=39.0 (手前間隔)
-	pStart := 33.0
-	pEnd := 39.0
-	rRatio := math.Sqrt(pStart / pEnd)
-	numDenomCoeff := rRatio - 1.0
+	stepX := boardW / float64(BoardSize-1)
+	stepY := boardH / float64(BoardSize-1)
 
+	gridX := make([]float64, BoardSize)
 	gridY := make([]float64, BoardSize)
 	for i := 0; i < BoardSize; i++ {
-		t := float64(i)
-		denom := numDenomCoeff*t + float64(BoardSize-1)
-		var yOff float64
-		if denom != 0 {
-			yOff = (boardH * rRatio * t) / denom
-		} else {
-			yOff = boardH * (t / float64(BoardSize-1))
-		}
-		gridY[i] = margin + math.Round(yOff)
-	}
-	gridY[0] = margin
-	gridY[BoardSize-1] = margin + boardH
-
-	stepX := boardW / float64(BoardSize-1)
-	gridX := make([]float64, BoardSize)
-	for i := 0; i < BoardSize; i++ {
 		gridX[i] = margin + math.Round(float64(i)*stepX)
+		gridY[i] = margin + math.Round(float64(i)*stepY)
 	}
 
 	bounds := warped.Bounds()

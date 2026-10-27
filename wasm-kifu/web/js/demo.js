@@ -1171,7 +1171,7 @@ function renderStage3Warped(warpedBase64, width, height) {
 }
 
 // Stage 4: 全361交点 判定グリッドオーバーレイの描画
-function renderStage4Classified(warpedBase64, width, height, grid, margin = 20) {
+function renderStage4Classified(warpedBase64, width, height, grid, margin = 40) {
     const canvas = document.getElementById('debug-canvas-classified');
     const meta = document.getElementById('debug-classified-meta');
     const placeholder = document.getElementById('debug-classified-placeholder');
@@ -1265,7 +1265,7 @@ function updateDebugWarpAndClassificationFromSource(source, grid) {
             warpedRgbaBase64: base64,
             warpedWidth: warpedCanvas.width,
             warpedHeight: warpedCanvas.height,
-            margin: 20,
+            margin: 40,
         };
         debugState.warpedRes = warpRes;
 
@@ -1287,7 +1287,7 @@ function updateDebugWarpAndClassification(warpRes, grid) {
     debugState.classifiedGrid = grid;
     if (debugMode && warpRes) {
         renderStage3Warped(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight);
-        renderStage4Classified(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight, grid, warpRes.margin || 20);
+        renderStage4Classified(warpRes.warpedRgbaBase64, warpRes.warpedWidth, warpRes.warpedHeight, grid, warpRes.margin || 40);
     }
 }
 
@@ -1322,7 +1322,7 @@ function renderAllDebugStages() {
                 debugState.warpedRes.warpedWidth,
                 debugState.warpedRes.warpedHeight,
                 debugState.classifiedGrid,
-                debugState.warpedRes.margin || 20
+                debugState.warpedRes.margin || 40
             );
         }
     }

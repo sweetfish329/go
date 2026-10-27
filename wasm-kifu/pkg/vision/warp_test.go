@@ -16,8 +16,8 @@ func TestWarpSize(t *testing.T) {
 		{X: 100, Y: 400},
 	}
 	dstW, dstH, margin := WarpSize(portraitCorners)
-	if dstW != 680 || dstH != 732 {
-		t.Errorf("expected portrait 680x732, got %dx%d", dstW, dstH)
+	if dstW != 680 || dstH != 726 {
+		t.Errorf("expected portrait 680x726, got %dx%d", dstW, dstH)
 	}
 	if margin != 40.0 {
 		t.Errorf("expected margin 40.0, got %.1f", margin)
@@ -31,8 +31,8 @@ func TestWarpSize(t *testing.T) {
 		{X: 250, Y: 100},
 	}
 	dstW, dstH, _ = WarpSize(landscapeCorners)
-	if dstW != 732 || dstH != 680 {
-		t.Errorf("expected landscape 732x680, got %dx%d", dstW, dstH)
+	if dstW != 726 || dstH != 680 {
+		t.Errorf("expected landscape 726x680, got %dx%d", dstW, dstH)
 	}
 }
 

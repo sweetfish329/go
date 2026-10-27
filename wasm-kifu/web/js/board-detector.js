@@ -1101,40 +1101,25 @@ class BoardDetector {
     _orderCorners(pts) {
         if (!pts || pts.length !== 4) return pts;
 
-        // x + y 最小 -> 左上(TL), x + y 最大 -> 右下(BR)
-        // x - y 最大 -> 右上(TR), x - y 最小 -> 左下(BL)
-        const sum = pts.map(p => p.x + p.y);
-        const diff = pts.map(p => p.x - p.y);
+        // Y座標で昇順ソートして上部2点と下部2点に分離
+        const sortedY = [...pts].sort((a, b) => a.y - b.y);
+        const top1 = sortedY[0], top2 = sortedY[1];
+        const bot1 = sortedY[2], bot2 = sortedY[3];
 
-        let tlIdx = 0, brIdx = 0, trIdx = 0, blIdx = 0;
-        for (let i = 1; i < 4; i++) {
-            if (sum[i] < sum[tlIdx]) tlIdx = i;
-            if (sum[i] > sum[brIdx]) brIdx = i;
-            if (diff[i] > diff[trIdx]) trIdx = i;
-            if (diff[i] < diff[blIdx]) blIdx = i;
+        let tl, tr, br, bl;
+        if (top1.x < top2.x) {
+            tl = top1; tr = top2;
+        } else {
+            tl = top2; tr = top1;
         }
 
-        const indices = new Set([tlIdx, trIdx, brIdx, blIdx]);
-        if (indices.size === 4) {
-            return [pts[tlIdx], pts[trIdx], pts[brIdx], pts[blIdx]];
+        if (bot1.x > bot2.x) {
+            br = bot1; bl = bot2;
+        } else {
+            br = bot2; bl = bot1;
         }
 
-        // 重複時フォールバック: 重心からの角度で整列
-        const cx = pts.reduce((s, p) => s + p.x, 0) / 4;
-        const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
-        const sorted = [...pts].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-        let minSumIdx = 0;
-        sorted.forEach((p, idx) => {
-            if (p.x + p.y < sorted[minSumIdx].x + sorted[minSumIdx].y) {
-                minSumIdx = idx;
-            }
-        });
-        return [
-            sorted[minSumIdx],
-            sorted[(minSumIdx + 1) % 4],
-            sorted[(minSumIdx + 2) % 4],
-            sorted[(minSumIdx + 3) % 4],
-        ];
+        return [tl, tr, br, bl];
     }
 
     /**
@@ -1535,21 +1520,12 @@ class BoardDetector {
             normalizedMat = warpedMat;
         }
 
-        // 消失点・複比（Cross-Ratio）に基づく有理関数透視ピッチモデル (NotebookLM 学術数理モデル)
-        // f(t) = (H * r * t) / ((r - 1) * t + 18) (r = sqrt(pStart / pEnd))
-        const pStart = 33.0;
-        const pEnd = 39.0;
-        const rRatio = Math.sqrt(pStart / pEnd);
-        const numDenomCoeff = rRatio - 1.0;
+        // 射影変換（ホモグラフィ）により遠近圧縮は解消済みのため、等間隔（18等分）サンプリング
+        const stepY = boardH / (this.boardSize - 1);
         const gridY = [];
         for (let i = 0; i < this.boardSize; i++) {
-            const t = i;
-            const denom = numDenomCoeff * t + (this.boardSize - 1);
-            const yOffset = (denom !== 0) ? (boardH * rRatio * t) / denom : (boardH * (t / (this.boardSize - 1)));
-            gridY.push(margin + Math.round(yOffset));
+            gridY.push(margin + Math.round(i * stepY));
         }
-        gridY[0] = margin;
-        gridY[this.boardSize - 1] = margin + boardH;
 
         const stepX = boardW / (this.boardSize - 1);
         const gridX = [];
