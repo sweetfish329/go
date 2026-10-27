@@ -716,6 +716,46 @@
     }
   }
 
+  // Keyboard navigation for game playback
+  function handleKeyDown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    const tag = (target?.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
+      return;
+    }
+    // Disable when modals are open
+    if (showShareDialog || showSettingsModal) return;
+
+    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
+      e.preventDefault();
+      stepForward(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'h' || e.key === 'H') {
+      e.preventDefault();
+      stepBack(1);
+    } else if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        toggleAutoplay();
+      } else if (isAutoplay) {
+        stopAutoplay();
+      } else {
+        stepForward(1);
+      }
+    } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+      e.preventDefault();
+      stepBack(10);
+    } else if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+      e.preventDefault();
+      stepForward(10);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      goFirst();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      goLast();
+    }
+  }
+
   // Handle board click (Review / Edit mode)
   async function handleIntersectionClick(detail: { x: number; y: number }) {
     const { x, y } = detail;
@@ -1009,6 +1049,7 @@
     loadKifu();
   });
 </script>
+<svelte:window onkeydown={handleKeyDown} />
 
 <div class="row kifu-detail-root">
   <!-- Header Navigation（PC表示・スマホでは非表示） -->

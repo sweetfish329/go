@@ -148,6 +148,38 @@
     currentMoveIndex = moves.length - 1;
   }
 
+  // Keyboard navigation for move editing
+  function handleKeyDown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    const tag = (target?.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
+      return;
+    }
+    // Disable when camera modal is open
+    if (showCameraModal) return;
+
+    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
+      e.preventDefault();
+      redo();
+    } else if (e.key === 'ArrowLeft' || e.key === 'h' || e.key === 'H') {
+      e.preventDefault();
+      undo();
+    } else if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      if (currentMoveIndex < moves.length - 1) {
+        redo();
+      } else if (moves.length > 0) {
+        handlePass();
+      }
+    } else if (e.key === 'ArrowUp' || e.key === 'Home') {
+      e.preventDefault();
+      jumpToStart();
+    } else if (e.key === 'ArrowDown' || e.key === 'End') {
+      e.preventDefault();
+      jumpToEnd();
+    }
+  }
+
   function handleImportFromCamera(detected: {
     board?: number[][];
     blackCount?: number;
@@ -339,6 +371,7 @@
     }
   }
 </script>
+<svelte:window onkeydown={handleKeyDown} />
 
 <div class="row animate-fade-in" style="margin-top: 1.5rem;">
   <div class="col s12 d-flex align-center justify-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 16px; position: relative; z-index: 10;">
