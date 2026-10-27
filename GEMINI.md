@@ -490,3 +490,16 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * `INPUT`, `TEXTAREA`, `SELECT` および `isContentEditable` 要素にフォーカスがある間はキーイベントを遮断し、タイトルや添削コメント等の文字入力・カーソル移動を絶対に阻害しない。
   * 共有・設定・カメラ等のダイアログ表示中も誤爆を防止し、ショートカット発火時のみ `e.preventDefault()` でブラウザスクロールを抑止。
 
+### ㊳ 碁盤画像読み込み時のプレビュー黒潰れ（Black Canvas）とSvelte 5 DOM同期対策
+* **Svelte 5 の条件付きレンダリングと Canvas バインド遅延**:
+  * `CameraCaptureModal.svelte` において、`previewCanvas` は `{#if loadedImageMat}` ブロック内に宣言されている。
+  * `loadedImageMat = canvas` 代入直後は Svelte の DOM 更新（マイクロタスク）が完了していないため、同期的に描画関数を呼ぶと `previewCanvas` が `null` となり描画がスキップされ、背景色の黒 (`#111`) のみが見える事象が発生していた。
+  * **対策**: `handleFileUpload` および `handleCameraCapture` 内で `await tick()` を明示的に呼び出し、DOMマウント完了を待機してから描画を実行。さらに `$effect` による自動再描画同期のフォールバックを完備。
+* **スマホ超高解像度写真（48MP/12MP等）のブラウザ Canvas テクスチャ上限（Black Canvas）対策**:
+  * 4000x3000 を超える高解像度写真をそのまま `<canvas>` に設定すると、ブラウザおよび GPU のテクスチャ制限・メモリ上限により Canvas のアロケーションに失敗し、Canvas 全体が真っ黒（Black Screen）としてレンダリングされる致命的仕様が存在した。
+  * **対策**: `createScaledCanvas` により、画像の長辺を最大 1600px にアスペクト比を完全維持して自動ダウンサンプリング。Canvas の黒潰れを防止するとともに、Go WASM / ML モデルへの転送データ量（48MB→4MB程度）を劇的に削減し認識処理を高速化。
+* **非対応フォーマット（HEIC）への事前通知とエラーハンドリング**:
+  * iPhone 等の標準保存形式である HEIC は Chrome/Edge 等の PC ブラウザでネイティブデコードできないため、拡張子および MIME タイプを事前チェックして分かりやすい変換案内メッセージを表示。`reader.onerror` / `img.onerror` も完備。
+* **アスペクト比対応の `.canvas-stage` 構造**:
+  * 画像プレビュー (`previewCanvas`) と4隅指定ピン (`overlayCanvas`) がアスペクト比によってずれないよう、同一のサイズ・位置を持つ `.canvas-stage` 内に重ね合わせてピクセル単位で正確に同期。
+

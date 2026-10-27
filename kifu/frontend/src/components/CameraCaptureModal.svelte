@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { BoardDetector, type Point2D } from "@wasm-kifu/web/js/board-detector.js";
   import { WasmKifu } from "@wasm-kifu/web/js/wasm-bridge.js";
@@ -98,6 +98,16 @@
       stopStreamRecording();
       stopCameraStream();
       resetState();
+    }
+  });
+
+  // loadedImageMat と previewCanvas の同期保証（マウント後の確実な描画）
+  $effect(() => {
+    if (loadedImageMat && previewCanvas) {
+      const source = loadedImageMat as HTMLCanvasElement;
+      if (previewCanvas.width !== source.width || previewCanvas.height !== source.height) {
+        drawLoadedImageOnPreview(source);
+      }
     }
   });
 
@@ -275,51 +285,117 @@
     onClose();
   }
 
+  // 巨大画像によるブラウザCanvasクラッシュ・テクスチャ上限（Black Canvas）を回避する最大解像度
+  const MAX_IMAGE_DIMENSION = 1600;
+
+  function createScaledCanvas(imageSource: HTMLImageElement | HTMLVideoElement): HTMLCanvasElement {
+    const rawWidth = (imageSource as HTMLVideoElement).videoWidth || (imageSource as HTMLImageElement).naturalWidth || (imageSource as any).width || 640;
+    const rawHeight = (imageSource as HTMLVideoElement).videoHeight || (imageSource as HTMLImageElement).naturalHeight || (imageSource as any).height || 480;
+
+    let targetWidth = rawWidth;
+    let targetHeight = rawHeight;
+
+    const maxDim = Math.max(rawWidth, rawHeight);
+    if (maxDim > MAX_IMAGE_DIMENSION) {
+      const scale = MAX_IMAGE_DIMENSION / maxDim;
+      targetWidth = Math.round(rawWidth * scale);
+      targetHeight = Math.round(rawHeight * scale);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(imageSource, 0, 0, targetWidth, targetHeight);
+    }
+    return canvas;
+  }
+
   // ファイルアップロード処理
   function handleFileUpload(e: Event) {
     const target = e.target as HTMLInputElement;
     if (!target.files || target.files.length === 0) return;
 
     const file = target.files[0];
+    errorMessage = "";
+
+    // HEIC形式チェック（ブラウザ非対応フォーマットの事前通知）
+    const isHeic = file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif") || file.type === "image/heic" || file.type === "image/heif";
+    if (isHeic) {
+      errorMessage = "HEIC形式の画像はブラウザで直接読み込めません。JPEGまたはPNG形式に変換してアップロードしてください。";
+      return;
+    }
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      errorMessage = "ファイルの読み込みに失敗しました。";
+    };
 
     reader.onload = (event) => {
       const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0);
+      img.onerror = () => {
+        errorMessage = "画像を展開できませんでした。対応フォーマット（PNG, JPEG, WebP）の画像をお試しください。";
+      };
 
-        loadedImageMat = canvas;
-        drawLoadedImageOnPreview(canvas);
-        autoDetectCornersFromSource(canvas);
+      img.onload = async () => {
+        try {
+          if (!img.naturalWidth || !img.naturalHeight) {
+            errorMessage = "画像の解像度を取得できませんでした。画像ファイルが破損している可能性があります。";
+            return;
+          }
+
+          const canvas = createScaledCanvas(img);
+          loadedImageMat = canvas;
+
+          // SvelteがDOMに previewCanvas をマウントするのを確実に待機
+          await tick();
+
+          drawLoadedImageOnPreview(canvas);
+          await autoDetectCornersFromSource(canvas);
+        } catch (err: any) {
+          console.error("Image processing error:", err);
+          errorMessage = `画像処理中にエラーが発生しました: ${err.message || err}`;
+        }
       };
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
   }
 
-  function handleCameraCapture() {
-    if (!videoEl || !previewCanvas) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = videoEl.videoWidth || 640;
-    canvas.height = videoEl.videoHeight || 480;
-    const ctx = canvas.getContext("2d");
-    ctx?.drawImage(videoEl, 0, 0);
+  async function handleCameraCapture() {
+    if (!videoEl) return;
+    try {
+      errorMessage = "";
+      const canvas = createScaledCanvas(videoEl);
+      loadedImageMat = canvas;
 
-    loadedImageMat = canvas;
-    drawLoadedImageOnPreview(canvas);
-    autoDetectCornersFromSource(canvas);
+      // SvelteがDOMに previewCanvas をマウントするのを確実に待機
+      await tick();
+
+      drawLoadedImageOnPreview(canvas);
+      await autoDetectCornersFromSource(canvas);
+    } catch (err: any) {
+      console.error("Camera capture error:", err);
+      errorMessage = `撮影画像の処理に失敗しました: ${err.message || err}`;
+    }
   }
 
   function drawLoadedImageOnPreview(canvasSource: HTMLCanvasElement) {
     if (!previewCanvas) return;
-    previewCanvas.width = canvasSource.width;
-    previewCanvas.height = canvasSource.height;
+    if (previewCanvas.width !== canvasSource.width) {
+      previewCanvas.width = canvasSource.width;
+    }
+    if (previewCanvas.height !== canvasSource.height) {
+      previewCanvas.height = canvasSource.height;
+    }
     const ctx = previewCanvas.getContext("2d");
-    ctx?.drawImage(canvasSource, 0, 0);
+    if (ctx) {
+      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      ctx.drawImage(canvasSource, 0, 0);
+    }
     renderCornerOverlay();
   }
 
@@ -1001,7 +1077,7 @@
             <label class="upload-dropzone cursor-pointer">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
                 onchange={handleFileUpload}
                 class="hidden-file-input"
               />
@@ -1042,21 +1118,23 @@
             </div>
 
             <div class="canvas-wrapper">
-              <canvas
-                bind:this={previewCanvas}
-                onmousedown={handlePreviewPointerDown}
-                onmousemove={handlePreviewPointerMove}
-                onmouseup={handlePreviewPointerUp}
-                onmouseleave={handlePreviewPointerUp}
-                ontouchstart={handlePreviewPointerDown}
-                ontouchmove={handlePreviewPointerMove}
-                ontouchend={handlePreviewPointerUp}
-                class="board-preview-canvas"
-              ></canvas>
-              <canvas
-                bind:this={overlayCanvas}
-                class="corner-overlay-canvas"
-              ></canvas>
+              <div class="canvas-stage">
+                <canvas
+                  bind:this={previewCanvas}
+                  onmousedown={handlePreviewPointerDown}
+                  onmousemove={handlePreviewPointerMove}
+                  onmouseup={handlePreviewPointerUp}
+                  onmouseleave={handlePreviewPointerUp}
+                  ontouchstart={handlePreviewPointerDown}
+                  ontouchmove={handlePreviewPointerMove}
+                  ontouchend={handlePreviewPointerUp}
+                  class="board-preview-canvas"
+                ></canvas>
+                <canvas
+                  bind:this={overlayCanvas}
+                  class="corner-overlay-canvas"
+                ></canvas>
+              </div>
             </div>
             <p class="calibration-hint">
               ※ 角の位置がずれている場合は、各角の丸をドラッグして微調整できます（またはタップして再指定）。
@@ -1451,7 +1529,17 @@
     justify-content: center;
   }
 
+  .canvas-stage {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    max-height: 280px;
+  }
+
   .board-preview-canvas {
+    display: block;
     max-width: 100%;
     max-height: 280px;
     object-fit: contain;
