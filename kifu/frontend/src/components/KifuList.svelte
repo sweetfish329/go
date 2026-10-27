@@ -215,13 +215,15 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <!-- Floating Vogue Drawer Toggle Button (Left edge vertical ribbon) -->
+{#if !isDrawerOpen}
 <button 
-  onclick={() => isDrawerOpen = !isDrawerOpen} 
+  onclick={() => isDrawerOpen = true} 
   class="em-vogue-drawer-toggle em-float-badge"
   style="position: fixed; left: 0; top: 25%; z-index: 1000; border-radius: 0px !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-left: none !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-accent-warm) !important; color: var(--wc-text) !important; padding: 12px 6px; writing-mode: vertical-rl; text-orientation: mixed; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.15em; cursor: pointer; text-transform: uppercase;"
 >
   [ VIEW FILTERS & OVERVIEW ]
 </button>
+{/if}
 
 {#if isDrawerOpen}
   <div 
@@ -261,9 +263,9 @@
       <button class="nm-btn-primary" onclick={() => { dispatch('createKifu'); isDrawerOpen = false; }} style="width: 100%; border-radius: 0px !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important;">
         <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">edit</i>自分で棋譜を作成
       </button>
-      <button class="nm-btn" onclick={() => showUploadForm = !showUploadForm} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; color: var(--wc-text) !important;">
-        <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">{showUploadForm ? 'close' : 'cloud_upload'}</i>
-        {showUploadForm ? '閉じる' : 'SGFファイルをアップロード'}
+      <button class="nm-btn" onclick={() => { showUploadForm = true; isDrawerOpen = false; setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50); }} style="width: 100%; border-radius: 0px !important; background: var(--wc-surface) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text)) !important; color: var(--wc-text) !important;">
+        <i class="material-icons" style="font-size: 1.1rem; margin-right: 6px; vertical-align: middle;">cloud_upload</i>
+        SGFファイルをアップロード
       </button>
     </div>
   {/if}
@@ -275,7 +277,7 @@
       
       <div style="display: flex; flex-direction: column; gap: 14px;">
         <div class="input-field" style="margin: 0; position: relative;">
-          <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} placeholder="タイトル・対局者" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+          <input id="search-query" type="text" class="nm-input" bind:value={searchQuery} onkeydown={(e) => { if (e.key === 'Enter') isDrawerOpen = false; }} placeholder="タイトル・対局者 (Enterで閉じる)" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
           <label for="search-query" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-size: 0.8rem; font-weight: 600;">キーワード</label>
         </div>
         <div class="input-field" style="margin: 0; position: relative;">
@@ -291,6 +293,10 @@
             <i class="material-icons" aria-hidden="true" style="font-size: 0.85rem;">clear_all</i>条件クリア
           </button>
         {/if}
+
+        <button type="button" class="nm-btn-primary" onclick={() => isDrawerOpen = false} style="width: 100%; margin-top: 8px; font-size: 0.78rem; padding: 7px 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text)) !important; font-weight: bold;">
+          <i class="material-icons" style="font-size: 0.95rem;">done</i>閉じて結果を見る ({filteredKifus.length}件)
+        </button>
       </div>
     </div>
   {/if}
@@ -355,15 +361,28 @@
     {/if}
     
     <!-- Title wrapper inside main column -->
-    <div style="border-bottom: 2.5px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 12px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; position: relative;">
-      <span style="font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 800; font-style: italic; color: var(--wc-text); line-height: 1; letter-spacing: -0.01em;">
-        {#if publicMode}
-          {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
-        {:else}
-          Personal Library
-        {/if}
-      </span>
-      <span class="em-collage-tag-pastel" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text); font-weight: bold; letter-spacing: 0.05em; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-surface-alt);">{filteredKifus.length} RECORDS FOUND</span>
+    <div style="border-bottom: 2.5px solid var(--wc-border-solid, var(--wc-text)); padding-bottom: 12px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; position: relative; flex-wrap: wrap; gap: 14px;">
+      <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;">
+        <span style="font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 800; font-style: italic; color: var(--wc-text); line-height: 1; letter-spacing: -0.01em;">
+          {#if publicMode}
+            {ownerUsername ? `${ownerUsername}’s Archive` : 'Public Collection'}
+          {:else}
+            Personal Library
+          {/if}
+        </span>
+        <span class="em-collage-tag-pastel" style="font-family: 'JetBrains Mono', sans-serif; font-size: 0.65rem; color: var(--wc-text); font-weight: bold; letter-spacing: 0.05em; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); padding: 2px 8px; box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text)); background: var(--wc-surface-alt);">{filteredKifus.length} RECORDS FOUND</span>
+      </div>
+
+      {#if !publicMode}
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button class="nm-btn-primary" onclick={() => dispatch('createKifu')} style="border-radius: 0 !important; padding: 6px 14px; font-size: 0.78rem; font-weight: bold; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+            <i class="material-icons" style="font-size: 0.95rem;">edit</i>棋譜作成
+          </button>
+          <button class="nm-btn" onclick={() => { showUploadForm = !showUploadForm; if (showUploadForm) setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50); }} style="border-radius: 0 !important; padding: 6px 14px; font-size: 0.78rem; font-weight: bold; background: var(--wc-surface) !important; color: var(--wc-text) !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text)) !important; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+            <i class="material-icons" style="font-size: 0.95rem;">{showUploadForm ? 'close' : 'cloud_upload'}</i>{showUploadForm ? 'フォームを閉じる' : 'SGFアップロード'}
+          </button>
+        </div>
+      {/if}
     </div>
     
     <!-- Archive Column Grid (Magazine View Spread) -->
