@@ -164,47 +164,108 @@
 
         // Query and replace all CSS variables in the cloned SVG with solid fallback colors.
         // Since SVG loaded into <img> context cannot access document CSS variables, they resolve to black.
-        const wcBoardValue = '#ebdac0'; // --wc-board actual color
-        const wcTextValue = '#253530';  // --wc-text / --wc-border actual color
-        const wcSurfaceValue = '#f4f6f5'; // --wc-surface actual color
+        const varMap: Record<string, string> = {
+          '--wc-board-bg': '#ebdac0',
+          '--wc-board-border': '#253530',
+          '--wc-board-line': '#253530',
+          '--wc-board-star': '#253530',
+          '--wc-go-black-stroke': '#253530',
+          '--wc-go-white-stroke': 'rgba(37, 53, 48, 0.45)',
+          '--wc-board': '#ebdac0',
+          '--wc-text': '#253530',
+          '--wc-border': '#253530',
+          '--wc-surface': '#f4f6f5',
+          '--wc-accent-warm': '#b35434',
+          '--wc-accent': '#2e6b5e',
+          '--wc-board-bg-top': '#f2e5d2',
+          '--wc-board-bg-bottom': '#e6d3b7',
+        };
 
-        const replaceCssVars = (el: Element, attrName: string) => {
+        const resolveCssVars = (val: string): string => {
+          if (!val || typeof val !== 'string' || !val.includes('var(')) return val;
+          let current = val;
+          let iterations = 0;
+          const maxIterations = 10;
+          const innerVarRegex = /var\(\s*(--[a-zA-Z0-9_-]+)(?:\s*,\s*([^()]+?))?\s*\)/g;
+
+          while (current.includes('var(') && iterations < maxIterations) {
+            iterations++;
+            const next = current.replace(innerVarRegex, (_match, varName, fallback) => {
+              if (varName in varMap) {
+                return varMap[varName];
+              }
+              if (fallback !== undefined) {
+                return fallback.trim();
+              }
+              return '#253530';
+            });
+            if (next === current) {
+              current = current.replace(/var\([^)]+\)/g, '#253530');
+              break;
+            }
+            current = next;
+          }
+          return current.trim();
+        };
+
+        const replaceAttrVars = (el: Element, attrName: string) => {
           const val = el.getAttribute(attrName);
           if (!val) return;
-          let newVal = val;
-          newVal = newVal.replace(/var\(--wc-board-bg[^)]*\)/g, wcBoardValue);
-          newVal = newVal.replace(/var\(--wc-board-border[^)]*\)/g, wcTextValue);
-          newVal = newVal.replace(/var\(--wc-board-line[^)]*\)/g, wcTextValue);
-          newVal = newVal.replace(/var\(--wc-board-star[^)]*\)/g, wcTextValue);
-          newVal = newVal.replace(/var\(--wc-go-black-stroke[^)]*\)/g, wcTextValue);
-          newVal = newVal.replace(/var\(--wc-go-white-stroke[^)]*\)/g, 'rgba(37, 53, 48, 0.45)');
-          newVal = newVal.replace(/var\(--wc-board\)/g, wcBoardValue);
-          newVal = newVal.replace(/var\(--wc-text\)/g, wcTextValue);
-          newVal = newVal.replace(/var\(--wc-border\)/g, wcTextValue);
-          newVal = newVal.replace(/var\(--wc-surface\)/g, wcSurfaceValue);
-          el.setAttribute(attrName, newVal);
+          const resolved = resolveCssVars(val);
+          if (resolved !== val) {
+            el.setAttribute(attrName, resolved);
+          }
         };
 
         const allCloneElements = svgClone.querySelectorAll('*');
+        const targetAttrs = ['fill', 'stroke', 'stop-color', 'flood-color', 'color', 'style'];
         allCloneElements.forEach(el => {
-          replaceCssVars(el, 'fill');
-          replaceCssVars(el, 'stroke');
+          for (const attr of targetAttrs) {
+            replaceAttrVars(el, attr);
+          }
         });
 
         // Replace complex SVG definitions and gradients with clean solid colors to guarantee 100% successful canvas drawing
-        // 1. Board Background (Ash wood Milk Tea Beige)
-        const boardBg = svgClone.querySelector('rect[fill="url(#boardWood)"]');
-        if (boardBg) {
-          boardBg.setAttribute('fill', '#ebdac0'); 
+        // 1. Board Background (Ash wood Milk Tea Beige: #ebdac0)
+        const boardBgElements = svgClone.querySelectorAll('rect[fill="url(#boardWood)"], rect[fill="url(#boardSurfaceGrad)"]');
+        boardBgElements.forEach(el => {
+          el.setAttribute('fill', '#ebdac0');
+        });
+        // Also ensure the first background rect has Ash wood color
+        const firstBoardRect = svgClone.querySelector('rect[rx="2"]');
+        if (firstBoardRect && firstBoardRect.getAttribute('fill') !== 'none') {
+          firstBoardRect.setAttribute('fill', '#ebdac0');
         }
 
-        // 2. Black Stones (Solid Dark Sage / Charcoal)
+        // 2. Grid lines safety guarantee: ensure all grid lines are explicitly drawn in #253530
+        const allLines = svgClone.querySelectorAll('line');
+        allLines.forEach(line => {
+          const stroke = line.getAttribute('stroke');
+          // Preserve dead stone X-marks (#d32f2f)
+          if (stroke !== '#d32f2f') {
+            line.setAttribute('stroke', '#253530');
+            line.setAttribute('stroke-width', '1');
+            line.setAttribute('opacity', '0.85');
+          }
+        });
+
+        // 3. Star points safety guarantee: ensure star points are visible
+        const allCircles = svgClone.querySelectorAll('circle');
+        allCircles.forEach(circle => {
+          const r = circle.getAttribute('r');
+          const fill = circle.getAttribute('fill');
+          if (r === '3.5' && fill !== '#b35434' && !fill?.includes('url(')) {
+            circle.setAttribute('fill', '#253530');
+          }
+        });
+
+        // 4. Black Stones (Solid Dark Sage / Charcoal)
         const blackStones = svgClone.querySelectorAll('circle[fill="url(#blackStoneGrad)"]');
         blackStones.forEach(stone => {
           stone.setAttribute('fill', '#253530'); 
         });
 
-        // 3. White Stones (Solid White with a thin dark sage border for contrast)
+        // 5. White Stones (Solid White with a thin dark sage border for contrast)
         const whiteStones = svgClone.querySelectorAll('circle[fill="url(#whiteStoneGrad)"]');
         whiteStones.forEach(stone => {
           stone.setAttribute('fill', '#ffffff');
