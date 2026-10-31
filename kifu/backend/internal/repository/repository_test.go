@@ -154,18 +154,19 @@ func TestKifuRepository(t *testing.T) {
 
 	repo := NewKifuRepository(db)
 	kifu := &model.Kifu{
-		Title:       "Test Match",
-		BlackPlayer: "Player A",
-		BlackRank:   "1d",
-		WhitePlayer: "Player B",
-		WhiteRank:   "2d",
-		GameDate:    "2026-03-19",
-		Result:      "B+R",
-		Komi:        6.5,
-		Handicap:    0,
-		SgfData:     "(;GM[1])",
-		UploadedBy:  &user.ID,
-		IsPrivate:   true,
+		Title:          "Test Match",
+		BlackPlayer:    "Player A",
+		BlackRank:      "1d",
+		WhitePlayer:    "Player B",
+		WhiteRank:      "2d",
+		GameDate:       "2026-03-19",
+		Result:         "B+R",
+		Komi:           6.5,
+		Handicap:       0,
+		SgfData:        "(;GM[1])",
+		ThumbnailImage: []byte("original_thumbnail_bytes"),
+		UploadedBy:     &user.ID,
+		IsPrivate:      true,
 	}
 
 	if err := repo.Save(kifu); err != nil {
@@ -232,10 +233,9 @@ func TestKifuRepository(t *testing.T) {
 		t.Errorf("Expected 1 public kifu, got %d", len(publicKifus))
 	}
 
-	// UpdateOgpImage & GetOgpImage
+	// UpdateOgpImage should update ogp_image without overwriting thumbnail_image
 	ogpData := []byte("fake_ogp_image_bytes")
-	thumbData := []byte("fake_thumb_bytes")
-	if err := repo.UpdateOgpImage(kifu.ID, ogpData, thumbData); err != nil {
+	if err := repo.UpdateOgpImage(kifu.ID, ogpData); err != nil {
 		t.Fatalf("UpdateOgpImage failed: %v", err)
 	}
 	gotOgp, err := repo.GetOgpImage(kifu.ID)
@@ -243,8 +243,8 @@ func TestKifuRepository(t *testing.T) {
 		t.Errorf("GetOgpImage failed, got: %s", string(gotOgp))
 	}
 	gotThumb, err := repo.GetThumbnailImage(kifu.ID)
-	if err != nil || string(gotThumb) != "fake_thumb_bytes" {
-		t.Errorf("GetThumbnailImage failed, got: %s", string(gotThumb))
+	if err != nil || string(gotThumb) != "original_thumbnail_bytes" {
+		t.Errorf("GetThumbnailImage should remain unchanged, got: %s", string(gotThumb))
 	}
 
 	// Delete
@@ -267,14 +267,15 @@ func TestReviewRepository(t *testing.T) {
 
 	kifuRepo := NewKifuRepository(db)
 	kifu := &model.Kifu{
-		Title:       "Review Game",
-		BlackPlayer: "A",
-		WhitePlayer: "B",
-		GameDate:    "2026-03-19",
-		Result:      "B+R",
-		SgfData:     "(;GM[1])",
-		UploadedBy:  &user.ID,
-		IsPrivate:   true,
+		Title:          "Review Game",
+		BlackPlayer:    "A",
+		WhitePlayer:    "B",
+		GameDate:       "2026-03-19",
+		Result:         "B+R",
+		SgfData:        "(;GM[1])",
+		ThumbnailImage: []byte("original_thumbnail_bytes"),
+		UploadedBy:     &user.ID,
+		IsPrivate:      true,
 	}
 	_ = kifuRepo.Save(kifu)
 

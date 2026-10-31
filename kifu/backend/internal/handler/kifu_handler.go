@@ -536,16 +536,10 @@ func (h *KifuHandler) UpdateOgpImage(w http.ResponseWriter, r *http.Request) {
 
 	// Client sends high-res PNG (or JPEG) OGP image (1200x630)
 	// We preserve client's image as OGP image for Twitter/SNS crawler compatibility.
-	// Generate compressed thumbnail (600px width, lossless WebP) for responsive in-app cards.
-	thumbData, err := imgutil.CompressToWebP(imgData, 600)
+	// Note: We do NOT overwrite thumbnail_image here because thumbnails must remain pure square flat boards (600x600).
+	err = h.repo.UpdateOgpImage(id, imgData)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to generate thumbnail: "+err.Error())
-		return
-	}
-
-	err = h.repo.UpdateOgpImage(id, imgData, thumbData)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP and thumbnail image: "+err.Error())
+		respondWithError(w, http.StatusInternalServerError, "Failed to save OGP image: "+err.Error())
 		return
 	}
 

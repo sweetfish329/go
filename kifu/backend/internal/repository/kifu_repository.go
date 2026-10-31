@@ -264,11 +264,11 @@ func (r *KifuRepository) Delete(id string) error {
 	return nil
 }
 
-func (r *KifuRepository) UpdateOgpImage(id string, ogpData []byte, thumbnailData []byte) error {
-	query := `UPDATE kifus SET ogp_image = $1, thumbnail_image = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`
-	_, err := r.db.Exec(query, ogpData, thumbnailData, id)
+func (r *KifuRepository) UpdateOgpImage(id string, ogpData []byte) error {
+	query := `UPDATE kifus SET ogp_image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := r.db.Exec(query, ogpData, id)
 	if err != nil {
-		return fmt.Errorf("failed to update ogp and thumbnail image: %w", err)
+		return fmt.Errorf("failed to update ogp image: %w", err)
 	}
 	return nil
 }
