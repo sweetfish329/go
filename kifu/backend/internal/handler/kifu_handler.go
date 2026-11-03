@@ -835,42 +835,64 @@ func BuildSharedKifuOgpMeta(kifu *model.Kifu, shareToken string, scheme string, 
 	)
 }
 
-func BuildUserListOgpMeta(escapedTabName string, ogUrl string) string {
+func BuildUserListOgpMeta(escapedTabName string, ogUrl string, ogImageUrl string) string {
 	description := "公開棋譜の一覧です。棋譜の管理や記録、対局の再生・検討や添削を行えます。"
 	keywords := "囲碁, 棋譜, 棋譜記録, 囲碁棋譜, 棋譜管理, 公開棋譜"
+	imageMeta := ""
+	cardType := "summary"
+	if ogImageUrl != "" {
+		cardType = "summary_large_image"
+		imageMeta = fmt.Sprintf(`
+	<meta property="og:image" content="%s" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta name="twitter:image" content="%s" />`, ogImageUrl, ogImageUrl)
+	}
+
 	return fmt.Sprintf(`
 	<meta name="robots" content="index, follow" />
 	<meta name="description" content="%s" />
 	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="公開棋譜一覧 | %s" />
-	<meta property="og:description" content="%s" />
+	<meta property="og:description" content="%s" />%s
 	<meta property="og:url" content="%s" />
 	<meta property="og:site_name" content="%s" />
 	<meta property="og:type" content="website" />
-	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:card" content="%s" />
 	<meta name="twitter:title" content="公開棋譜一覧 | %s" />
 	<meta name="twitter:description" content="%s" />
 	<meta name="twitter:url" content="%s" />`,
-		description, keywords, escapedTabName, description, ogUrl, escapedTabName, escapedTabName, description, ogUrl)
+		description, keywords, escapedTabName, description, imageMeta, ogUrl, escapedTabName, cardType, escapedTabName, description, ogUrl)
 }
 
-func BuildDefaultOgpMeta(escapedTabName string, ogUrl string) string {
+func BuildDefaultOgpMeta(escapedTabName string, ogUrl string, ogImageUrl string) string {
 	description := "「碁盤・棋譜ストア」は、ブラウザで囲碁の対局を再生・検討できるWebツールです。SGFの作成・ダウンロード、URL共有やSNS向け盤面画像の自動生成に対応しています。"
 	keywords := "囲碁,棋譜,碁盤,SGF,SGFダウンロード,棋譜共有,棋譜保存,対局検討,AI分析,kifu_store"
+	imageMeta := ""
+	cardType := "summary"
+	if ogImageUrl != "" {
+		cardType = "summary_large_image"
+		imageMeta = fmt.Sprintf(`
+	<meta property="og:image" content="%s" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta name="twitter:image" content="%s" />`, ogImageUrl, ogImageUrl)
+	}
+
 	return fmt.Sprintf(`
 	<meta name="robots" content="index, follow" />
 	<meta name="description" content="%s" />
 	<meta name="keywords" content="%s" />
 	<meta property="og:title" content="%s" />
-	<meta property="og:description" content="%s" />
+	<meta property="og:description" content="%s" />%s
 	<meta property="og:url" content="%s" />
 	<meta property="og:site_name" content="%s" />
 	<meta property="og:type" content="website" />
-	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:card" content="%s" />
 	<meta name="twitter:title" content="%s" />
 	<meta name="twitter:description" content="%s" />
 	<meta name="twitter:url" content="%s" />`,
-		description, keywords, escapedTabName, description, ogUrl, escapedTabName, escapedTabName, description, ogUrl)
+		description, keywords, escapedTabName, description, imageMeta, ogUrl, escapedTabName, cardType, escapedTabName, description, ogUrl)
 }
 
 // RootHandler handles serving the index.html and dynamically injecting site settings and OGP tags
@@ -936,7 +958,8 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 	} else if userId != "" {
 		scheme, host := resolveSchemeAndHost(r)
 		ogUrl := fmt.Sprintf("%s://%s/u/%s", scheme, html.EscapeString(host), userId)
-		ogpMeta = BuildUserListOgpMeta(escapedTabName, ogUrl)
+		ogImageUrl := fmt.Sprintf("%s://%s/ogp-default.png", scheme, html.EscapeString(host))
+		ogpMeta = BuildUserListOgpMeta(escapedTabName, ogUrl, ogImageUrl)
 	} else {
 		// Fallback to share token if any
 		shareToken := r.URL.Query().Get("share")
@@ -971,7 +994,8 @@ func (h *KifuHandler) RootHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			scheme, host := resolveSchemeAndHost(r)
 			ogUrl := fmt.Sprintf("%s://%s%s", scheme, html.EscapeString(host), html.EscapeString(r.URL.Path))
-			ogpMeta = BuildDefaultOgpMeta(escapedTabName, ogUrl)
+			ogImageUrl := fmt.Sprintf("%s://%s/ogp-default.png", scheme, html.EscapeString(host))
+			ogpMeta = BuildDefaultOgpMeta(escapedTabName, ogUrl, ogImageUrl)
 		}
 	}
 

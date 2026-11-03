@@ -535,3 +535,15 @@ Svelteに関する開発を行う際は、Svelte公式のLLM用ドキュメン�
   * 角丸ゼロ（`border-radius: 0px`）、シャープな枠線、ハードオフセットシャドウ、斜めコラージュタグ（`Specs — Match Record Editor`）を採用。
   * コミ（6.5目, 7.5目, 0目）のクイックチップ、置き石セレクト、および対局結果（●黒中押し、○白中押し、●黒目数勝ち、○白目数勝ち、持碁など）の直感的なワンタッププリセットを完備。
   * キーボードナビゲーション（`Escape` クローズ、`Tab` / `Shift+Tab` フォーカストラップ）およびモーダル表示中の棋譜移動ショートカット抑制ガードを実装。
+
+### ㊶ ルートページおよび公開棋譜一覧のデフォルトOGP（1200x630）配信とメタタグ最適化
+* **ルート（トップ）ページおよび公開棋譜一覧の OGP 対応**:
+  * サイトのトップページ（`/`）やユーザー公開棋譜一覧（`/u/{userId}`）を X (Twitter) や LINE 等の SNS で共有した際、画像が表示されずリンクのみになってしまう課題を解決。
+  * `sgf.GenerateBoardImage` で生成した 1200x630 の Washi Clay 和風碁盤公式画像 `kifu/frontend/public/ogp-default.png` を配置。
+* **完全修飾 URL 注入と `summary_large_image` カード設定**:
+  * SNS クローラーは相対パスの画像 URL を解釈できないため、バックエンドの `RootHandler` からリクエストのスキーム・ホストを基に `https://<host>/ogp-default.png` の完全修飾 URL を動的に生成。
+  * `BuildDefaultOgpMeta` および `BuildUserListOgpMeta` にて `<meta property="og:image">` / `<meta name="twitter:image">` を埋め込み、カードタイプを `summary_large_image` に昇格。
+* **静的フォールバック (`index.html`) と `.gitignore` の配慮**:
+  * 静的ホスティングやバックエンド非経由のプレビューでも有効になるよう、`kifu/frontend/index.html` にもデフォルト OGP タグを記述。
+  * ルートの `.gitignore` の `*.png` 除外ルールに `!kifu/frontend/public/*.png` の例外指定を追加し、リポジトリに確実に追跡されるよう構成。
+

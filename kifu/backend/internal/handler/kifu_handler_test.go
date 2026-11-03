@@ -104,3 +104,26 @@ func TestBuildSharedKifuOgpMeta(t *testing.T) {
 		t.Errorf("Expected share token in URL, got: %s", meta)
 	}
 }
+
+func TestBuildDefaultOgpMeta(t *testing.T) {
+	meta := BuildDefaultOgpMeta("kifu_store", "https://example.com/", "https://example.com/ogp-default.png")
+	if !strings.Contains(meta, `og:image" content="https://example.com/ogp-default.png"`) {
+		t.Errorf("Expected og:image to contain default OGP image url, got: %s", meta)
+	}
+	if !strings.Contains(meta, `twitter:card" content="summary_large_image"`) {
+		t.Errorf("Expected twitter:card to be summary_large_image, got: %s", meta)
+	}
+	if !strings.Contains(meta, `twitter:image" content="https://example.com/ogp-default.png"`) {
+		t.Errorf("Expected twitter:image to contain default OGP image url, got: %s", meta)
+	}
+}
+
+func TestBuildUserListOgpMeta(t *testing.T) {
+	meta := BuildUserListOgpMeta("kifu_store", "https://example.com/u/user1", "https://example.com/ogp-default.png")
+	if !strings.Contains(meta, `og:image" content="https://example.com/ogp-default.png"`) {
+		t.Errorf("Expected og:image in user list OGP, got: %s", meta)
+	}
+	if !strings.Contains(meta, `twitter:card" content="summary_large_image"`) {
+		t.Errorf("Expected twitter:card to be summary_large_image, got: %s", meta)
+	}
+}
