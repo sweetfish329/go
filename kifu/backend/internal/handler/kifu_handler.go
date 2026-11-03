@@ -51,6 +51,7 @@ func (h *KifuHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/kifus", AuthMiddleware(http.HandlerFunc(h.Upload)))
 	mux.Handle("POST /api/kifus/{id}/share", AuthMiddleware(http.HandlerFunc(h.Share)))
 	mux.Handle("PUT /api/kifus/{id}/privacy", AuthMiddleware(http.HandlerFunc(h.UpdatePrivacy)))
+	mux.Handle("PUT /api/kifus/{id}/metadata", AuthMiddleware(http.HandlerFunc(h.UpdateMetadata)))
 	mux.Handle("PUT /api/kifus/{id}/ogp", AuthMiddleware(http.HandlerFunc(h.UpdateOgpImage)))
 	mux.Handle("GET /api/kifus/{id}/og-image", AuthMiddleware(http.HandlerFunc(h.GetOgImage)))
 	mux.Handle("GET /api/kifus/{id}/thumbnail", AuthMiddleware(http.HandlerFunc(h.GetThumbnail)))
@@ -395,6 +396,98 @@ func (h *KifuHandler) UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{"result": "success", "is_private": req.IsPrivate})
+}
+
+type UpdateKifuMetadataRequest struct {
+	Title       string  `json:"title"`
+	BlackPlayer string  `json:"black_player"`
+	BlackRank   string  `json:"black_rank"`
+	WhitePlayer string  `json:"white_player"`
+	WhiteRank   string  `json:"white_rank"`
+	GameDate    string  `json:"game_date"`
+	Result      string  `json:"result"`
+	Komi        float64 `json:"komi"`
+	Handicap    int     `json:"handicap"`
+}
+
+func (h *KifuHandler) UpdateMetadata(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing ID")
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	kifu, err := h.repo.FindByID(id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if kifu == nil {
+		respondWithError(w, http.StatusNotFound, "Kifu not found")
+		return
+	}
+
+	isAdmin, _ := r.Context().Value(IsAdminKey).(bool)
+	if !isAdmin && (kifu.UploadedBy == nil || *kifu.UploadedBy != userID) {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	var req UpdateKifuMetadataRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	meta := &sgf.Metadata{
+		BlackPlayer: strings.TrimSpace(req.BlackPlayer),
+		BlackRank:   strings.TrimSpace(req.BlackRank),
+		WhitePlayer: strings.TrimSpace(req.WhitePlayer),
+		WhiteRank:   strings.TrimSpace(req.WhiteRank),
+		Date:        sgf.CleanDate(req.GameDate),
+		Result:      strings.TrimSpace(req.Result),
+		Komi:        req.Komi,
+		Handicap:    req.Handicap,
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		if meta.BlackPlayer != "" && meta.WhitePlayer != "" {
+			title = fmt.Sprintf("%s vs %s", meta.BlackPlayer, meta.WhitePlayer)
+		} else {
+			title = "名称未設定の対局"
+		}
+	}
+
+	newSgf, err := sgf.UpdateMetadata(kifu.SgfData, title, meta)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to update SGF metadata: "+err.Error())
+		return
+	}
+
+	kifu.Title = title
+	kifu.BlackPlayer = meta.BlackPlayer
+	kifu.BlackRank = meta.BlackRank
+	kifu.WhitePlayer = meta.WhitePlayer
+	kifu.WhiteRank = meta.WhiteRank
+	kifu.GameDate = meta.Date
+	kifu.Result = meta.Result
+	kifu.Komi = meta.Komi
+	kifu.Handicap = meta.Handicap
+	kifu.SgfData = newSgf
+
+	if err := h.repo.UpdateMetadata(kifu); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to save updated metadata: "+err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, kifu)
 }
 
 func (h *KifuHandler) ListPublic(w http.ResponseWriter, r *http.Request) {

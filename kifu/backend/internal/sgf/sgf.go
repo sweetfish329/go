@@ -66,7 +66,7 @@ func ExtractMetadata(n *Node) *Metadata {
 		meta.WhiteRank = val
 	}
 	if val, ok := n.GetValue("DT"); ok {
-		meta.Date = cleanDate(val)
+		meta.Date = CleanDate(val)
 	}
 	if val, ok := n.GetValue("RE"); ok {
 		meta.Result = val
@@ -75,13 +75,77 @@ func ExtractMetadata(n *Node) *Metadata {
 	return meta
 }
 
+// UpdateMetadata updates root node properties in the SGF string and returns the serialized SGF.
+func UpdateMetadata(sgfStr string, title string, meta *Metadata) (string, error) {
+	root, err := Parse(sgfStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse SGF: %w", err)
+	}
+	rootNode := root.GetRoot()
+
+	title = strings.TrimSpace(title)
+	if title != "" {
+		rootNode.SetValue("EV", title)
+		rootNode.SetValue("GN", title)
+	}
+
+	if meta != nil {
+		if bp := strings.TrimSpace(meta.BlackPlayer); bp != "" {
+			rootNode.SetValue("PB", bp)
+		} else {
+			rootNode.DeleteKey("PB")
+		}
+
+		if br := strings.TrimSpace(meta.BlackRank); br != "" {
+			rootNode.SetValue("BR", br)
+		} else {
+			rootNode.DeleteKey("BR")
+		}
+
+		if wp := strings.TrimSpace(meta.WhitePlayer); wp != "" {
+			rootNode.SetValue("PW", wp)
+		} else {
+			rootNode.DeleteKey("PW")
+		}
+
+		if wr := strings.TrimSpace(meta.WhiteRank); wr != "" {
+			rootNode.SetValue("WR", wr)
+		} else {
+			rootNode.DeleteKey("WR")
+		}
+
+		if dt := strings.TrimSpace(meta.Date); dt != "" {
+			rootNode.SetValue("DT", CleanDate(dt))
+		} else {
+			rootNode.DeleteKey("DT")
+		}
+
+		if re := strings.TrimSpace(meta.Result); re != "" {
+			rootNode.SetValue("RE", re)
+		} else {
+			rootNode.DeleteKey("RE")
+		}
+
+		rootNode.SetValue("KM", fmt.Sprintf("%g", meta.Komi))
+
+		if meta.Handicap > 0 {
+			rootNode.SetValue("HA", fmt.Sprintf("%d", meta.Handicap))
+		} else {
+			rootNode.DeleteKey("HA")
+		}
+	}
+
+	return rootNode.SGF(), nil
+}
+
 var (
 	dateRegex       = regexp.MustCompile(`(\d{4})[-/](\d{2})[-/](\d{2})`)
 	simpleDateRegex = regexp.MustCompile(`(\d{4})(\d{2})(\d{2})`)
 	yearRegex       = regexp.MustCompile(`^(\d{4})$`)
 )
 
-func cleanDate(dt string) string {
+// CleanDate cleans date string to YYYY-MM-DD.
+func CleanDate(dt string) string {
 	dt = strings.TrimSpace(dt)
 	if dt == "" {
 		return time.Now().Format("2006-01-02")
@@ -104,4 +168,8 @@ func cleanDate(dt string) string {
 
 	// Fallback to current date
 	return time.Now().Format("2006-01-02")
+}
+
+func cleanDate(dt string) string {
+	return CleanDate(dt)
 }

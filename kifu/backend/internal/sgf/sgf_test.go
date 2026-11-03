@@ -171,3 +171,72 @@ func TestGenerateSquareThumbnail(t *testing.T) {
 		t.Errorf("Expected 600x600 image dimensions, got %dx%d", bounds.Dx(), bounds.Dy())
 	}
 }
+
+func TestUpdateMetadata(t *testing.T) {
+	sgfStr := `(;GM[1]FF[4]SZ[19]KM[6.5]PB[Player A]PW[Player B];B[qd];W[dc])`
+
+	newMeta := &Metadata{
+		BlackPlayer: "Kawaha Yu",
+		BlackRank:   "2d",
+		WhitePlayer: "Fujisawa Rina",
+		WhiteRank:   "7d",
+		Date:        "2026-11-03",
+		Result:      "W+R",
+		Komi:        7.5,
+		Handicap:    2,
+	}
+
+	updatedSgf, err := UpdateMetadata(sgfStr, "72nd Oza Qualifier", newMeta)
+	if err != nil {
+		t.Fatalf("UpdateMetadata failed: %v", err)
+	}
+
+	parsed, err := Parse(updatedSgf)
+	if err != nil {
+		t.Fatalf("Parse updated SGF failed: %v", err)
+	}
+
+	meta := ExtractMetadata(parsed)
+	if meta.BlackPlayer != "Kawaha Yu" {
+		t.Errorf("Expected BlackPlayer 'Kawaha Yu', got %q", meta.BlackPlayer)
+	}
+	if meta.BlackRank != "2d" {
+		t.Errorf("Expected BlackRank '2d', got %q", meta.BlackRank)
+	}
+	if meta.WhitePlayer != "Fujisawa Rina" {
+		t.Errorf("Expected WhitePlayer 'Fujisawa Rina', got %q", meta.WhitePlayer)
+	}
+	if meta.WhiteRank != "7d" {
+		t.Errorf("Expected WhiteRank '7d', got %q", meta.WhiteRank)
+	}
+	if meta.Date != "2026-11-03" {
+		t.Errorf("Expected Date '2026-11-03', got %q", meta.Date)
+	}
+	if meta.Result != "W+R" {
+		t.Errorf("Expected Result 'W+R', got %q", meta.Result)
+	}
+	if meta.Komi != 7.5 {
+		t.Errorf("Expected Komi 7.5, got %f", meta.Komi)
+	}
+	if meta.Handicap != 2 {
+		t.Errorf("Expected Handicap 2, got %d", meta.Handicap)
+	}
+
+	ev, _ := parsed.GetValue("EV")
+	if ev != "72nd Oza Qualifier" {
+		t.Errorf("Expected EV '72nd Oza Qualifier', got %q", ev)
+	}
+	gn, _ := parsed.GetValue("GN")
+	if gn != "72nd Oza Qualifier" {
+		t.Errorf("Expected GN '72nd Oza Qualifier', got %q", gn)
+	}
+
+	// Verify moves are preserved
+	if len(parsed.Children()) != 1 {
+		t.Fatalf("Expected 1 child for root, got %d", len(parsed.Children()))
+	}
+	bMove := parsed.Children()[0]
+	if val, ok := bMove.GetValue("B"); !ok || val != "qd" {
+		t.Errorf("Expected B[qd], got B[%s]", val)
+	}
+}

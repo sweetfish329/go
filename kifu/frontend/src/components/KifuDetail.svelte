@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import Board from './Board.svelte';
   import ShareDialog from './ShareDialog.svelte';
+  import GameInfoEditModal from './GameInfoEditModal.svelte';
   import { SgfPlayer, stringifySgf } from '../lib/sgfPlayer';
   import type { SgfNode } from '../lib/sgfPlayer';
   import { auth } from '../lib/auth.svelte';
@@ -21,6 +22,7 @@
   }>();
 
   let showShareDialog = $state(false);
+  let showEditMetadataModal = $state(false);
 
   interface KifuDetailData {
     id: string;
@@ -724,7 +726,7 @@
       return;
     }
     // Disable when modals are open
-    if (showShareDialog || showSettingsModal) return;
+    if (showShareDialog || showSettingsModal || showEditMetadataModal) return;
 
     if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
       e.preventDefault();
@@ -1065,9 +1067,21 @@
       {/if}
     </div>
     {#if kifu && isOwner}
-      <button class="share-settings-btn nm-btn em-pulse-button" onclick={() => showShareDialog = true}>
-        <i class="material-icons" style="font-size: 0.95rem; vertical-align: middle; margin-right: 4px;">share</i>Share settings
-      </button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button
+          type="button"
+          class="nm-btn-flat"
+          onclick={() => showEditMetadataModal = true}
+          title="対局情報を編集"
+          aria-label="対局情報を編集"
+          style="display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0 !important; background: var(--wc-surface) !important; color: var(--wc-text); font-weight: 700; font-size: 0.82rem; padding: 0 12px; height: 36px; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));"
+        >
+          <i class="material-icons" style="font-size: 1.1rem; color: var(--wc-accent);">edit_note</i>対局情報を編集
+        </button>
+        <button class="share-settings-btn nm-btn em-pulse-button" onclick={() => showShareDialog = true}>
+          <i class="material-icons" style="font-size: 0.95rem; vertical-align: middle; margin-right: 4px;">share</i>Share settings
+        </button>
+      </div>
     {/if}
   </div>
 
@@ -1259,6 +1273,18 @@
                 </tr>
               </tbody>
             </table>
+            {#if isOwner}
+              <div style="margin-top: 14px; text-align: right;">
+                <button
+                  type="button"
+                  class="nm-btn-flat"
+                  onclick={() => showEditMetadataModal = true}
+                  style="display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; border-radius: 0 !important; background: var(--wc-surface) !important; color: var(--wc-text); font-weight: 700; font-size: 0.78rem; padding: 6px 12px; box-shadow: 2px 2px 0 var(--wc-shadow-solid, var(--wc-text));"
+                >
+                  <i class="material-icons" style="font-size: 1rem; color: var(--wc-accent);">edit_note</i>対局情報を編集
+                </button>
+              </div>
+            {/if}
           </div>
         {/if}
       </div>
@@ -1627,6 +1653,26 @@
         kifu = { ...kifu, ...updatedKifu } as KifuDetailData;
       }
     }} 
+  />
+{/if}
+
+{#if showEditMetadataModal && kifu}
+  <GameInfoEditModal
+    kifu={kifu}
+    onClose={() => showEditMetadataModal = false}
+    onSuccess={(updatedKifu: any) => {
+      if (kifu) {
+        kifu = { ...kifu, ...updatedKifu } as KifuDetailData;
+        if (updatedKifu.sgf_data) {
+          const preservedIndex = currentIndex;
+          player = new SgfPlayer(updatedKifu.sgf_data, boardSize);
+          mergeReviewsIntoPlayer();
+          extractAiData();
+          player.goTo(preservedIndex);
+          updatePlayerState();
+        }
+      }
+    }}
   />
 {/if}
 

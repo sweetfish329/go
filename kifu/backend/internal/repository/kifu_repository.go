@@ -264,6 +264,32 @@ func (r *KifuRepository) Delete(id string) error {
 	return nil
 }
 
+func (r *KifuRepository) UpdateMetadata(kifu *model.Kifu) error {
+	compressedSgf, err := sgfcompress.Compress(kifu.SgfData)
+	if err != nil {
+		return fmt.Errorf("failed to compress SGF data: %w", err)
+	}
+
+	query := `
+	UPDATE kifus
+	SET title = $1, black_player = $2, black_rank = $3,
+	    white_player = $4, white_rank = $5, game_date = $6,
+	    result = $7, komi = $8, handicap = $9,
+	    sgf_data = $10, updated_at = CURRENT_TIMESTAMP
+	WHERE id = $11`
+
+	_, err = r.db.Exec(query,
+		kifu.Title, kifu.BlackPlayer, kifu.BlackRank,
+		kifu.WhitePlayer, kifu.WhiteRank, kifu.GameDate,
+		kifu.Result, kifu.Komi, kifu.Handicap,
+		compressedSgf, kifu.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update kifu metadata: %w", err)
+	}
+	return nil
+}
+
 func (r *KifuRepository) UpdateOgpImage(id string, ogpData []byte) error {
 	query := `UPDATE kifus SET ogp_image = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
 	_, err := r.db.Exec(query, ogpData, id)

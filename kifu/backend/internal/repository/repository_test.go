@@ -247,6 +247,67 @@ func TestKifuRepository(t *testing.T) {
 		t.Errorf("GetThumbnailImage should remain unchanged, got: %s", string(gotThumb))
 	}
 
+	// UpdateMetadata should update metadata columns and sgf_data without touching ogp_image or thumbnail_image
+	kifu.Title = "Updated Title"
+	kifu.BlackPlayer = "Black Pro"
+	kifu.BlackRank = "9p"
+	kifu.WhitePlayer = "White Pro"
+	kifu.WhiteRank = "9p"
+	kifu.GameDate = "2026-11-03"
+	kifu.Result = "B+R"
+	kifu.Komi = 7.5
+	kifu.Handicap = 0
+	kifu.SgfData = "(;GM[1]PB[Black Pro]PW[White Pro]RE[B+R])"
+
+	if err := repo.UpdateMetadata(kifu); err != nil {
+		t.Fatalf("UpdateMetadata failed: %v", err)
+	}
+
+	foundUpdated, err := repo.FindByID(kifu.ID)
+	if err != nil || foundUpdated == nil {
+		t.Fatalf("FindByID after UpdateMetadata failed: %v", err)
+	}
+	if foundUpdated.Title != "Updated Title" {
+		t.Errorf("Expected title 'Updated Title', got %q", foundUpdated.Title)
+	}
+	if foundUpdated.BlackPlayer != "Black Pro" {
+		t.Errorf("Expected BlackPlayer 'Black Pro', got %q", foundUpdated.BlackPlayer)
+	}
+	if foundUpdated.BlackRank != "9p" {
+		t.Errorf("Expected BlackRank '9p', got %q", foundUpdated.BlackRank)
+	}
+	if foundUpdated.WhitePlayer != "White Pro" {
+		t.Errorf("Expected WhitePlayer 'White Pro', got %q", foundUpdated.WhitePlayer)
+	}
+	if foundUpdated.WhiteRank != "9p" {
+		t.Errorf("Expected WhiteRank '9p', got %q", foundUpdated.WhiteRank)
+	}
+	if foundUpdated.GameDate != "2026-11-03" {
+		t.Errorf("Expected GameDate '2026-11-03', got %q", foundUpdated.GameDate)
+	}
+	if foundUpdated.Result != "B+R" {
+		t.Errorf("Expected Result 'B+R', got %q", foundUpdated.Result)
+	}
+	if foundUpdated.Komi != 7.5 {
+		t.Errorf("Expected Komi 7.5, got %f", foundUpdated.Komi)
+	}
+	if foundUpdated.Handicap != 0 {
+		t.Errorf("Expected Handicap 0, got %d", foundUpdated.Handicap)
+	}
+	if foundUpdated.SgfData != "(;GM[1]PB[Black Pro]PW[White Pro]RE[B+R])" {
+		t.Errorf("Expected updated SgfData, got %q", foundUpdated.SgfData)
+	}
+
+	// Verify images are still preserved after UpdateMetadata
+	gotOgpAfterMeta, err := repo.GetOgpImage(kifu.ID)
+	if err != nil || string(gotOgpAfterMeta) != "fake_ogp_image_bytes" {
+		t.Errorf("GetOgpImage should remain unchanged after metadata update, got: %s", string(gotOgpAfterMeta))
+	}
+	gotThumbAfterMeta, err := repo.GetThumbnailImage(kifu.ID)
+	if err != nil || string(gotThumbAfterMeta) != "original_thumbnail_bytes" {
+		t.Errorf("GetThumbnailImage should remain unchanged after metadata update, got: %s", string(gotThumbAfterMeta))
+	}
+
 	// Delete
 	if err := repo.Delete(kifu.ID); err != nil {
 		t.Fatalf("Delete kifu failed: %v", err)
