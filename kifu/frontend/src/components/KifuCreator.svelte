@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { slide } from 'svelte/transition';
   import { createBoard, copyBoard, placeStone, coordsToSgf } from '../lib/goEngine';
   import Board from './Board.svelte';
   import CameraCaptureModal from './CameraCaptureModal.svelte';
@@ -11,8 +12,9 @@
     onCancel: () => void;
   }>();
 
-  // Modal State
+  // Modal & Collapse States
   let showCameraModal = $state(false);
+  let isMetadataCollapsed = $state(false);
 
   // Game Info Form States
   let gameTitle = $state("");
@@ -21,6 +23,13 @@
   let whitePlayer = $state("");
   let whiteRank = $state("");
   let gameDate = $state(new Date().toISOString().slice(0, 10));
+
+  let metadataSummary = $derived.by(() => {
+    const b = blackPlayer.trim() ? `${blackPlayer.trim()}${blackRank.trim() ? ' ' + blackRank.trim() : ''}` : '黒番';
+    const w = whitePlayer.trim() ? `${whitePlayer.trim()}${whiteRank.trim() ? ' ' + whiteRank.trim() : ''}` : '白番';
+    const titlePart = gameTitle.trim() ? `${gameTitle.trim()} — ` : '';
+    return `${titlePart}● ${b} vs ○ ${w}`;
+  });
 
   // Kifu creation history states
   interface CreatorMove {
@@ -409,44 +418,77 @@
 
   <!-- Right: Control Panel & Metadata Form -->
   <div class="col s12 l5">
-    <!-- Game Metadata Card -->
-    <div class="em-portfolio-section" style="margin-bottom: 2rem; border-color: var(--wc-border-solid, var(--wc-text)) !important; padding: 28px 20px 20px 20px !important;">
+    <!-- Game Metadata Card (Collapsible for live game recording) -->
+    <div
+      class="em-portfolio-section metadata-card"
+      class:is-collapsed={isMetadataCollapsed}
+      style="border-color: var(--wc-border-solid, var(--wc-text)) !important;"
+    >
       <!-- Overlapping Badge -->
       <span class="em-collage-tag" style="position: absolute; top: -14px; left: 16px; z-index: 10; font-size: 0.72rem; border: 1.5px solid var(--wc-border-solid, var(--wc-text)); box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text));">
         Specs — Metadata Input
       </span>
 
-      <div class="card-content" style="padding: 12px 0 0 0;">
-        <div class="row" style="margin-bottom: 0;">
-          <div class="input-field col s12" style="margin-top: 0; margin-bottom: 12px;">
-            <input id="game_title" type="text" class="nm-input" bind:value={gameTitle} placeholder="例: 第1期 〇〇戦" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
-            <label for="game_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">対局名 / タイトル</label>
-          </div>
+      <button
+        type="button"
+        class="metadata-toggle-btn"
+        aria-expanded={!isMetadataCollapsed}
+        aria-controls="creator-metadata-panel"
+        onclick={() => (isMetadataCollapsed = !isMetadataCollapsed)}
+        title={isMetadataCollapsed ? "対局情報の入力欄を展開する" : "対局情報の入力欄を折りたたむ"}
+      >
+        <div class="metadata-toggle-left">
+          <i class="material-icons" aria-hidden="true" style="font-size: 1.15rem; color: var(--wc-primary);">assignment</i>
+          <span class="metadata-toggle-title">対局情報</span>
+          {#if isMetadataCollapsed}
+            <span class="metadata-summary-chip">{metadataSummary}</span>
+          {/if}
+        </div>
+        <span class="metadata-toggle-action">
+          <span>{isMetadataCollapsed ? "ひらく" : "たたむ"}</span>
+          <i
+            class="material-icons metadata-chevron"
+            class:is-collapsed={isMetadataCollapsed}
+            aria-hidden="true"
+          >
+            expand_less
+          </i>
+        </span>
+      </button>
 
-          <div class="input-field col s8" style="margin-top: 5px; margin-bottom: 12px;">
-            <input id="black_player" type="text" class="nm-input" bind:value={blackPlayer} placeholder="黒番プレイヤー" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
-            <label for="black_player" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">黒番 (PB)</label>
-          </div>
-          <div class="input-field col s4" style="margin-top: 5px; margin-bottom: 12px;">
-            <input id="black_rank" type="text" class="nm-input" bind:value={blackRank} placeholder="例: 9段" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
-            <label for="black_rank" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">段位</label>
-          </div>
+      {#if !isMetadataCollapsed}
+        <div id="creator-metadata-panel" class="card-content" transition:slide={{ duration: 180 }} style="padding: 14px 0 0 0;">
+          <div class="row" style="margin-bottom: 0;">
+            <div class="input-field col s12" style="margin-top: 0; margin-bottom: 12px;">
+              <input id="game_title" type="text" class="nm-input" bind:value={gameTitle} placeholder="例: 第1期 〇〇戦" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+              <label for="game_title" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">対局名 / タイトル</label>
+            </div>
 
-          <div class="input-field col s8" style="margin-top: 5px; margin-bottom: 12px;">
-            <input id="white_player" type="text" class="nm-input" bind:value={whitePlayer} placeholder="白番プレイヤー" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
-            <label for="white_player" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">白番 (PW)</label>
-          </div>
-          <div class="input-field col s4" style="margin-top: 5px; margin-bottom: 12px;">
-            <input id="white_rank" type="text" class="nm-input" bind:value={whiteRank} placeholder="例: 8段" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
-            <label for="white_rank" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">段位</label>
-          </div>
+            <div class="input-field col s8" style="margin-top: 5px; margin-bottom: 12px;">
+              <input id="black_player" type="text" class="nm-input" bind:value={blackPlayer} placeholder="黒番プレイヤー" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+              <label for="black_player" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">黒番 (PB)</label>
+            </div>
+            <div class="input-field col s4" style="margin-top: 5px; margin-bottom: 12px;">
+              <input id="black_rank" type="text" class="nm-input" bind:value={blackRank} placeholder="例: 9段" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+              <label for="black_rank" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">段位</label>
+            </div>
 
-          <div class="input-field col s12" style="margin-top: 5px; margin-bottom: 5px;">
-            <input id="game_date" type="date" class="nm-input" bind:value={gameDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
-            <label for="game_date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">対局日 (DT)</label>
+            <div class="input-field col s8" style="margin-top: 5px; margin-bottom: 12px;">
+              <input id="white_player" type="text" class="nm-input" bind:value={whitePlayer} placeholder="白番プレイヤー" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+              <label for="white_player" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">白番 (PW)</label>
+            </div>
+            <div class="input-field col s4" style="margin-top: 5px; margin-bottom: 12px;">
+              <input id="white_rank" type="text" class="nm-input" bind:value={whiteRank} placeholder="例: 8段" style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+              <label for="white_rank" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">段位</label>
+            </div>
+
+            <div class="input-field col s12" style="margin-top: 5px; margin-bottom: 5px;">
+              <input id="game_date" type="date" class="nm-input" bind:value={gameDate} style="margin-bottom: 0; border-radius: 0 !important; border: 1.5px solid var(--wc-border-solid, var(--wc-text)) !important; background: var(--wc-surface) !important;" />
+              <label for="game_date" class="active" style="transform: translateY(-12px) scale(0.8); left: 0.75rem; color: var(--wc-text); font-weight: 600;">対局日 (DT)</label>
+            </div>
           </div>
         </div>
-      </div>
+      {/if}
     </div>
 
     <!-- Active Game State & Controls Card -->
@@ -544,6 +586,102 @@
     width: 100%;
     max-width: min(78vh, 720px);
     box-sizing: border-box;
+  }
+
+  /* Collapsible Metadata Card (Washi Clay / Vogue Neo-Brutalist) */
+  .metadata-card {
+    margin-bottom: 2rem;
+    padding: 24px 20px 20px 20px !important;
+    transition: padding 0.2s ease, margin-bottom 0.2s ease;
+  }
+
+  .metadata-card.is-collapsed {
+    margin-bottom: 1.5rem;
+    padding: 18px 16px 12px 16px !important;
+  }
+
+  .metadata-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--wc-surface-alt);
+    border: 1.5px solid var(--wc-border-solid, var(--wc-text));
+    box-shadow: 2px 2px 0px var(--wc-shadow-solid, var(--wc-text));
+    border-radius: 0 !important;
+    color: var(--wc-text);
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  }
+
+  .metadata-toggle-btn:hover {
+    background: var(--wc-surface);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0px var(--wc-shadow-solid, var(--wc-text));
+  }
+
+  .metadata-toggle-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px var(--wc-shadow-solid, var(--wc-text));
+  }
+
+  .metadata-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .metadata-toggle-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .metadata-summary-chip {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--wc-text-muted);
+    background: var(--wc-surface);
+    border: 1px solid var(--wc-border-solid, var(--wc-text));
+    padding: 1px 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .metadata-toggle-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--wc-text);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .metadata-chevron {
+    font-size: 1.25rem;
+    transition: transform 0.2s ease;
+  }
+
+  .metadata-chevron.is-collapsed {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .metadata-card,
+    .metadata-toggle-btn,
+    .metadata-chevron {
+      transition: none !important;
+    }
   }
 
   .control-buttons button {
